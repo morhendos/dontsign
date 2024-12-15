@@ -1,8 +1,10 @@
 'use server'
 
-import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { cache } from 'react'
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 interface AnalysisResult {
   summary: string;
@@ -85,9 +87,9 @@ export async function analyzeContract(formData: FormData) {
     - importantClauses (array of critical clauses)
     - recommendations (array of suggested actions or modifications)`
 
-    const analysis = await withRetry(async () => {
-      return generateText({
-        model: openai('gpt-4o'),
+    const response = await withRetry(async () => {
+      return await openai.chat.completions.create({
+        model: 'gpt-4',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -98,16 +100,18 @@ export async function analyzeContract(formData: FormData) {
       })
     })
 
-    if (!analysis?.text) throw new Error('Failed to generate analysis')
+    if (!response?.choices[0]?.message?.content) {
+      throw new Error('No analysis generated')
+    }
 
-    const parsedAnalysis: AnalysisResult = JSON.parse(analysis.text)
+    const parsedAnalysis: AnalysisResult = JSON.parse(response.choices[0].message.content)
     
     return {
       ...parsedAnalysis,
       metadata: {
         analyzedAt: new Date().toISOString(),
         documentName: file.name,
-        modelVersion: 'gpt-4o'
+        modelVersion: 'gpt-4'
       } as AnalysisMetadata
     }
 
