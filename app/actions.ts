@@ -92,7 +92,7 @@ export async function analyzeContract(formData: FormData) {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.3, // Lower temperature for more consistent, analytical responses
+        temperature: 0.3,
         max_tokens: 2000,
         response_format: { type: 'json_object' }
       })
@@ -102,7 +102,6 @@ export async function analyzeContract(formData: FormData) {
 
     const parsedAnalysis: AnalysisResult = JSON.parse(analysis.text)
     
-    // Add metadata about the analysis
     return {
       ...parsedAnalysis,
       metadata: {
