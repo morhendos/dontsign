@@ -89,7 +89,7 @@ export async function analyzeContract(formData: FormData) {
 
     const response = await withRetry(async () => {
       return await openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-3.5-turbo-1106',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -111,7 +111,7 @@ export async function analyzeContract(formData: FormData) {
       metadata: {
         analyzedAt: new Date().toISOString(),
         documentName: file.name,
-        modelVersion: 'gpt-4'
+        modelVersion: 'gpt-3.5-turbo-1106'
       } as AnalysisMetadata
     }
 
