@@ -1,16 +1,21 @@
 'use client';
 
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
 import { version } from 'pdfjs-dist/package.json';
+import { PDFProcessingError } from './errors';
 
 // Only initialize worker in browser environment
 if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
-  // Use CDN-hosted worker with explicit version
   GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
 }
 
 export async function readPdfText(file: File): Promise<string> {
   try {
+    // Validate file size
+    if (file.size === 0) {
+      throw new PDFProcessingError('Empty PDF file', 'EMPTY_FILE');
+    }
+
     // Convert file to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
     
@@ -22,42 +27,72 @@ export async function readPdfText(file: File): Promise<string> {
       useSystemFonts: true    // Use system fonts when possible
     }).promise;
     
-    // Get all pages text
+    // Validate page count
     const maxPages = pdf.numPages;
-    const pageTextPromises = [];
-    
-    for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
-      pageTextPromises.push(getPageText(pdf, pageNo));
+    if (maxPages === 0) {
+      throw new PDFProcessingError('PDF file contains no pages', 'EMPTY_FILE');
     }
+
+    // Get all pages text
+    const pageTexts = await Promise.all(
+      Array.from({ length: maxPages }, (_, i) => getPageText(pdf, i + 1))
+    );
     
-    const pageTexts = await Promise.all(pageTextPromises);
     const fullText = pageTexts.join('\n\n');
 
     if (!fullText.trim()) {
-      throw new Error('No readable text found in the PDF');
+      throw new PDFProcessingError('No readable text found in the PDF', 'NO_TEXT_CONTENT');
     }
 
     return fullText;
   } catch (error) {
     console.error('Error reading PDF:', error);
-    throw new Error(
-      error instanceof Error ? error.message : 'Could not read PDF file'
+    
+    if (error instanceof PDFProcessingError) {
+      throw error;
+    }
+
+    // Handle specific PDF.js errors
+    if (error instanceof Error) {
+      if (error.message.includes('Invalid PDF structure')) {
+        throw new PDFProcessingError('The PDF file appears to be corrupted', 'CORRUPT_FILE', error);
+      }
+      if (error.message.includes('Password required')) {
+        throw new PDFProcessingError('Cannot process encrypted PDF files', 'INVALID_FORMAT', error);
+      }
+    }
+
+    throw new PDFProcessingError(
+      'Could not read PDF file',
+      'EXTRACTION_ERROR',
+      error
     );
   }
 }
 
-async function getPageText(pdf: any, pageNo: number): Promise<string> {
+async function getPageText(pdf: PDFDocumentProxy, pageNo: number): Promise<string> {
   try {
     const page = await pdf.getPage(pageNo);
     const textContent = await page.getTextContent();
     
+    if (!textContent.items || !Array.isArray(textContent.items)) {
+      throw new PDFProcessingError(
+        `Invalid text content structure on page ${pageNo}`,
+        'EXTRACTION_ERROR'
+      );
+    }
+
     const pageText = textContent.items
-      .map((item: any) => item.str)
+      .map((item: any) => item.str || '')
       .join(' ');
 
     return pageText || `[Empty page ${pageNo}]`;
   } catch (error) {
     console.error(`Error reading page ${pageNo}:`, error);
-    return `[Error reading page ${pageNo}]`;
+    throw new PDFProcessingError(
+      `Failed to extract text from page ${pageNo}`,
+      'EXTRACTION_ERROR',
+      error
+    );
   }
 }
