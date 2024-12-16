@@ -2,12 +2,26 @@
 
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { FileText, ArrowRight, Loader2 } from 'lucide-react'
+import { FileText, ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { analyzeContract } from '@/app/actions'
+
+interface AnalysisResult {
+  summary: string;
+  keyTerms: string[];
+  potentialRisks: string[];
+  importantClauses: string[];
+  recommendations?: string[];
+  metadata?: {
+    analyzedAt: string;
+    documentName: string;
+    modelVersion: string;
+    totalChunks?: number;
+  };
+}
 
 export default function Hero() {
   const [file, setFile] = useState<File | null>(null)
-  const [analysis, setAnalysis] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -69,6 +83,23 @@ export default function Hero() {
     }
   }
 
+  const renderAnalysisSection = (title: string, items: string[] | undefined, icon: React.ReactNode) => {
+    if (!items || items.length === 0) return null;
+    return (
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          {icon}
+          {title}
+        </h3>
+        <ul className="list-disc pl-6 space-y-2">
+          {items.map((item, index) => (
+            <li key={index} className="text-gray-700">{item}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
   return (
     <section className="py-20 px-4 text-center">
       <h1 className="text-5xl font-bold mb-6 tracking-tight text-gray-900">
@@ -128,10 +159,39 @@ export default function Hero() {
       {analysis && (
         <div className="mt-8 max-w-3xl mx-auto text-left bg-white p-6 rounded-lg shadow-lg">
           <h2 className="text-2xl font-bold mb-4">Contract Analysis</h2>
-          <pre className="whitespace-pre-wrap text-sm">{analysis}</pre>
+          
+          {/* Summary Section */}
+          <div className="mb-6">
+            <p className="text-gray-700">{analysis.summary}</p>
+          </div>
+
+          {/* Key Terms */}
+          {renderAnalysisSection('Key Terms', analysis.keyTerms, 
+            <CheckCircle className="w-5 h-5 text-blue-500" />)}
+
+          {/* Potential Risks */}
+          {renderAnalysisSection('Potential Risks', analysis.potentialRisks,
+            <AlertTriangle className="w-5 h-5 text-red-500" />)}
+
+          {/* Important Clauses */}
+          {renderAnalysisSection('Important Clauses', analysis.importantClauses,
+            <FileText className="w-5 h-5 text-gray-500" />)}
+
+          {/* Recommendations */}
+          {renderAnalysisSection('Recommendations', analysis.recommendations,
+            <Clock className="w-5 h-5 text-green-500" />)}
+
+          {/* Metadata */}
+          {analysis.metadata && (
+            <div className="mt-6 pt-4 border-t text-sm text-gray-500">
+              <p>Analyzed on: {new Date(analysis.metadata.analyzedAt).toLocaleDateString()}</p>
+              {analysis.metadata.totalChunks && (
+                <p>Document sections analyzed: {analysis.metadata.totalChunks}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
     </section>
   )
 }
-
