@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { FileText, ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { analyzeContract } from '@/app/actions'
+import { readPdfText } from '@/lib/pdf-utils'
 
 interface AnalysisResult {
   summary: string;
@@ -61,33 +62,52 @@ export default function Hero() {
 
     setIsAnalyzing(true)
     setError(null)
-    const formData = new FormData()
-    formData.append('file', file)
 
     try {
-      const result = await analyzeContract(formData)
-      if (result) {
-        setAnalysis(result)
+      // Extract text based on file type
+      let text: string;
+      if (file.type === 'application/pdf') {
+        text = await readPdfText(file);
       } else {
-        throw new Error('No analysis result received')
+        text = await file.text();
+      }
+
+      // Create FormData with text content
+      const formData = new FormData();
+      formData.append('text', text);
+      formData.append('filename', file.name);
+
+      // Send for analysis
+      const result = await analyzeContract(formData);
+      
+      if (result) {
+        setAnalysis(result);
+      } else {
+        throw new Error('No analysis result received');
       }
     } catch (error) {
-      console.error('Error analyzing contract:', error)
-      if (error instanceof Error && error.message.includes('OpenAI API key is not configured')) {
-        setError('The AI service is currently unavailable. Please try again later or contact support.')
+      console.error('Error analyzing contract:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('Could not read PDF file')) {
+          setError('Could not read the PDF file. Please make sure it\'s not encrypted or corrupted.');
+        } else if (error.message.includes('OpenAI API key is not configured')) {
+          setError('The AI service is currently unavailable. Please try again later or contact support.');
+        } else {
+          setError(`An error occurred: ${error.message}. Please try again.`);
+        }
       } else {
-        setError(`An error occurred while analyzing the contract: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`)
+        setError('An unknown error occurred. Please try again.');
       }
     } finally {
-      setIsAnalyzing(false)
+      setIsAnalyzing(false);
     }
   }
 
   const renderAnalysisSection = (title: string, items: string[] | undefined, icon: React.ReactNode) => {
     if (!items || items.length === 0) return null;
     return (
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+      <div className="mb-6 px-6 py-4 bg-white rounded-lg shadow-sm border border-gray-100">
+        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-gray-900">
           {icon}
           {title}
         </h3>
@@ -101,97 +121,106 @@ export default function Hero() {
   };
 
   return (
-    <section className="py-20 px-4 text-center">
-      <h1 className="text-5xl font-bold mb-6 tracking-tight text-gray-900">
-        Don't Sign Until<br />You're Sure.
-      </h1>
-      <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-        Upload your contract, let AI highlight the risks and key terms.
-      </p>
-      <div 
-        className="max-w-3xl mx-auto p-8 border-2 border-dashed border-gray-300 rounded-lg bg-white cursor-pointer transition-colors hover:bg-gray-50"
-        onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-        onClick={handleAreaClick}
-        role="button"
-        tabIndex={0}
-        onKeyPress={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            handleAreaClick()
-          }
-        }}
-      >
-        <div className="flex items-center justify-center gap-4">
-          <FileText className="w-8 h-8 text-blue-500" />
-          <p className="text-lg text-gray-600">
-            {file ? file.name : "Click or drop your contract here (PDF, DOCX)"}
-          </p>
-        </div>
-        <input
-          type="file"
-          accept=".pdf,.docx"
-          onChange={handleFileChange}
-          className="hidden"
-          id="file-upload"
-          ref={fileInputRef}
-        />
-      </div>
-      <Button 
-        className="mt-6 bg-blue-500 hover:bg-blue-600 text-white"
-        disabled={!file || isAnalyzing}
-        onClick={handleAnalyze}
-      >
-        {isAnalyzing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Analyzing...
-          </>
-        ) : (
-          <>
-            Analyse
-            <ArrowRight className="ml-2 w-4 h-4" />
-          </>
-        )}
-      </Button>
-      {error && (
-        <div className="mt-4 text-red-500">{error}</div>
-      )}
-      {analysis && (
-        <div className="mt-8 max-w-3xl mx-auto text-left bg-white p-6 rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold mb-4">Contract Analysis</h2>
-          
-          {/* Summary Section */}
-          <div className="mb-6">
-            <p className="text-gray-700">{analysis.summary}</p>
+    <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-5xl font-bold mb-6 tracking-tight text-gray-900 text-center">
+          Don't Sign Until<br />You're Sure
+        </h1>
+        <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto text-center">
+          Upload your contract, let AI highlight the risks and key terms.
+        </p>
+        <div 
+          className="p-8 border-2 border-dashed border-gray-300 rounded-lg bg-white cursor-pointer transition-colors hover:bg-gray-50"
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+          onClick={handleAreaClick}
+          role="button"
+          tabIndex={0}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              handleAreaClick()
+            }
+          }}
+        >
+          <div className="flex items-center justify-center gap-4">
+            <FileText className="w-8 h-8 text-blue-500" />
+            <p className="text-lg text-gray-600">
+              {file ? file.name : "Click or drop your contract here (PDF, DOCX)"}
+            </p>
           </div>
-
-          {/* Key Terms */}
-          {renderAnalysisSection('Key Terms', analysis.keyTerms, 
-            <CheckCircle className="w-5 h-5 text-blue-500" />)}
-
-          {/* Potential Risks */}
-          {renderAnalysisSection('Potential Risks', analysis.potentialRisks,
-            <AlertTriangle className="w-5 h-5 text-red-500" />)}
-
-          {/* Important Clauses */}
-          {renderAnalysisSection('Important Clauses', analysis.importantClauses,
-            <FileText className="w-5 h-5 text-gray-500" />)}
-
-          {/* Recommendations */}
-          {renderAnalysisSection('Recommendations', analysis.recommendations,
-            <Clock className="w-5 h-5 text-green-500" />)}
-
-          {/* Metadata */}
-          {analysis.metadata && (
-            <div className="mt-6 pt-4 border-t text-sm text-gray-500">
-              <p>Analyzed on: {new Date(analysis.metadata.analyzedAt).toLocaleDateString()}</p>
-              {analysis.metadata.totalChunks && (
-                <p>Document sections analyzed: {analysis.metadata.totalChunks}</p>
-              )}
-            </div>
-          )}
+          <input
+            type="file"
+            accept=".pdf,.docx"
+            onChange={handleFileChange}
+            className="hidden"
+            id="file-upload"
+            ref={fileInputRef}
+          />
         </div>
-      )}
+
+        <div className="flex justify-center mt-6">
+          <Button
+            variant={"default"}
+            disabled={!file || isAnalyzing}
+            onClick={handleAnalyze}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                Analyze Contract
+                <ArrowRight className="ml-2" />
+              </>
+            )}
+          </Button>
+        </div>
+
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-center">
+            {error}
+          </div>
+        )}
+
+        {analysis && (
+          <div className="mt-8 space-y-6">
+            {/* Summary Section */}
+            <div className="px-6 py-4 bg-white rounded-lg shadow-sm border border-gray-100">
+              <h2 className="text-2xl font-bold mb-4 text-gray-900">Analysis Summary</h2>
+              <p className="text-gray-700 text-lg leading-relaxed">{analysis.summary}</p>
+            </div>
+
+            {/* Key Terms */}
+            {renderAnalysisSection('Key Terms', analysis.keyTerms, 
+              <CheckCircle className="w-5 h-5 text-blue-500" />)}
+
+            {/* Potential Risks */}
+            {renderAnalysisSection('Potential Risks', analysis.potentialRisks,
+              <AlertTriangle className="w-5 h-5 text-red-500" />)}
+
+            {/* Important Clauses */}
+            {renderAnalysisSection('Important Clauses', analysis.importantClauses,
+              <FileText className="w-5 h-5 text-gray-500" />)}
+
+            {/* Recommendations */}
+            {renderAnalysisSection('Recommendations', analysis.recommendations,
+              <Clock className="w-5 h-5 text-green-500" />)}
+
+            {/* Metadata */}
+            {analysis.metadata && (
+              <div className="px-6 py-4 bg-gray-50 rounded-lg text-sm text-gray-500 space-y-1">
+                <p>Analysis completed on: {new Date(analysis.metadata.analyzedAt).toLocaleString()}</p>
+                {analysis.metadata.totalChunks && (
+                  <p>Document sections analyzed: {analysis.metadata.totalChunks}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </section>
   )
 }
