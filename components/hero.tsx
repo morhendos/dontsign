@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { FileText, ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { analyzeContract } from '@/app/actions'
 import { readPdfText } from '@/lib/pdf-utils'
+import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors'
 
 interface AnalysisResult {
   summary: string;
@@ -20,34 +21,50 @@ interface AnalysisResult {
   };
 }
 
+interface ErrorDisplay {
+  message: string;
+  type: 'error' | 'warning';
+}
+
 export default function Hero() {
   const [file, setFile] = useState<File | null>(null)
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ErrorDisplay | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     const droppedFile = e.dataTransfer.files[0]
-    if (droppedFile && (droppedFile.type === 'application/pdf' || droppedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
-      setFile(droppedFile)
-      setAnalysis(null)
-      setError(null)
-    } else {
-      setError('Please upload a PDF or DOCX file.')
-    }
+    handleFileSelection(droppedFile)
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
-    if (selectedFile && (selectedFile.type === 'application/pdf' || selectedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
-      setFile(selectedFile)
-      setAnalysis(null)
-      setError(null)
-    } else {
-      setError('Please select a PDF or DOCX file.')
+    handleFileSelection(selectedFile)
+  }
+
+  const handleFileSelection = (selectedFile?: File) => {
+    if (!selectedFile) {
+      setError({
+        message: 'Please select a file to analyze.',
+        type: 'warning'
+      })
+      return
     }
+
+    if (selectedFile.type !== 'application/pdf' && 
+        selectedFile.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      setError({
+        message: 'Please upload a PDF or DOCX file.',
+        type: 'error'
+      })
+      return
+    }
+
+    setFile(selectedFile)
+    setAnalysis(null)
+    setError(null)
   }
 
   const handleAreaClick = () => {
@@ -56,7 +73,10 @@ export default function Hero() {
 
   const handleAnalyze = async () => {
     if (!file) {
-      setError('Please upload a file before analyzing.')
+      setError({
+        message: 'Please upload a file before analyzing.',
+        type: 'warning'
+      })
       return
     }
 
@@ -83,20 +103,71 @@ export default function Hero() {
       if (result) {
         setAnalysis(result);
       } else {
-        throw new Error('No analysis result received');
+        throw new ContractAnalysisError(
+          'No analysis result received',
+          'INVALID_INPUT'
+        );
       }
     } catch (error) {
       console.error('Error analyzing contract:', error);
-      if (error instanceof Error) {
-        if (error.message.includes('Could not read PDF file')) {
-          setError('Could not read the PDF file. Please make sure it\'s not encrypted or corrupted.');
-        } else if (error.message.includes('OpenAI API key is not configured')) {
-          setError('The AI service is currently unavailable. Please try again later or contact support.');
-        } else {
-          setError(`An error occurred: ${error.message}. Please try again.`);
+      
+      if (error instanceof PDFProcessingError) {
+        switch (error.code) {
+          case 'EMPTY_FILE':
+            setError({
+              message: 'The PDF file appears to be empty.',
+              type: 'error'
+            });
+            break;
+          case 'CORRUPT_FILE':
+            setError({
+              message: 'The PDF file appears to be corrupted. Please check the file and try again.',
+              type: 'error'
+            });
+            break;
+          case 'NO_TEXT_CONTENT':
+            setError({
+              message: 'No readable text found in the PDF. The file might be scanned or image-based.',
+              type: 'error'
+            });
+            break;
+          default:
+            setError({
+              message: 'Could not read the PDF file. Please ensure it\'s not encrypted or corrupted.',
+              type: 'error'
+            });
+        }
+      } else if (error instanceof ContractAnalysisError) {
+        switch (error.code) {
+          case 'API_ERROR':
+            setError({
+              message: 'The AI service is currently unavailable. Please try again later.',
+              type: 'error'
+            });
+            break;
+          case 'INVALID_INPUT':
+            setError({
+              message: 'The document format is not supported. Please try a different file.',
+              type: 'error'
+            });
+            break;
+          case 'TEXT_PROCESSING_ERROR':
+            setError({
+              message: 'Error processing the document text. Please try a simpler document.',
+              type: 'error'
+            });
+            break;
+          default:
+            setError({
+              message: `An error occurred: ${error.message}. Please try again.`,
+              type: 'error'
+            });
         }
       } else {
-        setError('An unknown error occurred. Please try again.');
+        setError({
+          message: 'An unexpected error occurred. Please try again.',
+          type: 'error'
+        });
       }
     } finally {
       setIsAnalyzing(false);
@@ -130,7 +201,8 @@ export default function Hero() {
           Upload your contract, let AI highlight the risks and key terms.
         </p>
         <div 
-          className="p-8 border-2 border-dashed border-gray-300 rounded-lg bg-white cursor-pointer transition-colors hover:bg-gray-50"
+          className={`p-8 border-2 border-dashed rounded-lg bg-white cursor-pointer transition-colors hover:bg-gray-50
+            ${error?.type === 'error' ? 'border-red-300' : 'border-gray-300'}`}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           onClick={handleAreaClick}
@@ -143,7 +215,7 @@ export default function Hero() {
           }}
         >
           <div className="flex items-center justify-center gap-4">
-            <FileText className="w-8 h-8 text-blue-500" />
+            <FileText className={`w-8 h-8 ${error?.type === 'error' ? 'text-red-500' : 'text-blue-500'}`} />
             <p className="text-lg text-gray-600">
               {file ? file.name : "Click or drop your contract here (PDF, DOCX)"}
             </p>
@@ -167,7 +239,7 @@ export default function Hero() {
           >
             {isAnalyzing ? (
               <>
-                <Loader2 className="animate-spin" />
+                <Loader2 className="animate-spin mr-2" />
                 Analyzing...
               </>
             ) : (
@@ -180,8 +252,13 @@ export default function Hero() {
         </div>
 
         {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-center">
-            {error}
+          <div className={`mt-4 p-4 rounded-lg text-center flex items-center justify-center gap-2
+            ${error.type === 'error' ? 'bg-red-50 border border-red-200 text-red-600' : 
+                                     'bg-yellow-50 border border-yellow-200 text-yellow-600'}`}>
+            {error.type === 'error' ? 
+              <AlertTriangle className="w-5 h-5" /> : 
+              <Clock className="w-5 h-5" />}
+            {error.message}
           </div>
         )}
 
