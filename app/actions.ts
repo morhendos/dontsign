@@ -34,17 +34,6 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
   throw new Error("Max retry attempts reached");
 }
 
-// Simple rate limiting implementation
-const rateLimiter = new Map<string, number>();
-function checkRateLimit(userId: string, limit = 10): boolean {
-  const now = Date.now();
-  const userRequests = rateLimiter.get(userId) || 0;
-  if (userRequests >= limit) return false;
-  rateLimiter.set(userId, userRequests + 1);
-  setTimeout(() => rateLimiter.set(userId, userRequests), 3600000); // Reset after 1 hour
-  return true;
-}
-
 // Function to split text into chunks
 function splitIntoChunks(text: string): string[] {
   // Maximum size for each chunk (approximately 4000 tokens to leave room for prompt and completion)
@@ -131,37 +120,10 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
   return JSON.parse(response.choices[0].message.content);
 }
 
-// Function to summarize the entire contract
-async function generateOverallSummary(results: AnalysisResult[]): Promise<string> {
-  // Prepare a concise summary of key points
-  const keyPoints = results
-    .map(r => r.summary)
-    .join("\n")
-    .slice(0, 6000); // Limit input size
-  
-  const response = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo-1106",
-    messages: [
-      {
-        role: "system",
-        content: "Provide a concise contract summary."
-      },
-      {
-        role: "user",
-        content: `Summarize these contract sections:\n${keyPoints}`
-      }
-    ],
-    temperature: 0.3,
-    max_tokens: 500
-  });
-
-  return response.choices[0].message.content || "";
-}
-
 // Function to merge multiple analysis results
 function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
   const merged: AnalysisResult = {
-    summary: "", // Will be set by generateOverallSummary
+    summary: "", // Will be updated
     keyTerms: [],
     potentialRisks: [],
     importantClauses: [],
@@ -184,6 +146,9 @@ function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
     merged.recommendations = Array.from(new Set(merged.recommendations));
   }
 
+  // Create a comprehensive summary
+  merged.summary = `This contract analysis is based on ${results.length} sections. ` + results[0].summary;
+
   return merged;
 }
 
@@ -194,22 +159,21 @@ export async function analyzeContract(formData: FormData) {
     );
   }
 
-  const file = formData.get("file") as File;
-  if (!file) throw new Error("No file uploaded");
+  // Get text and filename from FormData
+  const text = formData.get("text");
+  const filename = formData.get("filename");
 
-  let fileContent: string;
-  try {
-    fileContent = await file.text();
-  } catch (error) {
-    console.error("Error reading file:", error);
-    throw new Error("Failed to read file content");
+  if (!text || typeof text !== 'string') {
+    throw new Error("No text content received");
   }
 
-  if (!fileContent?.trim()) throw new Error("File content is empty");
+  if (!filename || typeof filename !== 'string') {
+    throw new Error("No filename received");
+  }
 
   try {
     // Split the content into manageable chunks
-    const chunks = splitIntoChunks(fileContent);
+    const chunks = splitIntoChunks(text);
     console.log(`Split contract into ${chunks.length} chunks`);
     
     // Analyze each chunk
@@ -220,15 +184,12 @@ export async function analyzeContract(formData: FormData) {
     // Merge the results
     const mergedAnalysis = mergeAnalysisResults(analysisResults);
 
-    // Generate overall summary
-    mergedAnalysis.summary = await generateOverallSummary(analysisResults);
-
     // Add metadata
     return {
       ...mergedAnalysis,
       metadata: {
         analyzedAt: new Date().toISOString(),
-        documentName: file.name,
+        documentName: filename,
         modelVersion: "gpt-3.5-turbo-1106",
         totalChunks: chunks.length
       } as AnalysisMetadata,
