@@ -17,7 +17,7 @@ An AI-powered contract analyzer that helps you understand legal documents.
 - OpenAI API
 - PDF.js for parsing
 
-## Development
+## Local Development
 
 1. Clone the repository
 2. Install dependencies: `npm install`
@@ -29,4 +29,4 @@ An AI-powered contract analyzer that helps you understand legal documents.
 
 ## Deployment
 
-This project is deployed on Vercel. Every pull request gets a preview deployment for easy testing.
+This project is deployed on Vercel with automatic deployments and previews for each PR.
