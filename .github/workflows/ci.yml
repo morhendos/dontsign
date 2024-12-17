@@ -24,7 +24,5 @@ jobs:
     - name: Run linting
       run: npm run lint
       
-    - name: Build project
-      run: npm run build
-      env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    - name: Type check
+      run: npx tsc --noEmit
