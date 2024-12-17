@@ -79,8 +79,18 @@ async function analyzeChunk(
       );
     }
 
-    return JSON.parse(content) as AnalysisResult;
+    try {
+      return JSON.parse(content) as AnalysisResult;
+    } catch (error) {
+      console.error('Failed to parse OpenAI response:', content);
+      throw new ContractAnalysisError(
+        'Failed to parse AI model response',
+        'API_ERROR',
+        error
+      );
+    }
   } catch (error) {
+    console.error(`Error in analyzeChunk ${chunkIndex + 1}:`, error);
     if (error instanceof ContractAnalysisError) {
       throw error;
     }
@@ -111,8 +121,9 @@ function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
     };
 
     // Merge all arrays and remove duplicates
-    results.forEach((result) => {
+    results.forEach((result, index) => {
       if (!result || typeof result !== 'object') {
+        console.error(`Invalid result at index ${index}:`, result);
         throw new ContractAnalysisError(
           'Invalid analysis result format',
           'TEXT_PROCESSING_ERROR'
@@ -139,6 +150,7 @@ function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
 
     return merged;
   } catch (error) {
+    console.error('Error merging analysis results:', error);
     if (error instanceof ContractAnalysisError) {
       throw error;
     }
@@ -152,24 +164,31 @@ function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
 
 export async function analyzeContract(formData: FormData) {
   try {
+    // Validate OpenAI API key
     if (!process.env.OPENAI_API_KEY) {
       throw new ContractAnalysisError(
-        "OpenAI API key is not configured. Please contact the administrator.",
-        "API_ERROR"
+        "OpenAI API key is not configured",
+        "CONFIGURATION_ERROR"
       );
     }
 
-    // Get text and filename from FormData
+    // Get and validate text content
     const text = formData.get("text");
-    const filename = formData.get("filename");
-
     if (!text || typeof text !== 'string') {
       throw new ContractAnalysisError(
         "No text content received",
         "INVALID_INPUT"
       );
     }
+    if (text.length === 0) {
+      throw new ContractAnalysisError(
+        "Empty document content",
+        "INVALID_INPUT"
+      );
+    }
 
+    // Get and validate filename
+    const filename = formData.get("filename");
     if (!filename || typeof filename !== 'string') {
       throw new ContractAnalysisError(
         "No filename received",
@@ -179,6 +198,12 @@ export async function analyzeContract(formData: FormData) {
 
     // Split the content into manageable chunks
     const chunks = splitIntoChunks(text);
+    if (chunks.length === 0) {
+      throw new ContractAnalysisError(
+        "Document content is too short",
+        "INVALID_INPUT"
+      );
+    }
     console.log(`Split contract into ${chunks.length} chunks`);
     
     // Analyze each chunk
@@ -201,12 +226,26 @@ export async function analyzeContract(formData: FormData) {
     };
   } catch (error) {
     console.error("Error generating analysis:", error);
-    throw error instanceof ContractAnalysisError
-      ? error
-      : new ContractAnalysisError(
-          `Failed to analyze contract: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          'TEXT_PROCESSING_ERROR',
-          error
-        );
+    
+    // Handle known errors
+    if (error instanceof ContractAnalysisError) {
+      throw error;
+    }
+    
+    // Handle OpenAI API errors
+    if (error instanceof OpenAI.APIError) {
+      throw new ContractAnalysisError(
+        `OpenAI API error: ${error.message}`,
+        'API_ERROR',
+        error
+      );
+    }
+
+    // Handle unknown errors
+    throw new ContractAnalysisError(
+      `Failed to analyze contract: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'UNKNOWN_ERROR',
+      error
+    );
   }
 }
