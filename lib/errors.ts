@@ -31,4 +31,6 @@ export type ContractAnalysisErrorCode =
   | 'PDF_PROCESSING_ERROR'
   | 'TEXT_PROCESSING_ERROR'
   | 'API_ERROR'
-  | 'INVALID_INPUT';
+  | 'INVALID_INPUT'
+  | 'CONFIGURATION_ERROR'
+  | 'UNKNOWN_ERROR';
