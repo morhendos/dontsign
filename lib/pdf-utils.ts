@@ -1,12 +1,12 @@
 'use client';
 
 import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
-import worker from 'pdfjs-dist/build/pdf.worker.entry';
 import { PDFProcessingError } from './errors';
 
 // Only initialize worker in browser environment
-if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
-  GlobalWorkerOptions.workerSrc = worker;
+if (typeof window !== 'undefined') {
+  const pdfjsWorker = require('pdfjs-dist/build/pdf.worker.min.js');
+  GlobalWorkerOptions.workerSrc = pdfjsWorker;
 }
 
 export async function readPdfText(file: File): Promise<string> {
