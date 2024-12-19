@@ -10,18 +10,18 @@
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org your-org --project dontsign ./next"
   },
   "dependencies": {
-    "@sentry/nextjs": "^7.101.0",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@sentry/nextjs": "^8.47.0",
     "@sentry/react": "^7.101.0",
     "@sentry/tracing": "^7.101.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "lucide-react": "^0.323.0",
     "next": "14.1.0",
     "openai": "^4.26.0",
     "pdfjs-dist": "^4.0.379",
     "react": "^18",
     "react-dom": "^18",
-    "lucide-react": "^0.323.0",
-    "@radix-ui/react-slot": "^1.0.2",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.0",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7"
   },
