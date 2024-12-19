@@ -5,8 +5,8 @@ import { PDFProcessingError } from './errors';
 
 // Only initialize worker in browser environment
 if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
-  // Use a specific version that matches our package.json dependency
-  GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js`;
+  // Using jsdelivr CDN which has the correct version
+  GlobalWorkerOptions.workerSrc = `//cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.js`;
 }
 
 export async function readPdfText(file: File): Promise<string> {
