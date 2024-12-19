@@ -1,12 +1,11 @@
 'use client';
 
 import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
-import { version } from 'pdfjs-dist/package.json';
 import { PDFProcessingError } from './errors';
 
 // Only initialize worker in browser environment
 if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
-  GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
+  GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 }
 
 export async function readPdfText(file: File): Promise<string> {
