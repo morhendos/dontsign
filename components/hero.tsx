@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from '@sentry/nextjs';
 import { Button } from '@/components/ui/button'
 import { FileText, ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { analyzeContract } from '@/app/actions'
@@ -101,11 +101,6 @@ export default function Hero() {
       return
     }
 
-    const transaction = Sentry.startTransaction({
-      name: 'analyze_document',
-      op: 'ui.analyze',
-    });
-
     setIsAnalyzing(true)
     setError(null)
 
@@ -132,12 +127,6 @@ export default function Hero() {
       const formData = new FormData();
       formData.append('text', text);
       formData.append('filename', file.name);
-
-      transaction.setData({
-        textLength: text.length,
-        fileName: file.name,
-        fileType: file.type,
-      });
 
       // Send for analysis
       const result = await analyzeContract(formData);
@@ -215,7 +204,6 @@ export default function Hero() {
       }
     } finally {
       setIsAnalyzing(false);
-      transaction.finish();
     }
   }
 
