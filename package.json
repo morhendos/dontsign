@@ -6,19 +6,23 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org your-org --project dontsign ./next"
   },
   "dependencies": {
+    "@sentry/nextjs": "^7.101.0",
+    "@sentry/react": "^7.101.0",
+    "@sentry/tracing": "^7.101.0",
+    "next": "14.1.0",
+    "openai": "^4.26.0",
+    "pdfjs-dist": "^4.0.379",
+    "react": "^18",
+    "react-dom": "^18",
+    "lucide-react": "^0.323.0",
     "@radix-ui/react-slot": "^1.0.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
-    "lucide-react": "^0.303.0",
-    "next": "14.0.4",
-    "openai": "^4.24.1",
-    "pdfjs-dist": "3.11.174",
-    "react": "^18",
-    "react-dom": "^18",
-    "tailwind-merge": "^2.2.0",
+    "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
@@ -27,7 +31,7 @@
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
-    "eslint-config-next": "14.0.4",
+    "eslint-config-next": "14.1.0",
     "postcss": "^8",
     "tailwindcss": "^3.3.0",
     "typescript": "^5"
