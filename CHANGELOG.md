@@ -3,28 +3,23 @@
 ## [v1.1.0] - 2024-12-20
 
 ### Added
-- Sentry error tracking and performance monitoring integration
+- Comprehensive error tracking and monitoring with Sentry integration:
   - Client-side error tracking with custom filtering
   - Server-side error handling with Node.js specific integrations
+  - Edge Runtime support for complete coverage
   - Performance monitoring with 10% sample rate
+  - Global error boundary for React rendering errors
+  - Protected source maps in production
   - Environment-aware configuration
-  - Development mode protection
-  - Custom breadcrumb filtering for cleaner logs
-  - Automatic HTTP request tracing
-  - Integration with Next.js app router
 
 ### Technical Details
-- Added `sentry.client.config.js` with:
-  - Browser performance tracking
-  - Trace propagation for both localhost and production
-  - Custom error and breadcrumb filtering
-  - Production-only error reporting
-- Added `sentry.server.config.js` with:
-  - Node.js specific integrations
-  - HTTP request tracing
-  - Uncaught exception handling
-  - Unhandled rejection handling
-  - Development mode protection
+- Added global error handler (`app/global-error.tsx`)
+- Configured client-side Sentry (`sentry.client.config.js`)
+- Added server-side Sentry (`sentry.server.config.js`)
+- Added Edge Runtime support (`sentry.edge.config.js`)
+- Updated Next.js configuration for secure source maps
+- Implemented environment-specific error reporting
+- Configured custom error boundaries and filters
 
 ## [v1.0.0] - 2024-12-17
 
