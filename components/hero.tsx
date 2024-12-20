@@ -1,12 +1,11 @@
-      // Extract text based on file type
-      const extractStartTime = Date.now();
-      let text: string;
+      // Send for analysis
+      const analysisStartTime = Date.now();
+      const result = await analyzeContract(formData);
+      const analysisTime = Date.now() - analysisStartTime;
+      trackPerformanceMetric('api_analysis_time', analysisTime);
       
-      if (file.type === 'application/pdf') {
-        text = await readPdfText(file);
-      } else {
-        text = await file.text();
-      }
-      
-      const extractionTime = Date.now() - extractStartTime;
-      trackPerformanceMetric('text_extraction_time', extractionTime);
+      if (result) {
+        setAnalysis(result);
+        const totalTime = Date.now() - startTime;
+        trackAnalysisComplete(file.type, totalTime / 1000); // Convert to seconds
+        trackPerformanceMetric('total_operation_time', totalTime);
