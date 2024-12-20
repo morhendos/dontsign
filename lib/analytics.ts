@@ -5,6 +5,15 @@ declare global {
   }
 }
 
+/**
+ * @fileoverview Google Analytics 4 implementation
+ * This module provides type-safe GA4 tracking functionality with error handling
+ * and debug capabilities. It's designed to work with Next.js App Router and
+ * handles cookie consent requirements.
+ *
+ * @see /docs/analytics.md for detailed documentation
+ */
+
 // GA configuration
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 const DEBUG_MODE = process.env.NODE_ENV === 'development';
@@ -28,7 +37,11 @@ const debugLog = (message: string, data?: any) => {
   }
 };
 
-// Initialize GA with error handling
+/**
+ * Initializes Google Analytics 4
+ * @returns Promise<void>
+ * @throws Error if initialization fails
+ */
 export const initGA = (): Promise<void> => {
   if (typeof window === 'undefined') return Promise.resolve();
   
@@ -77,7 +90,10 @@ export const initGA = (): Promise<void> => {
   });
 };
 
-// Page view tracking with error handling
+/**
+ * Tracks page views in GA4
+ * @param url - The URL to track
+ */
 export const pageview = (url: string): void => {
   try {
     if (typeof window.gtag !== 'function') {
@@ -95,7 +111,10 @@ export const pageview = (url: string): void => {
   }
 };
 
-// Event tracking with error handling
+/**
+ * Tracks custom events in GA4
+ * @param event - The event object containing action, category, label, and optional value
+ */
 export const event = ({ action, category, label, value }: GAEvent): void => {
   try {
     if (typeof window.gtag !== 'function') {
@@ -116,7 +135,10 @@ export const event = ({ action, category, label, value }: GAEvent): void => {
   }
 };
 
-// Utility function to check if GA is initialized
+/**
+ * Checks if GA4 is initialized
+ * @returns boolean indicating if GA is initialized
+ */
 export const isGAInitialized = (): boolean => {
   return typeof window !== 'undefined' && typeof window.gtag === 'function';
 };
