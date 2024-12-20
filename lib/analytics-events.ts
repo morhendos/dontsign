@@ -13,22 +13,24 @@ export const EventCategory = {
 
 // Event Actions
 export const EventAction = {
+  // File Upload Events
   FILE_UPLOAD_START: 'file_upload_start',
   FILE_UPLOAD_SUCCESS: 'file_upload_success',
   FILE_UPLOAD_ERROR: 'file_upload_error',
   FILE_VALIDATION: 'file_validation',
+  
+  // Analysis Events
   ANALYSIS_START: 'analysis_start',
   ANALYSIS_COMPLETE: 'analysis_complete',
+  ANALYSIS_ERROR: 'analysis_error',
+  TEXT_EXTRACTION_START: 'text_extraction_start',
+  TEXT_EXTRACTION_COMPLETE: 'text_extraction_complete',
+  CHUNK_PROCESSING: 'chunk_processing',
+  
+  // Generic Events
   ERROR: 'error',
   USER_INTERACTION: 'user_interaction',
   PERFORMANCE_METRIC: 'performance_metric'
-} as const;
-
-// Event Names for User Interactions
-export const EventName = {
-  DRAG_DROP: 'drag_drop',
-  CLICK_UPLOAD: 'click_upload',
-  BUTTON_CLICK: 'button_click'
 } as const;
 
 // Debug utility
@@ -38,98 +40,66 @@ const logEvent = (eventName: string, params: any) => {
   }
 };
 
-// File upload tracking
-export const trackFileUploadStart = (method: 'drag_drop' | 'click') => {
-  const params = {
-    action: EventAction.FILE_UPLOAD_START,
-    category: EventCategory.DOCUMENT,
-    label: `upload_method_${method}`
-  };
-  
-  logEvent('File Upload Start', params);
-  event(params);
-};
+// File Upload Events (existing...)
 
-export const trackFileUploadSuccess = (fileType: string, fileSize: number) => {
-  const params = { 
-    action: EventAction.FILE_UPLOAD_SUCCESS, 
-    category: EventCategory.DOCUMENT, 
-    label: fileType,
-    value: Math.round(fileSize / 1024) // Convert to KB
-  };
-  
-  logEvent('File Upload Success', params);
-  event(params);
-};
-
-export const trackFileValidationError = (errorType: string, fileType?: string) => {
-  const params = {
-    action: EventAction.FILE_UPLOAD_ERROR,
-    category: EventCategory.ERROR,
-    label: `validation_${errorType}${fileType ? `_${fileType}` : ''}`
-  };
-
-  logEvent('File Validation Error', params);
-  event(params);
-};
-
-// Analysis tracking (existing functions...)
-export const trackAnalysisStart = (documentType: string) => {
+// Analysis Events
+export const trackAnalysisStart = (documentType: string, fileSize: number) => {
   const params = {
     action: EventAction.ANALYSIS_START,
     category: EventCategory.ANALYSIS,
-    label: documentType
+    label: documentType,
+    value: Math.round(fileSize / 1024) // Size in KB
   };
 
   logEvent('Analysis Start', params);
   event(params);
 };
 
-export const trackAnalysisComplete = (documentType: string, processingTime: number) => {
+export const trackAnalysisComplete = (documentType: string, processingTime: number, chunkCount: number) => {
   const params = {
     action: EventAction.ANALYSIS_COMPLETE,
     category: EventCategory.ANALYSIS,
-    label: documentType,
-    value: Math.round(processingTime * 1000) // Convert to milliseconds
+    label: `${documentType}_chunks_${chunkCount}`,
+    value: Math.round(processingTime) // Time in ms
   };
 
   logEvent('Analysis Complete', params);
   event(params);
 };
 
-// Error tracking
-export const trackError = (errorType: string, errorMessage: string) => {
+export const trackAnalysisError = (errorType: string, errorDetails: string, documentType: string) => {
   const params = {
-    action: EventAction.ERROR,
+    action: EventAction.ANALYSIS_ERROR,
     category: EventCategory.ERROR,
-    label: `${errorType}: ${errorMessage}`
+    label: `${errorType}_${documentType}: ${errorDetails}`
   };
 
-  logEvent('Error', params);
+  logEvent('Analysis Error', params);
   event(params);
 };
 
-// User interaction tracking
-export const trackUserInteraction = (interactionType: string, details?: string) => {
+export const trackTextExtraction = (stage: 'start' | 'complete', documentType: string, processingTime?: number) => {
   const params = {
-    action: EventAction.USER_INTERACTION,
-    category: EventCategory.USER,
-    label: details ? `${interactionType}: ${details}` : interactionType
-  };
-
-  logEvent('User Interaction', params);
-  event(params);
-};
-
-// Performance tracking
-export const trackPerformanceMetric = (metricName: string, value: number) => {
-  const params = {
-    action: EventAction.PERFORMANCE_METRIC,
+    action: stage === 'start' ? EventAction.TEXT_EXTRACTION_START : EventAction.TEXT_EXTRACTION_COMPLETE,
     category: EventCategory.PERFORMANCE,
-    label: metricName,
-    value: Math.round(value)
+    label: documentType,
+    ...(processingTime && { value: Math.round(processingTime) }) // Time in ms
   };
 
-  logEvent('Performance Metric', params);
+  logEvent(`Text Extraction ${stage}`, params);
   event(params);
 };
+
+export const trackChunkProcessing = (chunkNumber: number, totalChunks: number, processingTime: number) => {
+  const params = {
+    action: EventAction.CHUNK_PROCESSING,
+    category: EventCategory.PERFORMANCE,
+    label: `chunk_${chunkNumber}_of_${totalChunks}`,
+    value: Math.round(processingTime) // Time in ms
+  };
+
+  logEvent('Chunk Processing', params);
+  event(params);
+};
+
+// Existing error and performance tracking functions...
