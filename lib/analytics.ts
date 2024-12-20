@@ -1,7 +1,7 @@
 declare global {
   interface Window {
-    gtag: (...args: any[]) => void;
-    dataLayer: any[];
+    gtag?: (...args: any[]) => void;
+    dataLayer?: any[];
   }
 }
 
@@ -37,7 +37,7 @@ export const initGA = (): Promise<void> => {
     return Promise.reject(new Error('Invalid GA Measurement ID'));
   }
 
-  if (window.gtag) {
+  if (typeof window.gtag === 'function') {
     debugLog('GA already initialized');
     return Promise.resolve();
   }
@@ -51,11 +51,11 @@ export const initGA = (): Promise<void> => {
       script.onload = () => {
         window.dataLayer = window.dataLayer || [];
         window.gtag = function gtag() {
-          window.dataLayer.push(arguments);
+          window.dataLayer!.push(arguments);
         };
 
         window.gtag('js', new Date());
-        window.gtag('config', GA_MEASUREMENT_ID, {
+        window.gtag('config', GA_MEASUREMENT_ID!, {
           page_path: window.location.pathname,
           debug_mode: DEBUG_MODE
         });
@@ -80,7 +80,7 @@ export const initGA = (): Promise<void> => {
 // Page view tracking with error handling
 export const pageview = (url: string): void => {
   try {
-    if (!window.gtag) {
+    if (typeof window.gtag !== 'function') {
       debugLog('Skipping pageview - GA not initialized');
       return;
     }
@@ -98,7 +98,7 @@ export const pageview = (url: string): void => {
 // Event tracking with error handling
 export const event = ({ action, category, label, value }: GAEvent): void => {
   try {
-    if (!window.gtag) {
+    if (typeof window.gtag !== 'function') {
       debugLog('Skipping event - GA not initialized');
       return;
     }
@@ -118,5 +118,5 @@ export const event = ({ action, category, label, value }: GAEvent): void => {
 
 // Utility function to check if GA is initialized
 export const isGAInitialized = (): boolean => {
-  return typeof window !== 'undefined' && !!window.gtag;
+  return typeof window !== 'undefined' && typeof window.gtag === 'function';
 };
