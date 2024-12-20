@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import * as Sentry from '@sentry/nextjs';
 import { Button } from '@/components/ui/button'
 import { FileText, ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { analyzeContract } from '@/app/actions'
@@ -46,20 +47,45 @@ export default function Hero() {
 
   const handleFileSelection = (selectedFile?: File) => {
     if (!selectedFile) {
-      setError({
+      const error = {
         message: 'Please select a file to analyze.',
-        type: 'warning'
-      })
-      return
+        type: 'warning' as const
+      };
+      setError(error);
+      Sentry.addBreadcrumb({
+        category: 'file',
+        message: 'File selection failed - no file selected',
+        level: 'warning'
+      });
+      return;
     }
+
+    Sentry.addBreadcrumb({
+      category: 'file',
+      message: 'File selected',
+      level: 'info',
+      data: {
+        fileName: selectedFile.name,
+        fileType: selectedFile.type,
+        fileSize: selectedFile.size
+      }
+    });
 
     if (selectedFile.type !== 'application/pdf' && 
         selectedFile.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      setError({
+      const error = {
         message: 'Please upload a PDF or DOCX file.',
-        type: 'error'
-      })
-      return
+        type: 'error' as const
+      };
+      setError(error);
+      Sentry.captureMessage('Invalid file type selected', {
+        level: 'warning',
+        extra: {
+          fileType: selectedFile.type,
+          fileName: selectedFile.name
+        }
+      });
+      return;
     }
 
     setFile(selectedFile)
@@ -73,15 +99,32 @@ export default function Hero() {
 
   const handleAnalyze = async () => {
     if (!file) {
-      setError({
+      const error = {
         message: 'Please upload a file before analyzing.',
-        type: 'warning'
-      })
-      return
+        type: 'warning' as const
+      };
+      setError(error);
+      Sentry.addBreadcrumb({
+        category: 'analysis',
+        message: 'Analysis attempted without file',
+        level: 'warning'
+      });
+      return;
     }
 
-    setIsAnalyzing(true)
-    setError(null)
+    setIsAnalyzing(true);
+    setError(null);
+
+    Sentry.addBreadcrumb({
+      category: 'analysis',
+      message: 'Starting contract analysis',
+      level: 'info',
+      data: {
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size
+      }
+    });
 
     try {
       // Extract text based on file type
@@ -91,6 +134,15 @@ export default function Hero() {
       } else {
         text = await file.text();
       }
+
+      Sentry.addBreadcrumb({
+        category: 'analysis',
+        message: 'Text extracted successfully',
+        level: 'info',
+        data: {
+          textLength: text.length
+        }
+      });
 
       // Create FormData with text content
       const formData = new FormData();
@@ -102,6 +154,14 @@ export default function Hero() {
       
       if (result) {
         setAnalysis(result);
+        Sentry.addBreadcrumb({
+          category: 'analysis',
+          message: 'Analysis completed successfully',
+          level: 'info',
+          data: {
+            chunkCount: result.metadata?.totalChunks
+          }
+        });
       } else {
         throw new ContractAnalysisError(
           'No analysis result received',
@@ -112,61 +172,54 @@ export default function Hero() {
       console.error('Error analyzing contract:', error);
       
       if (error instanceof PDFProcessingError) {
+        let errorMessage: string;
         switch (error.code) {
           case 'EMPTY_FILE':
-            setError({
-              message: 'The PDF file appears to be empty.',
-              type: 'error'
-            });
+            errorMessage = 'The PDF file appears to be empty.';
             break;
           case 'CORRUPT_FILE':
-            setError({
-              message: 'The PDF file appears to be corrupted. Please check the file and try again.',
-              type: 'error'
-            });
+            errorMessage = 'The PDF file appears to be corrupted. Please check the file and try again.';
             break;
           case 'NO_TEXT_CONTENT':
-            setError({
-              message: 'No readable text found in the PDF. The file might be scanned or image-based.',
-              type: 'error'
-            });
+            errorMessage = 'No readable text found in the PDF. The file might be scanned or image-based.';
             break;
           default:
-            setError({
-              message: 'Could not read the PDF file. Please ensure it\'s not encrypted or corrupted.',
-              type: 'error'
-            });
+            errorMessage = 'Could not read the PDF file. Please ensure it\'s not encrypted or corrupted.';
         }
+        setError({ message: errorMessage, type: 'error' });
+
+        // PDF errors are already tracked in pdf-utils.ts
       } else if (error instanceof ContractAnalysisError) {
+        let errorMessage: string;
         switch (error.code) {
           case 'API_ERROR':
-            setError({
-              message: 'The AI service is currently unavailable. Please try again later.',
-              type: 'error'
-            });
+            errorMessage = 'The AI service is currently unavailable. Please try again later.';
             break;
           case 'INVALID_INPUT':
-            setError({
-              message: 'The document format is not supported. Please try a different file.',
-              type: 'error'
-            });
+            errorMessage = 'The document format is not supported. Please try a different file.';
             break;
           case 'TEXT_PROCESSING_ERROR':
-            setError({
-              message: 'Error processing the document text. Please try a simpler document.',
-              type: 'error'
-            });
+            errorMessage = 'Error processing the document text. Please try a simpler document.';
             break;
           default:
-            setError({
-              message: `An error occurred: ${error.message}. Please try again.`,
-              type: 'error'
-            });
+            errorMessage = `An error occurred: ${error.message}. Please try again.`;
         }
+        setError({ message: errorMessage, type: 'error' });
+
+        // Contract analysis errors are already tracked in actions.ts
       } else {
         setError({
           message: 'An unexpected error occurred. Please try again.',
           type: 'error'
+        });
+
+        // Track unexpected errors
+        Sentry.captureException(error, {
+          extra: {
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size
+          }
         });
       }
     } finally {
