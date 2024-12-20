@@ -10,78 +10,171 @@ import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors'
 import { 
   trackFileUploadStart,
   trackFileUploadSuccess,
-  trackFileValidationError
+  trackFileValidationError,
+  trackAnalysisStart,
+  trackAnalysisError,
+  trackTextExtraction
 } from '@/lib/analytics-events';
 
-// Rest of the imports and interfaces...
+// ... (existing interfaces)
 
 export default function Hero() {
-  // Existing state declarations...
+  // ... (existing state declarations)
+  const analysisStartTime = useRef<number>(0);
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    trackFileUploadStart('drag_drop');
-    const droppedFile = e.dataTransfer.files[0]
-    handleFileSelection(droppedFile)
-  }
+  // ... (existing file upload handlers)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    trackFileUploadStart('click');
-    const selectedFile = e.target.files?.[0]
-    handleFileSelection(selectedFile)
-  }
-
-  const handleFileSelection = (selectedFile?: File) => {
-    if (!selectedFile) {
+  const handleAnalyze = async () => {
+    if (!file) {
       const error = {
-        message: 'Please select a file to analyze.',
+        message: 'Please upload a file before analyzing.',
         type: 'warning' as const
       };
       setError(error);
-      trackFileValidationError('no_file');
+      trackAnalysisError('NO_FILE', 'No file selected', 'unknown');
       Sentry.addBreadcrumb({
-        category: 'file',
-        message: 'File selection failed - no file selected',
+        category: 'analysis',
+        message: 'Analysis attempted without file',
         level: 'warning'
       });
       return;
     }
 
+    setIsAnalyzing(true);
+    setError(null);
+    analysisStartTime.current = Date.now();
+
+    // Track analysis start
+    trackAnalysisStart(
+      file.type === 'application/pdf' ? 'pdf' : 'docx',
+      file.size
+    );
+
     Sentry.addBreadcrumb({
-      category: 'file',
-      message: 'File selected',
+      category: 'analysis',
+      message: 'Starting contract analysis',
       level: 'info',
       data: {
-        fileName: selectedFile.name,
-        fileType: selectedFile.type,
-        fileSize: selectedFile.size
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size
       }
     });
 
-    if (selectedFile.type !== 'application/pdf' && 
-        selectedFile.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      const error = {
-        message: 'Please upload a PDF or DOCX file.',
-        type: 'error' as const
-      };
-      setError(error);
-      trackFileValidationError('invalid_type', selectedFile.type);
-      Sentry.captureMessage('Invalid file type selected', {
-        level: 'warning',
-        extra: {
-          fileType: selectedFile.type,
-          fileName: selectedFile.name
+    try {
+      // Extract text based on file type
+      let text: string;
+      trackTextExtraction('start', file.type);
+      const extractionStartTime = Date.now();
+      
+      if (file.type === 'application/pdf') {
+        text = await readPdfText(file);
+      } else {
+        text = await file.text();
+      }
+
+      trackTextExtraction(
+        'complete', 
+        file.type, 
+        Date.now() - extractionStartTime
+      );
+
+      Sentry.addBreadcrumb({
+        category: 'analysis',
+        message: 'Text extracted successfully',
+        level: 'info',
+        data: {
+          textLength: text.length
         }
       });
-      return;
+
+      // Create FormData with text content
+      const formData = new FormData();
+      formData.append('text', text);
+      formData.append('filename', file.name);
+
+      // Send for analysis
+      const result = await analyzeContract(formData);
+      
+      if (result) {
+        setAnalysis(result);
+        Sentry.addBreadcrumb({
+          category: 'analysis',
+          message: 'Analysis completed successfully',
+          level: 'info',
+          data: {
+            chunkCount: result.metadata?.totalChunks
+          }
+        });
+      } else {
+        throw new ContractAnalysisError(
+          'No analysis result received',
+          'INVALID_INPUT'
+        );
+      }
+    } catch (error) {
+      console.error('Error analyzing contract:', error);
+      
+      if (error instanceof PDFProcessingError) {
+        let errorMessage: string;
+        switch (error.code) {
+          case 'EMPTY_FILE':
+            errorMessage = 'The PDF file appears to be empty.';
+            break;
+          case 'CORRUPT_FILE':
+            errorMessage = 'The PDF file appears to be corrupted. Please check the file and try again.';
+            break;
+          case 'NO_TEXT_CONTENT':
+            errorMessage = 'No readable text found in the PDF. The file might be scanned or image-based.';
+            break;
+          default:
+            errorMessage = 'Could not read the PDF file. Please ensure it\'s not encrypted or corrupted.';
+        }
+        setError({ message: errorMessage, type: 'error' });
+        trackAnalysisError('PDF_PROCESSING', error.code, 'pdf');
+
+      } else if (error instanceof ContractAnalysisError) {
+        let errorMessage: string;
+        switch (error.code) {
+          case 'API_ERROR':
+            errorMessage = 'The AI service is currently unavailable. Please try again later.';
+            break;
+          case 'INVALID_INPUT':
+            errorMessage = 'The document format is not supported. Please try a different file.';
+            break;
+          case 'TEXT_PROCESSING_ERROR':
+            errorMessage = 'Error processing the document text. Please try a simpler document.';
+            break;
+          default:
+            errorMessage = `An error occurred: ${error.message}. Please try again.`;
+        }
+        setError({ message: errorMessage, type: 'error' });
+        trackAnalysisError('CONTRACT_ANALYSIS', error.code, file.type);
+
+      } else {
+        setError({
+          message: 'An unexpected error occurred. Please try again.',
+          type: 'error'
+        });
+
+        trackAnalysisError(
+          'UNKNOWN', 
+          error instanceof Error ? error.message : 'Unknown error',
+          file.type
+        );
+
+        Sentry.captureException(error, {
+          extra: {
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size
+          }
+        });
+      }
+    } finally {
+      setIsAnalyzing(false);
     }
-
-    // Track successful file upload
-    trackFileUploadSuccess(selectedFile.type, selectedFile.size);
-
-    setFile(selectedFile)
-    setAnalysis(null)
-    setError(null)
   }
 
-  // Rest of the component implementation...
+  // ... (rest of the component)
+}
