@@ -15,21 +15,27 @@ const nextConfig = {
   productionBrowserSourceMaps: false
 }
 
-const sentryWebpackPluginOptions = {
-  // Additional Sentry webpack plugin options
-  silent: true,
-  // Hide source maps from the browser
-  hideSourceMaps: true,
-  // Automatically create releases based on git info
-  autoInstrumentServerFunctions: true,
-  // Enable automatic instrumentation of Next.js server functions
-  autoInstrumentMiddleware: true,
-  // Enable performance monitoring
-  tracesSampleRate: 0.1
-};
-
-// Make sure adding Sentry options is the last code to run before exporting
 module.exports = withSentryConfig(
   nextConfig,
-  sentryWebpackPluginOptions
+  {
+    // For all available options, see:
+    // https://github.com/getsentry/sentry-webpack-plugin#options
+
+    // Suppresses source map uploading logs during build
+    silent: true,
+
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+
+    // Enables automatic instrumentation of Next.js server functions
+    // https://docs.sentry.io/platforms/javascript/guides/nextjs/
+    autoInstrumentServerFunctions: true,
+
+    // Upload sourcemaps to Sentry but hide them from browser
+    hideSourceMaps: true,
+
+    // Settings for performance monitoring
+    tracesSampleRate: 0.1,
+    tracingOrigins: ["localhost", /^\//, process.env.NEXT_PUBLIC_VERCEL_URL],
+  }
 );
