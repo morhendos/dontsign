@@ -4,10 +4,33 @@ import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
 import * as Sentry from '@sentry/nextjs';
 import { PDFProcessingError } from './errors';
 
-// Only initialize worker in browser environment
-if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
-  GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
-}
+// PDF.js worker initialization with error handling
+const initializePdfWorker = () => {
+  if (typeof window === 'undefined') return; // Skip on server
+
+  try {
+    if (!GlobalWorkerOptions.workerSrc) {
+      // Use local worker file to avoid CORS and security issues
+      GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+    }
+  } catch (error) {
+    console.warn('PDF Worker initialization warning - this is expected in development:', error);
+  }
+};
+
+// Initialize worker once
+initializePdfWorker();
+
+// Configuration for PDF.js to minimize console output
+const PDF_CONFIG = {
+  useWorkerFetch: false,      // Disable worker fetch to avoid CORS issues
+  isEvalSupported: false,     // Disable eval for security
+  useSystemFonts: true,       // Use system fonts when possible
+  verbosity: 0,               // Reduce console output
+  disableAutoFetch: true,     // Disable auto fetching
+  disableStream: true,        // Disable streaming
+  disableFontFace: true       // Disable font face loading
+};
 
 export async function readPdfText(file: File): Promise<string> {
   try {
@@ -30,12 +53,10 @@ export async function readPdfText(file: File): Promise<string> {
     // Convert file to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
     
-    // Load PDF document
+    // Load PDF with enhanced configuration
     const pdf = await getDocument({
-      data: arrayBuffer,
-      useWorkerFetch: false,  // Important: disable worker fetch to avoid CORS issues
-      isEvalSupported: false, // Important: disable eval for security
-      useSystemFonts: true    // Use system fonts when possible
+      ...PDF_CONFIG,
+      data: arrayBuffer
     }).promise;
     
     // Validate page count
@@ -54,23 +75,29 @@ export async function readPdfText(file: File): Promise<string> {
       },
     });
 
-    // Get all pages text
+    // Extract text with error handling per page
     const pageTexts = await Promise.all(
-      Array.from({ length: maxPages }, (_, i) => getPageText(pdf, i + 1))
+      Array.from({ length: maxPages }, async (_, i) => {
+        try {
+          return await getPageText(pdf, i + 1);
+        } catch (error) {
+          // Log warning but continue processing
+          console.warn(`Warning: Page ${i + 1} text extraction issue:`, error);
+          return `[Text extraction error on page ${i + 1}]`;
+        }
+      })
     );
     
-    const fullText = pageTexts.join('\n\n');
+    const fullText = pageTexts.join('\n\n').trim();
 
-    if (!fullText.trim()) {
+    if (!fullText) {
       throw new PDFProcessingError('No readable text found in the PDF', 'NO_TEXT_CONTENT');
     }
 
     return fullText;
   } catch (error) {
-    console.error('Error reading PDF:', error);
-    
+    // Error handling with specific error types
     if (error instanceof PDFProcessingError) {
-      // Track PDF-specific errors with context
       Sentry.captureException(error, {
         extra: {
           fileName: file.name,
@@ -81,50 +108,64 @@ export async function readPdfText(file: File): Promise<string> {
       throw error;
     }
 
-    // Handle specific PDF.js errors
     if (error instanceof Error) {
+      let pdfError;
+      
       if (error.message.includes('Invalid PDF structure')) {
-        const pdfError = new PDFProcessingError('The PDF file appears to be corrupted', 'CORRUPT_FILE', error);
-        Sentry.captureException(pdfError, {
-          extra: {
-            fileName: file.name,
-            fileSize: file.size,
-          },
-        });
-        throw pdfError;
+        pdfError = new PDFProcessingError(
+          'The PDF file appears to be corrupted',
+          'CORRUPT_FILE',
+          error
+        );
+      } else if (error.message.includes('Password required')) {
+        pdfError = new PDFProcessingError(
+          'Cannot process encrypted PDF files',
+          'INVALID_FORMAT',
+          error
+        );
+      } else {
+        pdfError = new PDFProcessingError(
+          'Could not read PDF file',
+          'EXTRACTION_ERROR',
+          error
+        );
       }
-      if (error.message.includes('Password required')) {
-        const pdfError = new PDFProcessingError('Cannot process encrypted PDF files', 'INVALID_FORMAT', error);
-        Sentry.captureException(pdfError, {
-          extra: {
-            fileName: file.name,
-            fileSize: file.size,
-          },
-        });
-        throw pdfError;
-      }
+
+      Sentry.captureException(pdfError, {
+        extra: {
+          fileName: file.name,
+          fileSize: file.size,
+        },
+      });
+      
+      throw pdfError;
     }
 
-    // Track unknown errors
-    Sentry.captureException(error, {
+    // Generic error handling
+    const genericError = new PDFProcessingError(
+      'Could not read PDF file',
+      'EXTRACTION_ERROR',
+      error
+    );
+
+    Sentry.captureException(genericError, {
       extra: {
         fileName: file.name,
         fileSize: file.size,
       },
     });
 
-    throw new PDFProcessingError(
-      'Could not read PDF file',
-      'EXTRACTION_ERROR',
-      error
-    );
+    throw genericError;
   }
 }
 
 async function getPageText(pdf: PDFDocumentProxy, pageNo: number): Promise<string> {
   try {
     const page = await pdf.getPage(pageNo);
-    const textContent = await page.getTextContent();
+    const textContent = await page.getTextContent({
+      normalizeWhitespace: true,
+      disableCombineTextItems: false
+    });
     
     if (!textContent.items || !Array.isArray(textContent.items)) {
       throw new PDFProcessingError(
@@ -133,13 +174,16 @@ async function getPageText(pdf: PDFDocumentProxy, pageNo: number): Promise<strin
       );
     }
 
+    // Clean text processing
     const pageText = textContent.items
       .map((item: any) => item.str || '')
-      .join(' ');
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
     return pageText || `[Empty page ${pageNo}]`;
   } catch (error) {
-    console.error(`Error reading page ${pageNo}:`, error);
+    console.warn(`Warning: Error reading page ${pageNo}:`, error);
 
     // Track page-specific errors
     Sentry.captureException(error, {
@@ -148,10 +192,6 @@ async function getPageText(pdf: PDFDocumentProxy, pageNo: number): Promise<strin
       },
     });
 
-    throw new PDFProcessingError(
-      `Failed to extract text from page ${pageNo}`,
-      'EXTRACTION_ERROR',
-      error
-    );
+    throw error;
   }
 }
