@@ -7,6 +7,13 @@ import { FileText, ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock } from
 import { analyzeContract } from '@/app/actions'
 import { readPdfText } from '@/lib/pdf-utils'
 import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors'
+import { 
+  trackFileUpload, 
+  trackAnalysisStart, 
+  trackAnalysisComplete, 
+  trackError,
+  trackUserInteraction
+} from '@/lib/analytics-events';
 
 interface AnalysisResult {
   summary: string;
@@ -37,6 +44,7 @@ export default function Hero() {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     const droppedFile = e.dataTransfer.files[0]
+    trackUserInteraction('upload_method', 'drag_and_drop');
     handleFileSelection(droppedFile)
   }
 
@@ -57,6 +65,7 @@ export default function Hero() {
         message: 'File selection failed - no file selected',
         level: 'warning'
       });
+      trackError('NO_FILE', 'File selection failed - no file selected');
       return;
     }
 
@@ -70,6 +79,9 @@ export default function Hero() {
         fileSize: selectedFile.size
       }
     });
+
+    // Track successful file upload
+    trackFileUpload(selectedFile.type, selectedFile.size);
 
     if (selectedFile.type !== 'application/pdf' && 
         selectedFile.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
@@ -85,6 +97,7 @@ export default function Hero() {
           fileName: selectedFile.name
         }
       });
+      trackError('INVALID_FILE_TYPE', `Invalid file type: ${selectedFile.type}`);
       return;
     }
 
@@ -94,6 +107,7 @@ export default function Hero() {
   }
 
   const handleAreaClick = () => {
+    trackUserInteraction('upload_method', 'click');
     fileInputRef.current?.click()
   }
 
@@ -109,11 +123,15 @@ export default function Hero() {
         message: 'Analysis attempted without file',
         level: 'warning'
       });
+      trackError('NO_FILE', 'Analysis attempted without file');
       return;
     }
 
     setIsAnalyzing(true);
     setError(null);
+
+    const startTime = Date.now();
+    trackAnalysisStart(file.type);
 
     Sentry.addBreadcrumb({
       category: 'analysis',
@@ -154,6 +172,9 @@ export default function Hero() {
       
       if (result) {
         setAnalysis(result);
+        const analysisTime = (Date.now() - startTime) / 1000; // Convert to seconds
+        trackAnalysisComplete(file.type, analysisTime);
+        
         Sentry.addBreadcrumb({
           category: 'analysis',
           message: 'Analysis completed successfully',
@@ -187,6 +208,7 @@ export default function Hero() {
             errorMessage = 'Could not read the PDF file. Please ensure it\'s not encrypted or corrupted.';
         }
         setError({ message: errorMessage, type: 'error' });
+        trackError('PDF_ERROR', error.code);
 
         // PDF errors are already tracked in pdf-utils.ts
       } else if (error instanceof ContractAnalysisError) {
@@ -205,6 +227,7 @@ export default function Hero() {
             errorMessage = `An error occurred: ${error.message}. Please try again.`;
         }
         setError({ message: errorMessage, type: 'error' });
+        trackError('ANALYSIS_ERROR', error.code);
 
         // Contract analysis errors are already tracked in actions.ts
       } else {
@@ -221,6 +244,7 @@ export default function Hero() {
             fileSize: file.size
           }
         });
+        trackError('UNKNOWN_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
     } finally {
       setIsAnalyzing(false);
