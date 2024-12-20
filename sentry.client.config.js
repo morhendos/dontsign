@@ -10,20 +10,54 @@ if (SENTRY_DSN) {
     ignoreErrors: [
       // Ignore lockdown-related errors
       'lockdown',
-      'null'
+      'null',
+      /lockdown-.*/,
+      // Common security-related noise
+      'SecurityError',
+      'CORS error',
+      // OpenAI specific
+      'Failed to fetch',
+      'NetworkError',
     ],
     enabled: process.env.NODE_ENV === 'production',
     environment: process.env.NEXT_PUBLIC_ENV || process.env.NODE_ENV,
+    
+    beforeSend(event) {
+      // Filter out lockdown and security events
+      if (event.message?.includes('lockdown') || 
+          event.message === 'null' ||
+          event?.exception?.values?.some(ex => 
+            ex.value === 'null' || 
+            ex.value?.includes('lockdown')
+          )
+      ) {
+        return null;
+      }
+      return event;
+    },
     
     integrations: [
       new Sentry.BrowserTracing({
         tracePropagationTargets: ['localhost', /^https:\/\/.+/],
       }),
+      // Explicitly configure console integration
+      new Sentry.Integrations.Breadcrumbs({
+        console: {
+          levels: ['error', 'warn'] // Only capture error and warning logs
+        }
+      })
     ],
 
     beforeBreadcrumb(breadcrumb) {
-      // Ignore console logs from lockdown
-      if (breadcrumb.category === 'console' && breadcrumb.message === 'null') {
+      // More aggressive filtering of breadcrumbs
+      if (
+        breadcrumb.category === 'console' && 
+        (
+          breadcrumb.message === 'null' || 
+          String(breadcrumb.message).includes('lockdown') ||
+          breadcrumb.data?.logger?.includes('lockdown')
+        )
+      ) {
         return null;
       }
       return breadcrumb;
