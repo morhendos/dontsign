@@ -1,22 +1,29 @@
-import './globals.css'
-import { Inter } from 'next/font/google'
-
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata = {
-  title: 'Don\'t Sign Until You\'re Sure | AI Contract Analysis',
-  description: 'Upload your contract and let AI highlight the risks and key terms before you sign.',
-}
+import { useEffect } from 'react';
+import { initGA, pageview } from '@/lib/analytics';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Initialize GA
+    initGA();
+  }, []);
+
+  useEffect(() => {
+    // Track page views
+    const url = pathname + searchParams.toString();
+    pageview(url);
+  }, [pathname, searchParams]);
+
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body>{children}</body>
     </html>
-  )
+  );
 }
-
