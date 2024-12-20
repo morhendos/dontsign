@@ -1,6 +1,7 @@
 "use server";
 
 import OpenAI from "openai";
+import * as Sentry from "@sentry/nextjs";
 import { ContractAnalysisError } from "@/lib/errors";
 import { splitIntoChunks } from "@/lib/text-utils";
 
@@ -33,6 +34,14 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
     } catch (error) {
       console.error(`Retry attempt ${attempt} failed:`, error);
       lastError = error;
+      
+      // Add breadcrumb for debugging
+      Sentry.addBreadcrumb({
+        category: 'retry',
+        message: `API retry attempt ${attempt} failed`,
+        level: 'warning',
+      });
+      
       if (attempt === maxAttempts) break;
       
       // Exponential backoff
@@ -105,6 +114,16 @@ async function analyzeChunk(
         error,
         content,
       });
+
+      // Track parsing errors in Sentry
+      Sentry.captureException(error, {
+        extra: {
+          chunkIndex,
+          totalChunks,
+          content: content.substring(0, 1000), // First 1000 chars to avoid size limits
+        },
+      });
+
       throw new ContractAnalysisError(
         'Failed to parse AI model response',
         'API_ERROR',
@@ -113,6 +132,15 @@ async function analyzeChunk(
     }
   } catch (error) {
     console.error(`Error in analyzeChunk ${chunkIndex + 1}:`, error);
+    
+    // Track chunk analysis errors in Sentry
+    Sentry.captureException(error, {
+      extra: {
+        chunkIndex,
+        totalChunks,
+      },
+    });
+
     if (error instanceof ContractAnalysisError) {
       throw error;
     }
@@ -185,6 +213,14 @@ function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
     return merged;
   } catch (error) {
     console.error('Error merging analysis results:', error);
+
+    // Track merging errors in Sentry
+    Sentry.captureException(error, {
+      extra: {
+        totalResults: results.length,
+      },
+    });
+
     if (error instanceof ContractAnalysisError) {
       throw error;
     }
@@ -199,6 +235,12 @@ function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
 export async function analyzeContract(formData: FormData) {
   try {
     console.log('Starting contract analysis');
+
+    // Add context for this analysis session
+    Sentry.setContext("contract", {
+      filename: formData.get("filename"),
+      timestamp: new Date().toISOString(),
+    });
     
     // Validate OpenAI API key
     if (!process.env.OPENAI_API_KEY) {
@@ -248,6 +290,12 @@ export async function analyzeContract(formData: FormData) {
     }
     console.log(`Split contract into ${chunks.length} chunks`);
     
+    // Add context about the analysis scope
+    Sentry.setContext("analysis", {
+      chunkCount: chunks.length,
+      textLength: text.length,
+    });
+
     // Analyze each chunk
     console.log('Starting chunk analysis');
     const analysisResults = await Promise.all(
@@ -271,6 +319,14 @@ export async function analyzeContract(formData: FormData) {
     };
   } catch (error) {
     console.error("Error generating analysis:", error);
+
+    // Track the error in Sentry with context
+    Sentry.captureException(error, {
+      extra: {
+        filename: formData.get("filename"),
+        textLength: formData.get("text")?.toString().length,
+      },
+    });
     
     // Handle known errors
     if (error instanceof ContractAnalysisError) {
