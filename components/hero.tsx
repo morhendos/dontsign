@@ -7,7 +7,7 @@ import { FileText, ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock } from
 import { analyzeContract } from '@/app/actions'
 import { readPdfText } from '@/lib/pdf-utils'
 import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors'
-import { trackFileUpload, trackAnalysisStart, trackAnalysisComplete, trackError } from '@/lib/analytics-events';
+import { trackFileUpload, trackAnalysisStart, trackAnalysisComplete, trackError, trackUserInteraction } from '@/lib/analytics-events';
 
 interface AnalysisResult {
   summary: string;
@@ -38,11 +38,13 @@ export default function Hero() {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     const droppedFile = e.dataTransfer.files[0]
+    trackUserInteraction('file_drop')
     handleFileSelection(droppedFile)
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
+    trackUserInteraction('file_select')
     handleFileSelection(selectedFile)
   }
 
@@ -100,6 +102,7 @@ export default function Hero() {
   }
 
   const handleAreaClick = () => {
+    trackUserInteraction('upload_area_click')
     fileInputRef.current?.click()
   }
 
@@ -119,6 +122,7 @@ export default function Hero() {
       return;
     }
 
+    trackUserInteraction('analyze_click', file.type);
     setIsAnalyzing(true);
     setError(null);
 
