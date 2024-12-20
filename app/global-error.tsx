@@ -21,7 +21,7 @@ export default function GlobalError({
           <p className="text-gray-600 mb-4">We've been notified and are working to fix the issue.</p>
           {process.env.NODE_ENV === 'development' && (
             <pre className="text-left bg-gray-100 p-4 rounded-md overflow-auto max-w-full">
-              {error.message}
+              {error?.toString() || 'Unknown error'}
             </pre>
           )}
           <button
