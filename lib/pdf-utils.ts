@@ -1,6 +1,7 @@
 'use client';
 
 import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
+import * as Sentry from '@sentry/nextjs';
 import { PDFProcessingError } from './errors';
 
 // Only initialize worker in browser environment
@@ -10,6 +11,17 @@ if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
 
 export async function readPdfText(file: File): Promise<string> {
   try {
+    // Add breadcrumb for PDF processing start
+    Sentry.addBreadcrumb({
+      category: 'pdf',
+      message: 'Starting PDF text extraction',
+      level: 'info',
+      data: {
+        fileName: file.name,
+        fileSize: file.size,
+      },
+    });
+
     // Validate file size
     if (file.size === 0) {
       throw new PDFProcessingError('Empty PDF file', 'EMPTY_FILE');
@@ -32,6 +44,16 @@ export async function readPdfText(file: File): Promise<string> {
       throw new PDFProcessingError('PDF file contains no pages', 'EMPTY_FILE');
     }
 
+    // Add breadcrumb for successful PDF loading
+    Sentry.addBreadcrumb({
+      category: 'pdf',
+      message: 'PDF document loaded successfully',
+      level: 'info',
+      data: {
+        pageCount: maxPages,
+      },
+    });
+
     // Get all pages text
     const pageTexts = await Promise.all(
       Array.from({ length: maxPages }, (_, i) => getPageText(pdf, i + 1))
@@ -48,18 +70,48 @@ export async function readPdfText(file: File): Promise<string> {
     console.error('Error reading PDF:', error);
     
     if (error instanceof PDFProcessingError) {
+      // Track PDF-specific errors with context
+      Sentry.captureException(error, {
+        extra: {
+          fileName: file.name,
+          fileSize: file.size,
+          errorCode: error.code,
+        },
+      });
       throw error;
     }
 
     // Handle specific PDF.js errors
     if (error instanceof Error) {
       if (error.message.includes('Invalid PDF structure')) {
-        throw new PDFProcessingError('The PDF file appears to be corrupted', 'CORRUPT_FILE', error);
+        const pdfError = new PDFProcessingError('The PDF file appears to be corrupted', 'CORRUPT_FILE', error);
+        Sentry.captureException(pdfError, {
+          extra: {
+            fileName: file.name,
+            fileSize: file.size,
+          },
+        });
+        throw pdfError;
       }
       if (error.message.includes('Password required')) {
-        throw new PDFProcessingError('Cannot process encrypted PDF files', 'INVALID_FORMAT', error);
+        const pdfError = new PDFProcessingError('Cannot process encrypted PDF files', 'INVALID_FORMAT', error);
+        Sentry.captureException(pdfError, {
+          extra: {
+            fileName: file.name,
+            fileSize: file.size,
+          },
+        });
+        throw pdfError;
       }
     }
+
+    // Track unknown errors
+    Sentry.captureException(error, {
+      extra: {
+        fileName: file.name,
+        fileSize: file.size,
+      },
+    });
 
     throw new PDFProcessingError(
       'Could not read PDF file',
@@ -88,6 +140,14 @@ async function getPageText(pdf: PDFDocumentProxy, pageNo: number): Promise<strin
     return pageText || `[Empty page ${pageNo}]`;
   } catch (error) {
     console.error(`Error reading page ${pageNo}:`, error);
+
+    // Track page-specific errors
+    Sentry.captureException(error, {
+      extra: {
+        pageNumber: pageNo,
+      },
+    });
+
     throw new PDFProcessingError(
       `Failed to extract text from page ${pageNo}`,
       'EXTRACTION_ERROR',
