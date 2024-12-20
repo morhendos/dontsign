@@ -6,6 +6,10 @@ const nextConfig = {
   sentry: {
     hideSourceMaps: true
   },
+  // Disable Vercel Speed Insights in development
+  vercelSpeedInsights: {
+    enabled: process.env.VERCEL_ENV === 'production',
+  },
   webpack: (config) => {
     // Handle canvas dependency for PDF.js
     config.resolve.fallback = {
