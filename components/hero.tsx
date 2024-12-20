@@ -1,27 +1,23 @@
-import { useState, useRef } from 'react'
-import * as Sentry from '@sentry/nextjs';
-import { Button } from '@/components/ui/button'
-import { FileText, ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
-import { analyzeContract } from '@/app/actions'
-import { readPdfText } from '@/lib/pdf-utils'
-import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors'
-import { trackFileUpload, trackAnalysisStart, trackAnalysisComplete, trackError, trackUserInteraction, trackPerformanceMetric } from '@/lib/analytics-events';
+    try {
+      // Extract text based on file type
+      const extractStartTime = Date.now();
+      let text: string;
+      
+      if (file.type === 'application/pdf') {
+        text = await readPdfText(file);
+      } else {
+        text = await file.text();
+      }
+      
+      const extractionTime = Date.now() - extractStartTime;
+      trackPerformanceMetric('text_extraction_time', extractionTime);
 
-interface AnalysisResult {
-  summary: string;
-  keyTerms: string[];
-  potentialRisks: string[];
-  importantClauses: string[];
-  recommendations?: string[];
-  metadata?: {
-    analyzedAt: string;
-    documentName: string;
-    modelVersion: string;
-    totalChunks?: number;
-  };
-}
-
-interface ErrorDisplay {
-  message: string;
-  type: 'error' | 'warning';
-}
+      Sentry.addBreadcrumb({
+        category: 'analysis',
+        message: 'Text extracted successfully',
+        level: 'info',
+        data: {
+          textLength: text.length,
+          extractionTime
+        }
+      });
