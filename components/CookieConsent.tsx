@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 
 interface CookieConsentProps {
   onAccept: () => void;
@@ -35,8 +34,8 @@ export function CookieConsent({ onAccept, onDecline }: CookieConsentProps) {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/80 backdrop-blur-sm">
-      <Card className="max-w-4xl mx-auto p-6">
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/80 backdrop-blur-sm border-t">
+      <div className="max-w-4xl mx-auto p-6 bg-background rounded-lg shadow-lg border">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-sm">
             <h3 className="font-semibold mb-2">Cookie Consent</h3>
@@ -61,7 +60,7 @@ export function CookieConsent({ onAccept, onDecline }: CookieConsentProps) {
             </Button>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
