@@ -13,12 +13,22 @@ export const EventCategory = {
 
 // Event Actions
 export const EventAction = {
-  FILE_UPLOAD: 'file_upload',
+  FILE_UPLOAD_START: 'file_upload_start',
+  FILE_UPLOAD_SUCCESS: 'file_upload_success',
+  FILE_UPLOAD_ERROR: 'file_upload_error',
+  FILE_VALIDATION: 'file_validation',
   ANALYSIS_START: 'analysis_start',
   ANALYSIS_COMPLETE: 'analysis_complete',
   ERROR: 'error',
   USER_INTERACTION: 'user_interaction',
   PERFORMANCE_METRIC: 'performance_metric'
+} as const;
+
+// Event Names for User Interactions
+export const EventName = {
+  DRAG_DROP: 'drag_drop',
+  CLICK_UPLOAD: 'click_upload',
+  BUTTON_CLICK: 'button_click'
 } as const;
 
 // Debug utility
@@ -29,19 +39,41 @@ const logEvent = (eventName: string, params: any) => {
 };
 
 // File upload tracking
-export const trackFileUpload = (fileType: string, fileSize: number) => {
+export const trackFileUploadStart = (method: 'drag_drop' | 'click') => {
+  const params = {
+    action: EventAction.FILE_UPLOAD_START,
+    category: EventCategory.DOCUMENT,
+    label: `upload_method_${method}`
+  };
+  
+  logEvent('File Upload Start', params);
+  event(params);
+};
+
+export const trackFileUploadSuccess = (fileType: string, fileSize: number) => {
   const params = { 
-    action: EventAction.FILE_UPLOAD, 
+    action: EventAction.FILE_UPLOAD_SUCCESS, 
     category: EventCategory.DOCUMENT, 
     label: fileType,
     value: Math.round(fileSize / 1024) // Convert to KB
   };
   
-  logEvent('File Upload', params);
+  logEvent('File Upload Success', params);
   event(params);
 };
 
-// Analysis tracking
+export const trackFileValidationError = (errorType: string, fileType?: string) => {
+  const params = {
+    action: EventAction.FILE_UPLOAD_ERROR,
+    category: EventCategory.ERROR,
+    label: `validation_${errorType}${fileType ? `_${fileType}` : ''}`
+  };
+
+  logEvent('File Validation Error', params);
+  event(params);
+};
+
+// Analysis tracking (existing functions...)
 export const trackAnalysisStart = (documentType: string) => {
   const params = {
     action: EventAction.ANALYSIS_START,
