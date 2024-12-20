@@ -1,103 +1,39 @@
 import { event } from './analytics';
 
-const DEBUG_MODE = process.env.NODE_ENV === 'development';
-
 // Event Categories
-export const EventCategory = {
-  DOCUMENT: 'document',
-  ANALYSIS: 'analysis',
-  ERROR: 'error',
-  USER: 'user',
-  PERFORMANCE: 'performance'
+export const EventCategories = {
+  DOCUMENT: 'Document',
+  ANALYSIS: 'Analysis',
+  ERROR: 'Error'
 } as const;
 
 // Event Actions
-export const EventAction = {
+export const EventActions = {
   FILE_UPLOAD: 'file_upload',
+  FILE_UPLOAD_ERROR: 'file_upload_error',
   ANALYSIS_START: 'analysis_start',
   ANALYSIS_COMPLETE: 'analysis_complete',
-  ERROR: 'error',
-  USER_INTERACTION: 'user_interaction',
-  PERFORMANCE_METRIC: 'performance_metric'
+  ANALYSIS_ERROR: 'analysis_error'
 } as const;
 
-// Debug utility
-const logEvent = (eventName: string, params: any) => {
-  if (DEBUG_MODE) {
-    console.log(`[Analytics Event] ${eventName}:`, params);
-  }
-};
-
-// File upload tracking
-export const trackFileUpload = (fileType: string, fileSize: number) => {
-  const params = { 
-    action: EventAction.FILE_UPLOAD, 
-    category: EventCategory.DOCUMENT, 
+export const trackFileUpload = (fileType: string, fileSize: number, successful: boolean = true) => {
+  event({
+    action: successful ? EventActions.FILE_UPLOAD : EventActions.FILE_UPLOAD_ERROR,
+    category: EventCategories.DOCUMENT,
     label: fileType,
-    value: Math.round(fileSize / 1024) // Convert to KB
-  };
-  
-  logEvent('File Upload', params);
-  event(params);
+    value: fileSize
+  });
 };
 
-// Analysis tracking
-export const trackAnalysisStart = (documentType: string) => {
-  const params = {
-    action: EventAction.ANALYSIS_START,
-    category: EventCategory.ANALYSIS,
-    label: documentType
-  };
-
-  logEvent('Analysis Start', params);
-  event(params);
-};
-
-export const trackAnalysisComplete = (documentType: string, processingTime: number) => {
-  const params = {
-    action: EventAction.ANALYSIS_COMPLETE,
-    category: EventCategory.ANALYSIS,
-    label: documentType,
-    value: Math.round(processingTime * 1000) // Convert to milliseconds
-  };
-
-  logEvent('Analysis Complete', params);
-  event(params);
-};
-
-// Error tracking
-export const trackError = (errorType: string, errorMessage: string) => {
-  const params = {
-    action: EventAction.ERROR,
-    category: EventCategory.ERROR,
-    label: `${errorType}: ${errorMessage}`
-  };
-
-  logEvent('Error', params);
-  event(params);
-};
-
-// User interaction tracking
-export const trackUserInteraction = (interactionType: string, details?: string) => {
-  const params = {
-    action: EventAction.USER_INTERACTION,
-    category: EventCategory.USER,
-    label: details ? `${interactionType}: ${details}` : interactionType
-  };
-
-  logEvent('User Interaction', params);
-  event(params);
-};
-
-// Performance tracking
-export const trackPerformanceMetric = (metricName: string, value: number) => {
-  const params = {
-    action: EventAction.PERFORMANCE_METRIC,
-    category: EventCategory.PERFORMANCE,
-    label: metricName,
-    value: Math.round(value)
-  };
-
-  logEvent('Performance Metric', params);
-  event(params);
+export const trackAnalysis = (
+  action: typeof EventActions.ANALYSIS_START | typeof EventActions.ANALYSIS_COMPLETE,
+  fileType: string,
+  duration?: number
+) => {
+  event({
+    action,
+    category: EventCategories.ANALYSIS,
+    label: fileType,
+    value: duration
+  });
 };
