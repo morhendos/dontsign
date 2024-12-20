@@ -15,7 +15,15 @@ const nextConfig = {
 
 const sentryWebpackPluginOptions = {
   // Additional Sentry webpack plugin options
-  silent: true
+  silent: true,
+  // Hide source maps from the browser
+  hideSourceMaps: true,
+  // Automatically create releases based on git info
+  autoInstrumentServerFunctions: true,
+  // Enable automatic instrumentation of Next.js server functions
+  autoInstrumentMiddleware: true,
+  // Enable performance monitoring
+  tracesSampleRate: 0.1
 };
 
 // Make sure adding Sentry options is the last code to run before exporting
