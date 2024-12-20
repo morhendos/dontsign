@@ -4,66 +4,21 @@ import OpenAI from "openai";
 import * as Sentry from "@sentry/nextjs";
 import { ContractAnalysisError } from "@/lib/errors";
 import { splitIntoChunks } from "@/lib/text-utils";
+import { 
+  trackAnalysisComplete,
+  trackChunkProcessing,
+  trackAnalysisError 
+} from "@/lib/analytics-events";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// ... (existing interfaces and configs)
 
-interface AnalysisResult {
-  summary: string;
-  keyTerms: string[];
-  potentialRisks: string[];
-  importantClauses: string[];
-  recommendations?: string[];
-}
-
-interface AnalysisMetadata {
-  analyzedAt: string;
-  documentName: string;
-  modelVersion: string;
-  totalChunks?: number;
-}
-
-// Add retry logic for API failures
-async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
-  let lastError: unknown;
-  
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      console.error(`Retry attempt ${attempt} failed:`, error);
-      lastError = error;
-      
-      // Add breadcrumb for debugging
-      Sentry.addBreadcrumb({
-        category: 'retry',
-        message: `API retry attempt ${attempt} failed`,
-        level: 'warning',
-      });
-      
-      if (attempt === maxAttempts) break;
-      
-      // Exponential backoff
-      await new Promise((resolve) => 
-        setTimeout(resolve, Math.pow(2, attempt - 1) * 1000)
-      );
-    }
-  }
-  
-  throw new ContractAnalysisError(
-    'Maximum retry attempts reached',
-    'API_ERROR',
-    lastError
-  );
-}
-
-// Function to analyze a single chunk
 async function analyzeChunk(
   chunk: string,
   chunkIndex: number,
   totalChunks: number
 ): Promise<AnalysisResult> {
+  const chunkStartTime = Date.now();
+  
   try {
     console.log(`Starting analysis of chunk ${chunkIndex + 1}/${totalChunks}`);
     
@@ -107,6 +62,10 @@ async function analyzeChunk(
           'API_ERROR'
         );
       }
+
+      // Track chunk processing time
+      const processingTime = Date.now() - chunkStartTime;
+      trackChunkProcessing(chunkIndex + 1, totalChunks, processingTime);
       
       return result;
     } catch (error) {
@@ -115,12 +74,11 @@ async function analyzeChunk(
         content,
       });
 
-      // Track parsing errors in Sentry
       Sentry.captureException(error, {
         extra: {
           chunkIndex,
           totalChunks,
-          content: content.substring(0, 1000), // First 1000 chars to avoid size limits
+          content: content.substring(0, 1000),
         },
       });
 
@@ -133,7 +91,6 @@ async function analyzeChunk(
   } catch (error) {
     console.error(`Error in analyzeChunk ${chunkIndex + 1}:`, error);
     
-    // Track chunk analysis errors in Sentry
     Sentry.captureException(error, {
       extra: {
         chunkIndex,
@@ -152,99 +109,24 @@ async function analyzeChunk(
   }
 }
 
-// Function to merge multiple analysis results
-function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
-  try {
-    console.log('Starting to merge results:', results.length, 'chunks');
-    
-    if (!Array.isArray(results) || results.length === 0) {
-      console.error('Invalid results array:', results);
-      throw new ContractAnalysisError(
-        'No analysis results to merge',
-        'TEXT_PROCESSING_ERROR'
-      );
-    }
-
-    const merged: AnalysisResult = {
-      summary: "",
-      keyTerms: [],
-      potentialRisks: [],
-      importantClauses: [],
-      recommendations: [],
-    };
-
-    // Merge all arrays and remove duplicates
-    results.forEach((result, index) => {
-      console.log(`Processing result ${index + 1}:`, {
-        hasKeyTerms: Array.isArray(result.keyTerms),
-        hasRisks: Array.isArray(result.potentialRisks),
-        hasClauses: Array.isArray(result.importantClauses),
-        hasRecommendations: Array.isArray(result.recommendations),
-      });
-      
-      if (!result || typeof result !== 'object') {
-        console.error(`Invalid result at index ${index}:`, result);
-        throw new ContractAnalysisError(
-          'Invalid analysis result format',
-          'TEXT_PROCESSING_ERROR'
-        );
-      }
-
-      if (Array.isArray(result.keyTerms)) merged.keyTerms.push(...result.keyTerms);
-      if (Array.isArray(result.potentialRisks)) merged.potentialRisks.push(...result.potentialRisks);
-      if (Array.isArray(result.importantClauses)) merged.importantClauses.push(...result.importantClauses);
-      if (Array.isArray(result.recommendations)) merged.recommendations?.push(...result.recommendations);
-    });
-
-    console.log('Removing duplicates from merged results');
-    // Remove duplicates using Set
-    merged.keyTerms = Array.from(new Set(merged.keyTerms));
-    merged.potentialRisks = Array.from(new Set(merged.potentialRisks));
-    merged.importantClauses = Array.from(new Set(merged.importantClauses));
-    if (merged.recommendations) {
-      merged.recommendations = Array.from(new Set(merged.recommendations));
-    }
-
-    // Create a comprehensive summary
-    merged.summary = `This contract analysis is based on ${results.length} sections. ` + 
-      (results[0]?.summary || 'No summary available.');
-
-    console.log('Merge completed successfully');
-    return merged;
-  } catch (error) {
-    console.error('Error merging analysis results:', error);
-
-    // Track merging errors in Sentry
-    Sentry.captureException(error, {
-      extra: {
-        totalResults: results.length,
-      },
-    });
-
-    if (error instanceof ContractAnalysisError) {
-      throw error;
-    }
-    throw new ContractAnalysisError(
-      'Failed to merge analysis results',
-      'TEXT_PROCESSING_ERROR',
-      error
-    );
-  }
-}
-
 export async function analyzeContract(formData: FormData) {
+  const analysisStartTime = Date.now();
+  let fileName = '';
+  
   try {
     console.log('Starting contract analysis');
 
     // Add context for this analysis session
+    fileName = formData.get("filename")?.toString() || '';
     Sentry.setContext("contract", {
-      filename: formData.get("filename"),
+      filename: fileName,
       timestamp: new Date().toISOString(),
     });
     
     // Validate OpenAI API key
     if (!process.env.OPENAI_API_KEY) {
       console.error('OpenAI API key not configured');
+      trackAnalysisError('CONFIGURATION', 'OpenAI API key not configured', 'unknown');
       throw new ContractAnalysisError(
         "OpenAI API key is not configured",
         "CONFIGURATION_ERROR"
@@ -255,6 +137,7 @@ export async function analyzeContract(formData: FormData) {
     const text = formData.get("text");
     if (!text || typeof text !== 'string') {
       console.error('Invalid text content:', { text });
+      trackAnalysisError('VALIDATION', 'Invalid or missing text content', 'unknown');
       throw new ContractAnalysisError(
         "No text content received",
         "INVALID_INPUT"
@@ -262,18 +145,9 @@ export async function analyzeContract(formData: FormData) {
     }
     if (text.length === 0) {
       console.error('Empty text content');
+      trackAnalysisError('VALIDATION', 'Empty text content', 'unknown');
       throw new ContractAnalysisError(
         "Empty document content",
-        "INVALID_INPUT"
-      );
-    }
-
-    // Get and validate filename
-    const filename = formData.get("filename");
-    if (!filename || typeof filename !== 'string') {
-      console.error('Invalid filename:', { filename });
-      throw new ContractAnalysisError(
-        "No filename received",
         "INVALID_INPUT"
       );
     }
@@ -283,6 +157,7 @@ export async function analyzeContract(formData: FormData) {
     const chunks = splitIntoChunks(text);
     if (chunks.length === 0) {
       console.error('No chunks created from text');
+      trackAnalysisError('PROCESSING', 'Text splitting failed - no chunks created', 'unknown');
       throw new ContractAnalysisError(
         "Document content is too short",
         "INVALID_INPUT"
@@ -306,13 +181,22 @@ export async function analyzeContract(formData: FormData) {
     console.log('Merging analysis results');
     const mergedAnalysis = mergeAnalysisResults(analysisResults);
 
-    // Add metadata
-    console.log('Adding metadata to results');
+    // Calculate total processing time
+    const processingTime = Date.now() - analysisStartTime;
+
+    // Track successful completion
+    trackAnalysisComplete(
+      fileName.endsWith('.pdf') ? 'pdf' : 'docx',
+      processingTime,
+      chunks.length
+    );
+
+    // Add metadata and return
     return {
       ...mergedAnalysis,
       metadata: {
         analyzedAt: new Date().toISOString(),
-        documentName: filename,
+        documentName: fileName,
         modelVersion: "gpt-3.5-turbo-1106",
         totalChunks: chunks.length
       } as AnalysisMetadata,
@@ -320,20 +204,38 @@ export async function analyzeContract(formData: FormData) {
   } catch (error) {
     console.error("Error generating analysis:", error);
 
-    // Track the error in Sentry with context
+    // Track analysis error
+    if (error instanceof ContractAnalysisError) {
+      trackAnalysisError(
+        error.code,
+        error.message,
+        fileName.endsWith('.pdf') ? 'pdf' : 'docx'
+      );
+    } else if (error instanceof OpenAI.APIError) {
+      trackAnalysisError(
+        'OPENAI_API',
+        `${error.type}: ${error.message}`,
+        fileName.endsWith('.pdf') ? 'pdf' : 'docx'
+      );
+    } else {
+      trackAnalysisError(
+        'UNKNOWN',
+        error instanceof Error ? error.message : 'Unknown error',
+        fileName.endsWith('.pdf') ? 'pdf' : 'docx'
+      );
+    }
+
     Sentry.captureException(error, {
       extra: {
-        filename: formData.get("filename"),
+        filename: fileName,
         textLength: formData.get("text")?.toString().length,
       },
     });
     
-    // Handle known errors
     if (error instanceof ContractAnalysisError) {
       throw error;
     }
     
-    // Handle OpenAI API errors
     if (error instanceof OpenAI.APIError) {
       console.error('OpenAI API error:', {
         status: error.status,
@@ -347,7 +249,6 @@ export async function analyzeContract(formData: FormData) {
       );
     }
 
-    // Handle unknown errors
     console.error('Unknown error:', error);
     throw new ContractAnalysisError(
       `Failed to analyze contract: ${error instanceof Error ? error.message : 'Unknown error'}`,
