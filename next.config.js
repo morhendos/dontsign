@@ -10,7 +10,9 @@ const nextConfig = {
       canvas: false
     };
     return config;
-  }
+  },
+  // Disable source maps in production
+  productionBrowserSourceMaps: false
 }
 
 const sentryWebpackPluginOptions = {
