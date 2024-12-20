@@ -3,6 +3,9 @@
 const { withSentryConfig } = require("@sentry/nextjs");
 
 const nextConfig = {
+  sentry: {
+    hideSourceMaps: true
+  },
   webpack: (config) => {
     // Handle canvas dependency for PDF.js
     config.resolve.fallback = {
@@ -14,7 +17,4 @@ const nextConfig = {
 }
 
 // Make sure adding Sentry options is the last code to run before exporting
-module.exports = withSentryConfig(
-  nextConfig,
-  { hideSourceMaps: true }
-);
+module.exports = withSentryConfig(nextConfig);
