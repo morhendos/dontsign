@@ -11,12 +11,11 @@ export default function Footer() {
           </Button>
         </div>
         <div className="space-x-4 text-sm text-gray-600">
-          <Link href="/privacy" className="hover:text-gray-800">Privacy Policy</Link>
-          <Link href="/terms" className="hover:text-gray-800">Terms of Service</Link>
-          <Link href="/contact" className="hover:text-gray-800">Contact</Link>
+          <Link href="/privacy" prefetch={false} className="hover:text-gray-800">Privacy Policy</Link>
+          <Link href="/terms" prefetch={false} className="hover:text-gray-800">Terms of Service</Link>
+          <Link href="/contact" prefetch={false} className="hover:text-gray-800">Contact</Link>
         </div>
       </div>
     </footer>
   )
 }
-
