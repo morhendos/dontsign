@@ -1,14 +1,16 @@
 'use client';
 
 import * as Sentry from '@sentry/nextjs';
-import Error from 'next/error';
 import { useEffect } from 'react';
 
-export default function GlobalError({
-  error,
-}: {
-  error: Error & { digest?: string };
-}) {
+type GlobalErrorProps = {
+  error: Error & {
+    digest?: string;
+    message: string;  // explicitly declare message property
+  };
+};
+
+export default function GlobalError({ error }: GlobalErrorProps) {
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
@@ -21,7 +23,7 @@ export default function GlobalError({
           <p className="text-gray-600 mb-4">We've been notified and are working to fix the issue.</p>
           {process.env.NODE_ENV === 'development' && (
             <pre className="text-left bg-gray-100 p-4 rounded-md overflow-auto max-w-full">
-              {error?.toString() || 'Unknown error'}
+              {error.message}
             </pre>
           )}
           <button
