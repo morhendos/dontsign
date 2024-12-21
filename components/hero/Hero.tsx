@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { analyzeContract } from '@/app/actions';
 import { readPdfText } from '@/lib/pdf-utils';
@@ -18,7 +18,10 @@ export default function Hero() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<ErrorDisplayType | null>(null);
-  const [progress, setProgress] = useState({ currentChunk: 0, totalChunks: 0 });
+  
+  // Track analysis progress using metadata from the server
+  const currentChunk = analysis?.metadata?.currentChunk ?? 0;
+  const totalChunks = analysis?.metadata?.totalChunks ?? 0;
 
   const handleFileSelect = (selectedFile: File | null) => {
     if (!selectedFile) {
@@ -32,7 +35,6 @@ export default function Hero() {
     setFile(selectedFile);
     setAnalysis(null);
     setError(null);
-    setProgress({ currentChunk: 0, totalChunks: 0 });
   };
 
   const handleAnalyze = async () => {
@@ -46,7 +48,6 @@ export default function Hero() {
 
     setIsAnalyzing(true);
     setError(null);
-    setProgress({ currentChunk: 0, totalChunks: 0 });
 
     const startTime = Date.now();
     trackAnalysisStart(file.type);
@@ -63,9 +64,7 @@ export default function Hero() {
       formData.append('text', text);
       formData.append('filename', file.name);
 
-      const result = await analyzeContract(formData, (current, total) => {
-        setProgress({ currentChunk: current, totalChunks: total });
-      });
+      const result = await analyzeContract(formData);
       
       if (result) {
         setAnalysis(result);
@@ -119,8 +118,8 @@ export default function Hero() {
         </div>
 
         <AnalysisProgress 
-          currentChunk={progress.currentChunk}
-          totalChunks={progress.totalChunks}
+          currentChunk={currentChunk}
+          totalChunks={totalChunks}
           isAnalyzing={isAnalyzing}
         />
 
