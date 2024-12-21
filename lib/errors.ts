@@ -4,6 +4,7 @@ export type ErrorCode =
   | 'NO_TEXT_CONTENT'
   | 'EXTRACTION_ERROR'
   | 'INVALID_FORMAT'
+  | 'FILE_TOO_LARGE'
   | 'API_ERROR'
   | 'INVALID_INPUT'
   | 'TEXT_PROCESSING_ERROR'
@@ -21,7 +22,7 @@ export class BaseError extends Error {
 export class PDFProcessingError extends BaseError {
   constructor(
     message: string,
-    code: Extract<ErrorCode, 'EMPTY_FILE' | 'CORRUPT_FILE' | 'NO_TEXT_CONTENT' | 'EXTRACTION_ERROR' | 'INVALID_FORMAT'>,
+    code: Extract<ErrorCode, 'EMPTY_FILE' | 'CORRUPT_FILE' | 'NO_TEXT_CONTENT' | 'EXTRACTION_ERROR' | 'INVALID_FORMAT' | 'FILE_TOO_LARGE'>,
     cause?: unknown
   ) {
     super(message, code, cause);
