@@ -1,17 +1,11 @@
-import Header from '@/components/header'
-import Hero from '@/components/hero/Hero'
-import HowItWorks from '@/components/how-it-works'
-import KeyFeatures from '@/components/key-features'
-import Footer from '@/components/footer'
+import { Hero } from "@/components/hero"
+import { ThemeToggle } from "@/components/theme/theme-toggle"
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-blue-50">
-      <Header />
+    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <ThemeToggle />
       <Hero />
-      <HowItWorks />
-      <KeyFeatures />
-      <Footer />
     </main>
   )
 }
