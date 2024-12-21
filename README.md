@@ -69,6 +69,14 @@ interface AnalysisResult {
 }
 ```
 
+### `app/api/analyze/route.ts`
+API endpoint for contract analysis:
+- Implements streaming response with progress updates
+- Handles OpenAI API integration
+- Processes text in chunks with real-time feedback
+- Aggregates analysis results
+- Provides structured error handling
+
 ### `app/actions.ts`
 Server-side actions:
 - Contract analysis using OpenAI
@@ -82,13 +90,32 @@ PDF processing utilities:
 - Error handling for corrupt files
 - Worker configuration
 
-### `app/api/analyze/route.ts`
-API endpoint for contract analysis:
-- Implements streaming response with progress updates
-- Handles OpenAI API integration
-- Processes text in chunks with real-time feedback
-- Aggregates analysis results
-- Provides structured error handling
+## OpenAI Integration
+
+### Prompt Structure
+The system uses structured prompts for consistent analysis:
+
+```typescript
+const prompt = `Analyze the following contract text and provide a structured analysis in JSON format.
+This is chunk ${chunkIndex + 1} of ${totalChunks}.
+
+Contract text:
+${chunk}
+
+Provide your analysis as a JSON object with the following structure:
+{
+  "keyTerms": [list of important terms and definitions],
+  "potentialRisks": [list of concerning clauses or potential risks],
+  "importantClauses": [list of significant clauses and their implications],
+  "recommendations": [list of points for review or negotiation]
+}`;
+```
+
+System message emphasizes legal expertise:
+```typescript
+role: "system",
+content: "You are a legal analysis assistant specialized in contract review. Analyze the contract and return results in JSON format. Focus on identifying key terms, potential risks, and important clauses. Be concise and precise."
+```
 
 ## Error Handling
 The application uses a comprehensive error handling system:
