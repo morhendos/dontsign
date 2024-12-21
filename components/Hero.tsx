@@ -12,6 +12,7 @@ import { useContractAnalysis } from '@/hooks/useContractAnalysis';
 
 export default function Hero() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const {
     file,
     error: fileError,
@@ -45,14 +46,16 @@ export default function Hero() {
         </p>
 
         <FileUpload
+          ref={fileInputRef}
           file={file}
           error={fileError}
           onDrop={handleDrop}
           onFileChange={handleFileChange}
           onClick={handleAreaClick}
+          inputId="contract-file-upload"
         />
 
-        <div className="flex justify-center mt-6">
+        <div className="flex justify-center mt-6" role="region" aria-label="Contract analysis controls">
           <Button
             variant="default"
             disabled={!file || isAnalyzing}
@@ -61,13 +64,13 @@ export default function Hero() {
           >
             {isAnalyzing ? (
               <>
-                <Loader2 className="animate-spin mr-2" />
-                Analyzing...
+                <Loader2 className="animate-spin mr-2" aria-hidden="true" />
+                <span>Analyzing...</span>
               </>
             ) : (
               <>
-                Analyze Contract
-                <ArrowRight className="ml-2" />
+                <span>Analyze Contract</span>
+                <ArrowRight className="ml-2" aria-hidden="true" />
               </>
             )}
           </Button>
@@ -77,7 +80,11 @@ export default function Hero() {
           <ErrorMessage error={fileError || analysisError} />
         )}
 
-        {analysis && <AnalysisResults analysis={analysis} />}
+        {analysis && (
+          <div role="region" aria-label="Analysis results">
+            <AnalysisResults analysis={analysis} />
+          </div>
+        )}
       </div>
     </section>
   );
