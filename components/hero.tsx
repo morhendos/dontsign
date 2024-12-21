@@ -1,9 +1,24 @@
 'use client'
 
-// ... (previous imports and interfaces remain the same)
+import { useState, useRef } from 'react'
+import * as Sentry from '@sentry/nextjs';
+import { Button } from '@/components/ui/button'
+import { FileText, ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import { analyzeContract } from '@/app/actions'
+import { readPdfText } from '@/lib/pdf-utils'
+import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors'
+import { trackFileUpload, trackAnalysisStart, trackAnalysisComplete, trackError, trackUserInteraction } from '@/lib/analytics-events';
+
+// ... (previous interfaces remain the same)
 
 export default function Hero() {
-  // ... (previous code remains the same until the return statement)
+  const [file, setFile] = useState<File | null>(null)
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [error, setError] = useState<ErrorDisplay | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // ... (previous handlers remain the same)
 
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50">
@@ -50,4 +65,4 @@ export default function Hero() {
           />
         </div>
 
-        // ... (rest of the code remains exactly the same)
+        // ... (rest of the component remains the same)
