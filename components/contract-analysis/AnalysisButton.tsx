@@ -13,7 +13,7 @@ export function AnalysisButton({ isDisabled, isAnalyzing, onClick }: AnalysisBut
       variant="default"
       disabled={isDisabled}
       onClick={onClick}
-      className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+      className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-6"
     >
       {isAnalyzing ? (
         <>

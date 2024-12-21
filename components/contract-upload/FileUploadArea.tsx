@@ -59,15 +59,15 @@ export function FileUploadArea({
         className={`
           p-10 border-2 border-dashed rounded-lg text-center
           transition-colors duration-200 ease-in-out
-          ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'}
-          ${error ? 'border-red-300' : ''}
-          ${isUploading ? 'cursor-wait opacity-75' : 'cursor-pointer hover:border-gray-400'}
+          ${isDragActive ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800'}
+          ${error ? 'border-red-300 dark:border-red-500' : ''}
+          ${isUploading ? 'cursor-wait opacity-75' : 'cursor-pointer hover:border-gray-400 dark:hover:border-gray-500'}
         `}
       >
         <input {...getInputProps()} disabled={isUploading} />
         
         {isUploading ? (
-          <div className="text-gray-500">
+          <div className="text-gray-500 dark:text-gray-400">
             <svg
               className="animate-spin h-6 w-6 mx-auto mb-2"
               xmlns="http://www.w3.org/2000/svg"
@@ -91,7 +91,7 @@ export function FileUploadArea({
             Processing file...
           </div>
         ) : file ? (
-          <div className="text-gray-500">
+          <div className="text-gray-500 dark:text-gray-400">
             <svg
               className="h-6 w-6 mx-auto mb-2"
               fill="none"
@@ -108,7 +108,7 @@ export function FileUploadArea({
             {file.name}
           </div>
         ) : (
-          <div className="text-gray-500">
+          <div className="text-gray-500 dark:text-gray-400">
             <svg
               className="h-6 w-6 mx-auto mb-2"
               fill="none"
@@ -127,14 +127,14 @@ export function FileUploadArea({
             ) : (
               'Drag & drop your contract, or click to select'
             )}
-            <p className="text-sm text-gray-400 mt-2">Supports PDF and DOCX files up to 10MB</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Supports PDF and DOCX files up to 10MB</p>
           </div>
         )}
       </div>
 
       {/* Processing status display */}
       {processingStatus && (
-        <div className="text-sm text-gray-600 text-center animate-fade-in">
+        <div className="text-sm text-gray-600 dark:text-gray-300 text-center animate-fade-in">
           <span className="inline-block mr-2">
             <svg 
               className="w-4 h-4 inline-block animate-pulse" 
