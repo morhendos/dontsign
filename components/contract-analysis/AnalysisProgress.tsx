@@ -1,27 +1,17 @@
-import { Progress } from '@/components/ui/progress';
-
-interface AnalysisProgressProps {
-  currentChunk: number;
-  totalChunks: number;
-  isAnalyzing: boolean;
-}
-
-export function AnalysisProgress({ currentChunk, totalChunks, isAnalyzing }: AnalysisProgressProps) {
-  // MOCK: Always show progress at 50%
+export function AnalysisProgress() {
   return (
-    <div className="w-full max-w-md mx-auto mt-4 space-y-2 border-2 border-red-500 p-4 bg-white"> {/* Added visible border and padding */}
-      <div className="flex justify-between text-sm text-gray-600">
-        <span>Analyzing contract... (MOCK)</span>
-        <span>50%</span>
+    <>
+      <div className="w-full h-16 bg-red-500 my-4 flex items-center justify-center text-white">
+        ABOVE PROGRESS BAR
       </div>
-      <Progress 
-        value={50} 
-        className="h-4" /* Made taller for visibility */
-        indicatorColor="bg-blue-600"
-      />
-      <p className="text-sm text-gray-500 text-center">
-        Processing section 5 of 10 (MOCK)
-      </p>
-    </div>
+      
+      <div className="w-full h-8 bg-blue-500 my-4">
+        {/* This is where progress bar should be */}
+      </div>
+      
+      <div className="w-full h-16 bg-green-500 my-4 flex items-center justify-center text-white">
+        BELOW PROGRESS BAR
+      </div>
+    </>
   );
 }
