@@ -1,30 +1,20 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { useContractAnalysis } from '@/hooks/useContractAnalysis';
+import { useFileHandler } from '@/hooks/useFileHandler';
 import { FileUploadArea } from '../contract-upload/FileUploadArea';
 import { AnalysisButton } from '../contract-analysis/AnalysisButton';
 import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
-import type { ErrorDisplay as ErrorDisplayType } from '@/types/analysis';
 
 export default function Hero() {
-  const [file, setFile] = useState<File | null>(null);
-  const [processingStatus, setProcessingStatus] = useState<string>('');
+  // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const [processingStatus, setProcessingStatus] = useState<string>('');
 
-  const {
-    analysis,
-    isAnalyzing,
-    error,
-    progress,
-    stage,
-    handleAnalyze
-  } = useContractAnalysis({
-    onStatusUpdate: setStatusWithTimeout
-  });
-
+  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -41,18 +31,30 @@ export default function Hero() {
     timeoutRef.current = setTimeout(() => setProcessingStatus(''), duration);
   };
 
-  const handleFileSelect = async (selectedFile: File | null) => {
-    if (!selectedFile) {
-      const newError: ErrorDisplayType = {
-        message: 'Please select a valid PDF or DOCX file.',
-        type: 'warning'
-      };
-      return;
-    }
+  // File handling
+  const {
+    file,
+    error: fileError,
+    isProcessing,
+    handleFileSelect
+  } = useFileHandler({
+    onStatusUpdate: setStatusWithTimeout
+  });
 
-    setStatusWithTimeout('Starting file processing...');
-    setFile(selectedFile);
-  };
+  // Contract analysis
+  const {
+    analysis,
+    isAnalyzing,
+    error: analysisError,
+    progress,
+    stage,
+    handleAnalyze
+  } = useContractAnalysis({
+    onStatusUpdate: setStatusWithTimeout
+  });
+
+  // Combined error state (file error takes precedence)
+  const error = fileError || analysisError;
 
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -68,13 +70,13 @@ export default function Hero() {
           file={file}
           error={error}
           onFileSelect={handleFileSelect}
-          isUploading={isAnalyzing && progress <= 2}
+          isUploading={isProcessing || (isAnalyzing && progress <= 2)}
           processingStatus={processingStatus}
         />
 
         <div className="flex justify-center mt-6">
           <AnalysisButton
-            isDisabled={!file || isAnalyzing}
+            isDisabled={!file || isAnalyzing || isProcessing}
             isAnalyzing={isAnalyzing}
             onClick={() => handleAnalyze(file)}
           />
