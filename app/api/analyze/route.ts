@@ -29,28 +29,15 @@ interface ProgressUpdate {
   error?: string;
 }
 
-async function sendUpdate(
-  writer: WritableStreamDefaultWriter<any>,
-  update: ProgressUpdate
-) {
-  try {
-    const encoder = new TextEncoder();
-    console.log('[Server] Attempting to send update:', update);
-    await writer.write(
-      encoder.encode(`data: ${JSON.stringify(update)}\n\n`)
-    );
-    console.log('[Server] Update sent successfully');
-  } catch (error) {
-    console.error('[Server] Error sending update:', error);
-    throw error;
-  }
-}
-
 export async function POST(request: NextRequest) {
   console.log('[Server] POST /api/analyze started');
-  
-  const stream = new TransformStream();
-  const writer = stream.writable.getWriter();
+
+  // Create response headers first
+  const responseHeaders = {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  };
 
   try {
     console.log('[Server] Reading request form data...');
@@ -66,100 +53,119 @@ export async function POST(request: NextRequest) {
       throw new ContractAnalysisError("Invalid input", "INVALID_INPUT");
     }
 
-    console.log('[Server] Input validation passed, sending initial update...');
-    await sendUpdate(writer, {
-      type: 'progress',
-      stage: 'preprocessing',
-      progress: 5
-    });
-    console.log('[Server] Initial update sent, starting text chunking...');
+    // Create a ReadableStream directly
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // Initial update
+          console.log('[Server] Sending initial update...');
+          controller.enqueue(
+            `data: ${JSON.stringify({
+              type: 'progress',
+              stage: 'preprocessing',
+              progress: 5
+            })}\n\n`
+          );
 
-    console.log('[Server] Starting text chunking...');
-    const chunks = splitIntoChunks(text);
-    console.log(`[Server] Text split into ${chunks.length} chunks`);
-    
-    if (chunks.length === 0) {
-      throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
-    }
+          // Process text
+          console.log('[Server] Starting text chunking...');
+          const chunks = splitIntoChunks(text);
+          if (chunks.length === 0) {
+            throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
+          }
+          console.log(`[Server] Text split into ${chunks.length} chunks`);
 
-    await sendUpdate(writer, {
-      type: 'progress',
-      stage: 'preprocessing',
-      progress: 10,
-      totalChunks: chunks.length,
-      currentChunk: 0
-    });
-    console.log('[Server] Preprocessing update sent');
+          // Send preprocessing update
+          controller.enqueue(
+            `data: ${JSON.stringify({
+              type: 'progress',
+              stage: 'preprocessing',
+              progress: 10,
+              totalChunks: chunks.length,
+              currentChunk: 0
+            })}\n\n`
+          );
 
-    // Process chunks and send progress updates
-    console.log('[Server] Starting chunk processing...');
-    for (let i = 0; i < chunks.length; i++) {
-      const progress = Math.floor(15 + ((i + 1) / chunks.length) * 85);
-      console.log(`[Server] Processing chunk ${i + 1}/${chunks.length}`);
-      
-      await sendUpdate(writer, {
-        type: 'progress',
-        stage: 'analyzing',
-        progress,
-        totalChunks: chunks.length,
-        currentChunk: i + 1
-      });
-      console.log(`[Server] Chunk ${i + 1} update sent`);
-      
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+          // Process chunks
+          for (let i = 0; i < chunks.length; i++) {
+            const progress = Math.floor(15 + ((i + 1) / chunks.length) * 85);
+            console.log(`[Server] Processing chunk ${i + 1}/${chunks.length}`);
+            
+            controller.enqueue(
+              `data: ${JSON.stringify({
+                type: 'progress',
+                stage: 'analyzing',
+                progress,
+                totalChunks: chunks.length,
+                currentChunk: i + 1
+              })}\n\n`
+            );
 
-    // Send completion update with results
-    console.log('[Server] All chunks processed, sending completion update...');
-    const mockResult = {
-      summary: "Analysis complete",
-      keyTerms: ["Term 1", "Term 2"],
-      potentialRisks: ["Risk 1", "Risk 2"],
-      importantClauses: ["Clause 1", "Clause 2"],
-      recommendations: ["Recommendation 1"],
-      metadata: {
-        analyzedAt: new Date().toISOString(),
-        documentName: filename.toString(),
-        modelVersion: "gpt-3.5-turbo-1106",
-        totalChunks: chunks.length
+            // Simulate processing time
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+
+          // Send completion update
+          const mockResult = {
+            summary: "Analysis complete",
+            keyTerms: ["Term 1", "Term 2"],
+            potentialRisks: ["Risk 1", "Risk 2"],
+            importantClauses: ["Clause 1", "Clause 2"],
+            recommendations: ["Recommendation 1"],
+            metadata: {
+              analyzedAt: new Date().toISOString(),
+              documentName: filename.toString(),
+              modelVersion: "gpt-3.5-turbo-1106",
+              totalChunks: chunks.length
+            }
+          };
+
+          controller.enqueue(
+            `data: ${JSON.stringify({
+              type: 'complete',
+              stage: 'complete',
+              progress: 100,
+              result: mockResult
+            })}\n\n`
+          );
+
+          // Close the stream
+          controller.close();
+          console.log('[Server] Stream closed successfully');
+
+        } catch (error) {
+          console.error('[Server] Error in stream controller:', error);
+          controller.enqueue(
+            `data: ${JSON.stringify({
+              type: 'error',
+              stage: 'preprocessing',
+              progress: 0,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            })}\n\n`
+          );
+          controller.close();
+        }
       }
-    };
-
-    await sendUpdate(writer, {
-      type: 'complete',
-      stage: 'complete',
-      progress: 100,
-      result: mockResult
     });
 
-    console.log('[Server] Analysis complete, closing writer...');
-    await writer.close();
-    console.log('[Server] Writer closed successfully');
-
-    // Return the response with the stream
-    console.log('[Server] Returning response with stream...');
-    return new Response(stream.readable, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
+    return new Response(stream, { headers: responseHeaders });
 
   } catch (error) {
     console.error('[Server] Error in analyze endpoint:', error);
-    try {
-      await sendUpdate(writer, {
-        type: 'error',
-        stage: 'preprocessing',
-        progress: 0,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    } catch (e) {
-      console.error('[Server] Error sending error update:', e);
-    }
-    await writer.close();
-    throw error;
+    const errorStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(
+          `data: ${JSON.stringify({
+            type: 'error',
+            stage: 'preprocessing',
+            progress: 0,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          })}\n\n`
+        );
+        controller.close();
+      }
+    });
+
+    return new Response(errorStream, { headers: responseHeaders });
   }
 }
