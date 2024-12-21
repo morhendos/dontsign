@@ -60,7 +60,7 @@ export default function Hero() {
     try {
       if (selectedFile.type === 'application/pdf') {
         setStatusWithTimeout('Validating PDF document...');
-        await readPdfText(selectedFile); // Removed the second argument
+        await readPdfText(selectedFile);
       }
       
       setProgress(2);
@@ -126,7 +126,7 @@ export default function Hero() {
           modelVersion: "gpt-3.5-turbo-1106",
           totalChunks: 0,
           currentChunk: 0,
-          stage: 'preprocessing',
+          stage: 'preprocessing' as const,
           progress: 5
         }
       });
@@ -184,14 +184,21 @@ export default function Hero() {
                 }
 
                 if (data.currentChunk && data.totalChunks) {
-                  setAnalysis(prev => prev ? {
-                    ...prev,
-                    metadata: {
-                      ...prev.metadata,
-                      currentChunk: data.currentChunk,
-                      totalChunks: data.totalChunks
-                    }
-                  } : prev);
+                  setAnalysis(prev => {
+                    if (!prev) return null;
+                    return {
+                      ...prev,
+                      metadata: {
+                        analyzedAt: prev.metadata?.analyzedAt || new Date().toISOString(),
+                        documentName: prev.metadata?.documentName || '',
+                        modelVersion: prev.metadata?.modelVersion || "gpt-3.5-turbo-1106",
+                        currentChunk: data.currentChunk,
+                        totalChunks: data.totalChunks,
+                        stage: data.stage || 'analyzing',
+                        progress: data.progress || 0
+                      }
+                    };
+                  });
                 }
 
                 if (data.type === 'complete' && data.result) {
