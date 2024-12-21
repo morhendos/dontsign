@@ -89,16 +89,38 @@ export async function POST(request: NextRequest) {
       currentChunk: 0
     });
 
-    // Test update to verify stream is working
+    // Simulate chunk processing with progress updates
+    for (let i = 0; i < chunks.length; i++) {
+      const progress = Math.floor(15 + ((i + 1) / chunks.length) * 85);
+      await sendUpdate(writer, {
+        type: 'progress',
+        stage: 'analyzing',
+        progress,
+        totalChunks: chunks.length,
+        currentChunk: i + 1
+      });
+      
+      // TODO: Add actual OpenAI processing here
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing time
+    }
+
+    // Send completion update
+    const mockResult = {
+      summary: "Analysis complete",
+      keyTerms: ["Term 1", "Term 2"],
+      potentialRisks: ["Risk 1", "Risk 2"],
+      importantClauses: ["Clause 1", "Clause 2"],
+      recommendations: ["Recommendation 1"]
+    };
+
     await sendUpdate(writer, {
-      type: 'progress',
-      stage: 'analyzing',
-      progress: 15,
-      totalChunks: chunks.length,
-      currentChunk: 1
+      type: 'complete',
+      stage: 'complete',
+      progress: 100,
+      result: mockResult
     });
 
-    console.log('[Server] Closing writer...');
+    console.log('[Server] Analysis complete, closing writer...');
     await writer.close();
     console.log('[Server] Writer closed successfully');
 
