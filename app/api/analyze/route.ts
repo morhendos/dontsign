@@ -30,24 +30,26 @@ interface ProgressUpdate {
 }
 
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
-  const prompt = `Analyze the following contract text and provide a structured analysis. 
+  const prompt = `Analyze the following contract text and provide a structured analysis in JSON format. 
 This is chunk ${chunkIndex + 1} of ${totalChunks}.
 
 Contract text:
 ${chunk}
 
-Provide your analysis in the following format:
-1. Key Terms: List the important terms and definitions
-2. Potential Risks: Identify any concerning clauses or potential risks
-3. Important Clauses: Highlight significant clauses and their implications
-4. Recommendations: Suggest points for review or negotiation`;
+Provide your analysis as a JSON object with the following structure:
+{
+  "keyTerms": [list of important terms and definitions],
+  "potentialRisks": [list of concerning clauses or potential risks],
+  "importantClauses": [list of significant clauses and their implications],
+  "recommendations": [list of points for review or negotiation]
+}`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-3.5-turbo-1106",
     messages: [
       {
         role: "system",
-        content: "You are a legal analysis assistant specialized in contract review. Focus on identifying key terms, potential risks, and important clauses. Be concise and precise."
+        content: "You are a legal analysis assistant specialized in contract review. Analyze the contract and return results in JSON format. Focus on identifying key terms, potential risks, and important clauses. Be concise and precise."
       },
       {
         role: "user",
@@ -58,8 +60,7 @@ Provide your analysis in the following format:
     response_format: { type: "json_object" }
   });
 
-  const analysis = JSON.parse(response.choices[0].message.content);
-  return analysis;
+  return JSON.parse(response.choices[0].message.content);
 }
 
 export async function POST(request: NextRequest) {
@@ -137,25 +138,27 @@ export async function POST(request: NextRequest) {
               })}\n\n`
             );
 
-            // Analyze chunk with OpenAI
-            const chunkAnalysis = await analyzeChunk(chunks[i], i, chunks.length);
-            
-            // Aggregate results
-            allKeyTerms = [...allKeyTerms, ...chunkAnalysis.keyTerms];
-            allPotentialRisks = [...allPotentialRisks, ...chunkAnalysis.potentialRisks];
-            allImportantClauses = [...allImportantClauses, ...chunkAnalysis.importantClauses];
-            allRecommendations = [...allRecommendations, ...chunkAnalysis.recommendations];
+            try {
+              // Analyze chunk with OpenAI
+              const chunkAnalysis = await analyzeChunk(chunks[i], i, chunks.length);
+              console.log(`[Server] Chunk ${i + 1} analysis completed`);
+              
+              // Aggregate results
+              allKeyTerms = [...allKeyTerms, ...chunkAnalysis.keyTerms];
+              allPotentialRisks = [...allPotentialRisks, ...chunkAnalysis.potentialRisks];
+              allImportantClauses = [...allImportantClauses, ...chunkAnalysis.importantClauses];
+              allRecommendations = [...allRecommendations, ...chunkAnalysis.recommendations];
+            } catch (error) {
+              console.error(`[Server] Error analyzing chunk ${i + 1}:`, error);
+              throw new ContractAnalysisError(
+                `Error analyzing section ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                'ANALYSIS_ERROR'
+              );
+            }
           }
 
           // Generate final summary
-          const summaryPrompt = `Summarize the following analysis of a contract:
-          Key Terms: ${allKeyTerms.join(', ')}
-          Potential Risks: ${allPotentialRisks.join(', ')}
-          Important Clauses: ${allImportantClauses.join(', ')}
-          Recommendations: ${allRecommendations.join(', ')}
-
-          Provide a concise executive summary.`;
-
+          console.log('[Server] Generating final summary...');
           const summaryResponse = await openai.chat.completions.create({
             model: "gpt-3.5-turbo-1106",
             messages: [
@@ -165,7 +168,19 @@ export async function POST(request: NextRequest) {
               },
               {
                 role: "user",
-                content: summaryPrompt
+                content: `Based on the following findings, provide a concise executive summary of the contract:
+
+Key Terms:
+${allKeyTerms.map(term => `- ${term}`).join('\n')}
+
+Potential Risks:
+${allPotentialRisks.map(risk => `- ${risk}`).join('\n')}
+
+Important Clauses:
+${allImportantClauses.map(clause => `- ${clause}`).join('\n')}
+
+Recommendations:
+${allRecommendations.map(rec => `- ${rec}`).join('\n')}`
               }
             ],
             temperature: 0.3
@@ -187,6 +202,7 @@ export async function POST(request: NextRequest) {
           };
 
           // Send completion update
+          console.log('[Server] Sending completion update...');
           controller.enqueue(
             `data: ${JSON.stringify({
               type: 'complete',
