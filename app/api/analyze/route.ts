@@ -32,6 +32,8 @@ async function analyzeChunk(
   chunkIndex: number,
   totalChunks: number
 ): Promise<AnalysisResult> {
+  console.log(`[Server] Starting analysis of chunk ${chunkIndex + 1}/${totalChunks}`);
+  
   const systemPrompt = "You are a legal expert. Analyze this contract section concisely.";
   const userPrompt = `Section ${chunkIndex + 1}/${totalChunks}:\n${chunk}\n\nProvide JSON with: summary (brief), keyTerms, potentialRisks, importantClauses, recommendations.`;
 
@@ -45,6 +47,8 @@ async function analyzeChunk(
     max_tokens: 1000,
     response_format: { type: "json_object" },
   });
+
+  console.log(`[Server] Completed analysis of chunk ${chunkIndex + 1}/${totalChunks}`);
 
   const content = response.choices[0]?.message?.content;
   if (!content) {
@@ -62,6 +66,7 @@ async function processBatch(
   startIndex: number,
   totalChunks: number
 ): Promise<AnalysisResult[]> {
+  console.log(`[Server] Processing batch starting at index ${startIndex}`);
   return Promise.all(
     chunks.map((chunk, idx) => 
       analyzeChunk(chunk, startIndex + idx, totalChunks)
@@ -70,17 +75,21 @@ async function processBatch(
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[Server] Starting analysis process');
+  
   const encoder = new TextEncoder();
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
   async function sendUpdate(update: ProgressUpdate) {
+    console.log('[Server] Sending update:', update);
     await writer.write(
       encoder.encode(`data: ${JSON.stringify(update)}\n\n`)
     );
   }
 
   try {
+    console.log('[Server] Parsing form data');
     const data = await request.formData();
     const text = data.get('text');
     const filename = data.get('filename');
@@ -89,7 +98,7 @@ export async function POST(request: NextRequest) {
       throw new ContractAnalysisError("Invalid input", "INVALID_INPUT");
     }
 
-    // Send initial preprocessing update
+    console.log('[Server] Starting preprocessing');
     await sendUpdate({
       type: 'progress',
       stage: 'preprocessing',
@@ -101,7 +110,7 @@ export async function POST(request: NextRequest) {
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    // Text preprocessing complete
+    console.log(`[Server] Text split into ${chunks.length} chunks`);
     await sendUpdate({
       type: 'progress',
       stage: 'preprocessing',
@@ -114,6 +123,7 @@ export async function POST(request: NextRequest) {
     
     // Process chunks in batches
     for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+      console.log(`[Server] Starting batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(chunks.length/BATCH_SIZE)}`);
       const batchChunks = chunks.slice(i, i + BATCH_SIZE);
       const batchResults = await processBatch(batchChunks, i, chunks.length);
       
@@ -133,6 +143,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    console.log('[Server] Analysis complete, merging results');
     // Merge results
     const aiSummaries = results.map(r => r.summary).join('\n');
     const finalAnalysis = {
@@ -152,6 +163,7 @@ export async function POST(request: NextRequest) {
       }
     };
 
+    console.log('[Server] Sending final results');
     // Send completion update with final results
     await sendUpdate({
       type: 'complete',
@@ -161,7 +173,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Analysis error:', error);
+    console.error('[Server] Analysis error:', error);
     await sendUpdate({
       type: 'error',
       stage: 'preprocessing',
@@ -169,9 +181,11 @@ export async function POST(request: NextRequest) {
       error: error instanceof Error ? error.message : 'Unknown error'
     });
   } finally {
+    console.log('[Server] Closing writer');
     await writer.close();
   }
 
+  console.log('[Server] Returning response stream');
   return new Response(stream.readable, {
     headers: {
       'Content-Type': 'text/event-stream',
