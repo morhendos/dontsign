@@ -7,6 +7,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+console.log('[Server] OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
+
 const BATCH_SIZE = 2;
 
 interface AnalysisResult {
@@ -33,7 +35,7 @@ async function sendUpdate(
 ) {
   try {
     const encoder = new TextEncoder();
-    console.log('[Server] Sending update:', update);
+    console.log('[Server] Attempting to send update:', update);
     await writer.write(
       encoder.encode(`data: ${JSON.stringify(update)}\n\n`)
     );
@@ -45,42 +47,40 @@ async function sendUpdate(
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[Server] Starting /api/analyze endpoint');
+  console.log('[Server] POST /api/analyze started');
   
   const encoder = new TextEncoder();
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
   try {
-    console.log('[Server] Reading form data');
+    console.log('[Server] Reading request form data...');
     const data = await request.formData();
+    console.log('[Server] Form data received, checking content...');
+    
     const text = data.get('text');
     const filename = data.get('filename');
+    console.log('[Server] Text length:', text?.toString().length);
+    console.log('[Server] Filename:', filename);
 
     if (!text || typeof text !== 'string' || !filename) {
       throw new ContractAnalysisError("Invalid input", "INVALID_INPUT");
     }
 
-    console.log('[Server] Starting preprocessing');
+    console.log('[Server] Input validation passed, sending initial update...');
     await sendUpdate(writer, {
       type: 'progress',
       stage: 'preprocessing',
       progress: 5
     });
 
-    // Try sending a test update immediately
-    await sendUpdate(writer, {
-      type: 'progress',
-      stage: 'preprocessing',
-      progress: 6
-    });
-
+    console.log('[Server] Starting text chunking...');
     const chunks = splitIntoChunks(text);
     if (chunks.length === 0) {
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    console.log(`[Server] Split into ${chunks.length} chunks`);
+    console.log(`[Server] Text split into ${chunks.length} chunks`);
     await sendUpdate(writer, {
       type: 'progress',
       stage: 'preprocessing',
@@ -98,9 +98,9 @@ export async function POST(request: NextRequest) {
       currentChunk: 1
     });
 
-    // Close the writer and return the stream
+    console.log('[Server] Closing writer...');
     await writer.close();
-    console.log('[Server] Stream closed successfully');
+    console.log('[Server] Writer closed successfully');
 
     return new Response(stream.readable, {
       headers: {
