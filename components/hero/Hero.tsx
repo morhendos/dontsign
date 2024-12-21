@@ -42,3 +42,53 @@ export default function Hero() {
     }
     timeoutRef.current = setTimeout(() => setProcessingStatus(''), duration);
   };
+
+  const handleFileSelect = async (selectedFile: File | null) => {
+    if (!selectedFile) {
+      setError({
+        message: 'Please select a valid PDF or DOCX file.',
+        type: 'warning'
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setProgress(1);
+    setStage('preprocessing');
+    setStatusWithTimeout('Starting file processing...');
+
+    try {
+      if (selectedFile.type === 'application/pdf') {
+        setStatusWithTimeout('Validating PDF document...');
+        await readPdfText(selectedFile, true);
+      }
+      
+      setProgress(2);
+      setFile(selectedFile);
+      setAnalysis(null);
+      setError(null);
+      setStatusWithTimeout('File processed successfully');
+    } catch (error) {
+      console.error('Error processing uploaded file:', error);
+      handleAnalysisError(error);
+    } finally {
+      setIsAnalyzing(false);
+      setProgress(0);
+    }
+  };
+
+  const handleAnalysisError = (error: unknown) => {
+    let errorMessage = 'An unexpected error occurred. Please try again.';
+    let errorType: ErrorDisplayType['type'] = 'error';
+
+    if (error instanceof PDFProcessingError || error instanceof ContractAnalysisError) {
+      errorMessage = error.message;
+      trackError(error.code, error.message);
+    } else {
+      trackError('UNKNOWN_ERROR', error instanceof Error ? error.message : 'Unknown error');
+    }
+
+    setError({ message: errorMessage, type: errorType });
+    setProgress(0);
+    setStage('preprocessing');
+  };
