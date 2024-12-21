@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useContractAnalysis } from '@/hooks/useContractAnalysis';
 import { useFileHandler } from '@/hooks/useFileHandler';
 import { FileUploadArea } from '../contract-upload/FileUploadArea';
