@@ -7,9 +7,10 @@ interface AnalysisProgressProps {
 }
 
 export function AnalysisProgress({ currentChunk, totalChunks, isAnalyzing }: AnalysisProgressProps) {
-  if (!isAnalyzing || totalChunks === 0) return null;
+  // Only hide when not analyzing AND we haven't started yet
+  if (!isAnalyzing && currentChunk === 0) return null;
 
-  const progress = Math.round((currentChunk / totalChunks) * 100);
+  const progress = Math.round((currentChunk / totalChunks) * 100) || 0;
   
   return (
     <div className="w-full max-w-md mx-auto mt-4 space-y-2">
