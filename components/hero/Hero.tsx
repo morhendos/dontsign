@@ -1,36 +1,24 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import * as Sentry from '@sentry/nextjs';
-import { readPdfText } from '@/lib/pdf-utils';
-import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors';
-import { trackAnalysisStart, trackAnalysisComplete, trackError } from '@/lib/analytics-events';
+import { useState, useRef, useEffect } from 'react';
+import { useContractAnalysis } from './hooks/useContractAnalysis';
+import { useFileHandler } from './hooks/useFileHandler';
 import { FileUploadArea } from '../contract-upload/FileUploadArea';
 import { AnalysisButton } from '../contract-analysis/AnalysisButton';
 import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
-import type { AnalysisResult, ErrorDisplay as ErrorDisplayType } from '@/types/analysis';
 
 export default function Hero() {
-  const [file, setFile] = useState<File | null>(null);
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [error, setError] = useState<ErrorDisplayType | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [stage, setStage] = useState<'preprocessing' | 'analyzing' | 'complete'>('preprocessing');
-  const [processingStatus, setProcessingStatus] = useState<string>('');
-  
+  // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
-  const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
+  const [processingStatus, setProcessingStatus] = useState<string>('');
 
+  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
-      }
-      if (readerRef.current) {
-        readerRef.current.cancel();
       }
     };
   }, []);
@@ -43,209 +31,34 @@ export default function Hero() {
     timeoutRef.current = setTimeout(() => setProcessingStatus(''), duration);
   };
 
-  const handleFileSelect = async (selectedFile: File | null) => {
-    if (!selectedFile) {
-      setError({
-        message: 'Please select a valid PDF or DOCX file.',
-        type: 'warning'
-      });
-      return;
-    }
+  // File handling
+  const {
+    file,
+    error: fileError,
+    isProcessing,
+    progress: fileProgress,
+    handleFileSelect
+  } = useFileHandler({
+    onStatusUpdate: setStatusWithTimeout
+  });
 
-    setIsAnalyzing(true);
-    setProgress(1);
-    setStage('preprocessing');
-    setStatusWithTimeout('Starting file processing...');
+  // Contract analysis
+  const {
+    analysis,
+    isAnalyzing,
+    error: analysisError,
+    progress: analysisProgress,
+    stage,
+    handleAnalyze
+  } = useContractAnalysis({
+    onStatusUpdate: setStatusWithTimeout
+  });
 
-    try {
-      if (selectedFile.type === 'application/pdf') {
-        setStatusWithTimeout('Validating PDF document...');
-        await readPdfText(selectedFile);
-      }
-      
-      setProgress(2);
-      setFile(selectedFile);
-      setAnalysis(null);
-      setError(null);
-      setStatusWithTimeout('File processed successfully');
-    } catch (error) {
-      console.error('Error processing uploaded file:', error);
-      handleAnalysisError(error);
-    } finally {
-      setIsAnalyzing(false);
-      setProgress(0);
-    }
-  };
-
-  const handleAnalyze = async () => {
-    if (!file) {
-      setError({
-        message: 'Please upload a file before analyzing.',
-        type: 'warning'
-      });
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setError(null);
-    setAnalysis(null);
-    setProgress(2);
-    setStage('preprocessing');
-    setStatusWithTimeout('Starting contract analysis...');
-
-    const startTime = Date.now();
-    trackAnalysisStart(file.type);
-    console.log('[Client] Analysis started');
-
-    try {
-      console.log('[Client] Reading document content...');
-      let text: string;
-      if (file.type === 'application/pdf') {
-        text = await readPdfText(file);
-      } else {
-        text = await file.text();
-      }
-      setProgress(5);
-      console.log('[Client] Document content read successfully');
-
-      const formData = new FormData();
-      formData.append('text', text);
-      formData.append('filename', file.name);
-
-      setStatusWithTimeout('Initializing AI analysis...');
-      console.log('[Client] Initializing analysis state');
-      setAnalysis({
-        summary: "Starting analysis...",
-        keyTerms: [],
-        potentialRisks: [],
-        importantClauses: [],
-        recommendations: [],
-        metadata: {
-          analyzedAt: new Date().toISOString(),
-          documentName: file.name,
-          modelVersion: "gpt-3.5-turbo-1106",
-          totalChunks: 0,
-          currentChunk: 0,
-          stage: 'preprocessing' as const,
-          progress: 5
-        }
-      });
-
-      console.log('[Client] Making request to analysis service...');
-      setStatusWithTimeout('Connecting to analysis service...');
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData
-      });
-
-      console.log('[Client] Got response from server:', response.status);
-      if (!response.body) {
-        throw new Error('No response body received from server');
-      }
-
-      const reader = response.body.getReader();
-      readerRef.current = reader;
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      console.log('[Client] Starting to read stream...');
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            console.log('[Client] Stream ended');
-            break;
-          }
-
-          const chunk = decoder.decode(value, { stream: true });
-          console.log('[Client] Received chunk:', chunk);
-          buffer += chunk;
-          const lines = buffer.split('\n\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                console.log('[Client] Parsed update:', data);
-                
-                setProgress(data.progress);
-                setStage(data.stage);
-
-                if (data.stage === 'preprocessing') {
-                  setStatusWithTimeout('Preparing document for analysis...');
-                } else if (data.stage === 'analyzing') {
-                  if (data.currentChunk && data.totalChunks) {
-                    setStatusWithTimeout(
-                      `Analyzing section ${data.currentChunk} of ${data.totalChunks}`,
-                      5000
-                    );
-                  }
-                }
-
-                if (data.currentChunk && data.totalChunks) {
-                  setAnalysis(prev => {
-                    if (!prev) return null;
-                    return {
-                      ...prev,
-                      metadata: {
-                        analyzedAt: prev.metadata?.analyzedAt || new Date().toISOString(),
-                        documentName: prev.metadata?.documentName || '',
-                        modelVersion: prev.metadata?.modelVersion || "gpt-3.5-turbo-1106",
-                        currentChunk: data.currentChunk,
-                        totalChunks: data.totalChunks,
-                        stage: data.stage || 'analyzing',
-                        progress: data.progress || 0
-                      }
-                    };
-                  });
-                }
-
-                if (data.type === 'complete' && data.result) {
-                  console.log('[Client] Analysis complete, got result:', data.result);
-                  setStatusWithTimeout('Analysis complete!');
-                  setAnalysis(data.result);
-                  const analysisTime = (Date.now() - startTime) / 1000;
-                  trackAnalysisComplete(file.type, analysisTime);
-                  break;
-                } else if (data.type === 'error') {
-                  throw new Error(data.error);
-                }
-              } catch (e) {
-                console.error('[Client] Error parsing server update:', e);
-                throw e;
-              }
-            }
-          }
-        }
-      } finally {
-        console.log('[Client] Cleaning up reader');
-        readerRef.current = null;
-      }
-
-    } catch (error) {
-      console.error('[Client] Error analyzing contract:', error);
-      handleAnalysisError(error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleAnalysisError = (error: unknown) => {
-    let errorMessage = 'An unexpected error occurred. Please try again.';
-    let errorType: ErrorDisplayType['type'] = 'error';
-
-    if (error instanceof PDFProcessingError || error instanceof ContractAnalysisError) {
-      errorMessage = error.message;
-      trackError(error.code, error.message);
-    } else {
-      trackError('UNKNOWN_ERROR', error instanceof Error ? error.message : 'Unknown error');
-    }
-
-    setError({ message: errorMessage, type: errorType });
-    setProgress(0);
-    setStage('preprocessing');
-  };
+  // Combined error state (file error takes precedence)
+  const error = fileError || analysisError;
+  
+  // Combined progress (use file progress during upload, analysis progress during analysis)
+  const progress = isProcessing ? fileProgress : analysisProgress;
 
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -261,15 +74,15 @@ export default function Hero() {
           file={file}
           error={error}
           onFileSelect={handleFileSelect}
-          isUploading={isAnalyzing && progress <= 2}
+          isUploading={isProcessing || (isAnalyzing && progress <= 2)}
           processingStatus={processingStatus}
         />
 
         <div className="flex justify-center mt-6">
           <AnalysisButton
-            isDisabled={!file || isAnalyzing}
+            isDisabled={!file || isAnalyzing || isProcessing}
             isAnalyzing={isAnalyzing}
-            onClick={handleAnalyze}
+            onClick={() => handleAnalyze(file)}
           />
         </div>
 
