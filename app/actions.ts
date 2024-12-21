@@ -25,8 +25,6 @@ interface AnalysisMetadata {
   currentChunk?: number;
 }
 
-// Remove the ProgressCallback type and references
-
 async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
   let lastError: unknown;
   
@@ -154,25 +152,50 @@ export async function analyzeContract(formData: FormData) {
     }
 
     const analysisResults: AnalysisResult[] = [];
+    const baseMetadata = {
+      analyzedAt: new Date().toISOString(),
+      documentName: filename,
+      modelVersion: "gpt-3.5-turbo-1106",
+      totalChunks: chunks.length,
+      currentChunk: 0
+    };
     
-    // Analyze each chunk sequentially and create a progress object for each chunk
+    // Return initial state
+    return {
+      summary: "Starting analysis...",
+      keyTerms: [],
+      potentialRisks: [],
+      importantClauses: [],
+      recommendations: [],
+      metadata: baseMetadata
+    };
+    
+    // Process chunks and return updates
     for (let i = 0; i < chunks.length; i++) {
       const result = await analyzeChunk(chunks[i], i, chunks.length);
       analysisResults.push(result);
+      
+      // Return partial results after each chunk
+      const partialAnalysis = mergeAnalysisResults(analysisResults);
+      return {
+        ...partialAnalysis,
+        metadata: {
+          ...baseMetadata,
+          currentChunk: i + 1
+        }
+      };
     }
-
-    const mergedAnalysis = mergeAnalysisResults(analysisResults);
     
+    // Return final results
+    const finalAnalysis = mergeAnalysisResults(analysisResults);
     return {
-      ...mergedAnalysis,
+      ...finalAnalysis,
       metadata: {
-        analyzedAt: new Date().toISOString(),
-        documentName: filename,
-        modelVersion: "gpt-3.5-turbo-1106",
-        totalChunks: chunks.length,
-        currentChunk: chunks.length // Analysis is complete
-      } as AnalysisMetadata,
+        ...baseMetadata,
+        currentChunk: chunks.length
+      }
     };
+
   } catch (error) {
     console.error("Error generating analysis:", error);
     throw error;
