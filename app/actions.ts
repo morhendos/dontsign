@@ -9,32 +9,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-interface AnalysisResult {
-  summary: string;
-  keyTerms: string[];
-  potentialRisks: string[];
-  importantClauses: string[];
-  recommendations?: string[];
-}
-
-interface AnalysisMetadata {
-  analyzedAt: string;
-  documentName: string;
-  modelVersion: string;
-  totalChunks: number;
-  currentChunk: number;
-}
-
-// Track the state of ongoing analyses
-type AnalysisState = {
-  results: AnalysisResult[];
-  currentChunk: number;
-  totalChunks: number;
-  startTime: string;
-  processingChunk: boolean; // Add this to track actual processing
-};
-
-const analysisState = new Map<string, AnalysisState>();
+// [Previous interfaces remain the same...]
 
 async function analyzeChunk(
   chunk: string,
@@ -43,11 +18,11 @@ async function analyzeChunk(
   stateKey: string
 ): Promise<AnalysisResult> {
   try {
-    // Update state to show we're processing this chunk
     const state = analysisState.get(stateKey);
     if (state) {
+      // Increment currentChunk immediately to show progress
+      state.currentChunk = chunkIndex + 1;
       state.processingChunk = true;
-      state.currentChunk = chunkIndex;
     }
 
     console.log(`Starting analysis of chunk ${chunkIndex + 1}/${totalChunks}`);
@@ -68,10 +43,8 @@ async function analyzeChunk(
       });
     });
 
-    // Mark chunk as completed
     if (state) {
       state.processingChunk = false;
-      state.currentChunk = chunkIndex + 1;
     }
 
     const content = response.choices[0]?.message?.content;
@@ -84,7 +57,6 @@ async function analyzeChunk(
 
     return JSON.parse(content) as AnalysisResult;
   } catch (error) {
-    // Reset processing state on error
     const state = analysisState.get(stateKey);
     if (state) {
       state.processingChunk = false;
@@ -92,20 +64,6 @@ async function analyzeChunk(
     console.error(`Error in analyzeChunk ${chunkIndex + 1}:`, error);
     throw error;
   }
-}
-
-async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      if (attempt === maxAttempts) break;
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
-    }
-  }
-  throw lastError;
 }
 
 export async function analyzeContract(formData: FormData) {
@@ -143,7 +101,6 @@ export async function analyzeContract(formData: FormData) {
         }
       };
 
-      // Initialize state
       state = {
         results: [],
         currentChunk: 0,
@@ -157,9 +114,10 @@ export async function analyzeContract(formData: FormData) {
       (async () => {
         try {
           for (let i = 0; i < chunks.length; i++) {
-            // Add small delay between chunks for visible progress
+            // Add small delay between chunks
             if (i > 0) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              // Shorter delay to make progress more visible
+              await new Promise(resolve => setTimeout(resolve, 500));
             }
             const result = await analyzeChunk(chunks[i], i, chunks.length, stateKey);
             state = analysisState.get(stateKey)!;
@@ -206,10 +164,10 @@ export async function analyzeContract(formData: FormData) {
     };
 
     // If analysis is complete, merge results and clean up
-    if (state.currentChunk === state.totalChunks) {
+    if (state.currentChunk === state.totalChunks && !state.processingChunk) {
       const aiSummaries = state.results.map(r => r.summary).join('\n');
       const mergedAnalysis = {
-        summary: `Analysis complete. Found ${state.results.length} key sections.\n\nDetailed Analysis:\n${aiSummaries}`,
+        summary: `Analysis complete. Found ${state.results.length} key sections.\n\n\nDetailed Analysis:\n${aiSummaries}`,
         keyTerms: [...new Set(state.results.flatMap(r => r.keyTerms))],
         potentialRisks: [...new Set(state.results.flatMap(r => r.potentialRisks))],
         importantClauses: [...new Set(state.results.flatMap(r => r.importantClauses))],
