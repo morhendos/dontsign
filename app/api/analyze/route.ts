@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
               console.error(`[Server] Error analyzing chunk ${i + 1}:`, error);
               throw new ContractAnalysisError(
                 `Error analyzing section ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                'ANALYSIS_ERROR'
+                'API_ERROR'
               );
             }
           }
