@@ -83,7 +83,7 @@ export function FileUploadArea({
           </div>
         ) : file ? (
           <>
-            <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
+            <div className="flex items-center space-x-2 text-green-600 dark:text-green-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
               <FileText className="w-8 h-8" />
               <span className="text-lg font-medium">{file.name}</span>
             </div>
