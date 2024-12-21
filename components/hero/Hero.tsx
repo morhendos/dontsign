@@ -8,6 +8,7 @@ import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors';
 import { trackAnalysisStart, trackAnalysisComplete, trackError } from '@/lib/analytics-events';
 import { FileUploadArea } from '../contract-upload/FileUploadArea';
 import { AnalysisButton } from '../contract-analysis/AnalysisButton';
+import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
 import type { AnalysisResult, ErrorDisplay as ErrorDisplayType } from '@/types/analysis';
@@ -17,6 +18,11 @@ export default function Hero() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<ErrorDisplayType | null>(null);
+  const [progress, setProgress] = useState({ currentChunk: 0, totalChunks: 0 });
+
+  const handleProgress = (current: number, total: number) => {
+    setProgress({ currentChunk: current + 1, totalChunks: total });
+  };
 
   const handleFileSelect = (selectedFile: File | null) => {
     if (!selectedFile) {
@@ -30,6 +36,7 @@ export default function Hero() {
     setFile(selectedFile);
     setAnalysis(null);
     setError(null);
+    setProgress({ currentChunk: 0, totalChunks: 0 });
   };
 
   const handleAnalyze = async () => {
@@ -43,6 +50,7 @@ export default function Hero() {
 
     setIsAnalyzing(true);
     setError(null);
+    setProgress({ currentChunk: 0, totalChunks: 0 });
 
     const startTime = Date.now();
     trackAnalysisStart(file.type);
@@ -59,7 +67,7 @@ export default function Hero() {
       formData.append('text', text);
       formData.append('filename', file.name);
 
-      const result = await analyzeContract(formData);
+      const result = await analyzeContract(formData, handleProgress);
       
       if (result) {
         setAnalysis(result);
@@ -71,6 +79,7 @@ export default function Hero() {
       handleAnalysisError(error);
     } finally {
       setIsAnalyzing(false);
+      setProgress({ currentChunk: 0, totalChunks: 0 });
     }
   };
 
@@ -111,6 +120,12 @@ export default function Hero() {
             onClick={handleAnalyze}
           />
         </div>
+
+        <AnalysisProgress 
+          currentChunk={progress.currentChunk}
+          totalChunks={progress.totalChunks}
+          isAnalyzing={isAnalyzing}
+        />
 
         {error && <ErrorDisplay error={error} />}
         {analysis && <AnalysisResults analysis={analysis} />}
