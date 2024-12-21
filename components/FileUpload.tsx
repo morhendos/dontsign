@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from 'react';
+import { forwardRef } from 'react';
 import { FileText } from 'lucide-react';
 import { ErrorDisplay } from '@/types/analysis';
 
@@ -10,17 +10,20 @@ interface FileUploadProps {
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onClick: () => void;
+  inputId?: string;
 }
 
-export const FileUpload = ({
-  file,
-  error,
-  onDrop,
-  onFileChange,
-  onClick,
-}: FileUploadProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
+export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>((
+  {
+    file,
+    error,
+    onDrop,
+    onFileChange,
+    onClick,
+    inputId = 'file-upload',
+  }: FileUploadProps,
+  ref
+) => {
   return (
     <div
       className={`p-8 border-2 border-dashed rounded-lg bg-white cursor-pointer transition-colors hover:bg-gray-50
@@ -35,14 +38,20 @@ export const FileUpload = ({
           onClick();
         }
       }}
+      aria-label="Upload contract file"
+      aria-describedby={`${inputId}-description`}
     >
       <div className="flex items-center justify-center gap-4">
         <FileText
           className={`w-8 h-8 ${
             error?.type === 'error' ? 'text-red-500' : 'text-blue-500'
           }`}
+          aria-hidden="true"
         />
-        <p className="text-lg text-gray-600">
+        <p 
+          className="text-lg text-gray-600" 
+          id={`${inputId}-description`}
+        >
           {file ? file.name : 'Click or drop your contract here (PDF, DOCX)'}
         </p>
       </div>
@@ -51,9 +60,12 @@ export const FileUpload = ({
         accept=".pdf,.docx"
         onChange={onFileChange}
         className="hidden"
-        id="file-upload"
-        ref={fileInputRef}
+        id={inputId}
+        ref={ref}
+        aria-label="File input"
       />
     </div>
   );
-};
+});
+
+FileUpload.displayName = 'FileUpload';
