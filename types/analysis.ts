@@ -9,6 +9,9 @@ export interface AnalysisResult {
     documentName: string;
     modelVersion: string;
     totalChunks?: number;
+    currentChunk?: number;
+    stage?: 'preprocessing' | 'analyzing' | 'complete';
+    progress?: number;
   };
 }
 
