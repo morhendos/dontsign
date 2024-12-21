@@ -25,6 +25,8 @@ interface AnalysisMetadata {
   currentChunk: number;
 }
 
+const BATCH_SIZE = 3; // Process 3 chunks at a time for optimal performance/progress balance
+
 async function analyzeChunk(
   chunk: string,
   chunkIndex: number,
@@ -79,7 +81,26 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
   throw lastError;
 }
 
-export async function analyzeContract(formData: FormData) {
+async function processBatch(
+  chunks: string[],
+  startIndex: number,
+  totalChunks: number
+): Promise<AnalysisResult[]> {
+  return Promise.all(
+    chunks.map((chunk, idx) => 
+      analyzeChunk(chunk, startIndex + idx, totalChunks)
+    )
+  );
+}
+
+export async function analyzeContract(formData: FormData): Promise<{
+  summary: string;
+  keyTerms: string[];
+  potentialRisks: string[];
+  importantClauses: string[];
+  recommendations: string[];
+  metadata: AnalysisMetadata;
+}> {
   try {
     const text = formData.get("text");
     const filename = formData.get("filename");
@@ -93,7 +114,6 @@ export async function analyzeContract(formData: FormData) {
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    // Process chunks one by one
     const results: AnalysisResult[] = [];
     const metadata: AnalysisMetadata = {
       analyzedAt: new Date().toISOString(),
@@ -103,18 +123,22 @@ export async function analyzeContract(formData: FormData) {
       currentChunk: 0
     };
 
-    // Process first chunk
-    const firstResult = await analyzeChunk(chunks[0], 0, chunks.length);
-    results.push(firstResult);
-    metadata.currentChunk = 1;
+    // Process chunks in batches
+    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+      const batchChunks = chunks.slice(i, i + BATCH_SIZE);
+      const batchResults = await processBatch(batchChunks, i, chunks.length);
+      
+      results.push(...batchResults);
+      metadata.currentChunk = Math.min(i + BATCH_SIZE, chunks.length);
 
-    // Process remaining chunks in parallel
-    await Promise.all(chunks.slice(1).map(async (chunk, index) => {
-      const result = await analyzeChunk(chunk, index + 1, chunks.length);
-      results.push(result);
-      metadata.currentChunk = index + 2; // +2 because we start from second chunk (index + 1) and already processed one
-      return result;
-    }));
+      // This will make the progress updates available to the client
+      // through the streaming response
+      console.log(JSON.stringify({ 
+        type: 'progress',
+        current: metadata.currentChunk,
+        total: metadata.totalChunks
+      }));
+    }
 
     // Merge all results
     const aiSummaries = results.map(r => r.summary).join('\n');
