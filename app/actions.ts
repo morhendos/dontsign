@@ -24,6 +24,9 @@ interface AnalysisMetadata {
   totalChunks?: number;
 }
 
+// Add progress callback type
+type ProgressCallback = (currentChunk: number, totalChunks: number) => void;
+
 // Add retry logic for API failures
 async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
   let lastError: unknown;
@@ -62,13 +65,14 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
 async function analyzeChunk(
   chunk: string,
   chunkIndex: number,
-  totalChunks: number
+  totalChunks: number,
+  onProgress?: ProgressCallback
 ): Promise<AnalysisResult> {
   try {
     console.log(`Starting analysis of chunk ${chunkIndex + 1}/${totalChunks}`);
     
     const systemPrompt = "You are a legal expert. Analyze this contract section concisely.";
-    const userPrompt = `Section ${chunkIndex + 1}/${totalChunks}:\n${chunk}\n\nProvide JSON with: summary (brief), keyTerms, potentialRisks, importantClauses, recommendations.`;
+    const userPrompt = `Section ${chunkIndex + 1}/${totalChunks}:\\n${chunk}\\n\\nProvide JSON with: summary (brief), keyTerms, potentialRisks, importantClauses, recommendations.`;
 
     console.log(`Making API call for chunk ${chunkIndex + 1}`);
     const response = await withRetry(async () => {
@@ -107,6 +111,9 @@ async function analyzeChunk(
           'API_ERROR'
         );
       }
+      
+      // Report progress after successful analysis
+      onProgress?.(chunkIndex + 1, totalChunks);
       
       return result;
     } catch (error) {
@@ -232,7 +239,7 @@ function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
   }
 }
 
-export async function analyzeContract(formData: FormData) {
+export async function analyzeContract(formData: FormData, onProgress?: ProgressCallback) {
   try {
     console.log('Starting contract analysis');
 
@@ -290,17 +297,21 @@ export async function analyzeContract(formData: FormData) {
     }
     console.log(`Split contract into ${chunks.length} chunks`);
     
+    // Initialize progress
+    onProgress?.(0, chunks.length);
+    
     // Add context about the analysis scope
     Sentry.setContext("analysis", {
       chunkCount: chunks.length,
       textLength: text.length,
     });
 
-    // Analyze each chunk
-    console.log('Starting chunk analysis');
-    const analysisResults = await Promise.all(
-      chunks.map((chunk, index) => analyzeChunk(chunk, index, chunks.length))
-    );
+    // Analyze chunks sequentially for accurate progress tracking
+    const analysisResults: AnalysisResult[] = [];
+    for (let i = 0; i < chunks.length; i++) {
+      const result = await analyzeChunk(chunks[i], i, chunks.length, onProgress);
+      analysisResults.push(result);
+    }
 
     // Merge the results
     console.log('Merging analysis results');
