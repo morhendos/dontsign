@@ -49,7 +49,6 @@ async function sendUpdate(
 export async function POST(request: NextRequest) {
   console.log('[Server] POST /api/analyze started');
   
-  const encoder = new TextEncoder();
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
@@ -73,14 +72,16 @@ export async function POST(request: NextRequest) {
       stage: 'preprocessing',
       progress: 5
     });
+    console.log('[Server] Initial update sent, starting text chunking...');
 
     console.log('[Server] Starting text chunking...');
     const chunks = splitIntoChunks(text);
+    console.log(`[Server] Text split into ${chunks.length} chunks`);
+    
     if (chunks.length === 0) {
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    console.log(`[Server] Text split into ${chunks.length} chunks`);
     await sendUpdate(writer, {
       type: 'progress',
       stage: 'preprocessing',
@@ -88,10 +89,14 @@ export async function POST(request: NextRequest) {
       totalChunks: chunks.length,
       currentChunk: 0
     });
+    console.log('[Server] Preprocessing update sent');
 
     // Process chunks and send progress updates
+    console.log('[Server] Starting chunk processing...');
     for (let i = 0; i < chunks.length; i++) {
       const progress = Math.floor(15 + ((i + 1) / chunks.length) * 85);
+      console.log(`[Server] Processing chunk ${i + 1}/${chunks.length}`);
+      
       await sendUpdate(writer, {
         type: 'progress',
         stage: 'analyzing',
@@ -99,12 +104,14 @@ export async function POST(request: NextRequest) {
         totalChunks: chunks.length,
         currentChunk: i + 1
       });
+      console.log(`[Server] Chunk ${i + 1} update sent`);
       
-      // TODO: Add actual OpenAI processing here
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing time
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     // Send completion update with results
+    console.log('[Server] All chunks processed, sending completion update...');
     const mockResult = {
       summary: "Analysis complete",
       keyTerms: ["Term 1", "Term 2"],
@@ -130,6 +137,8 @@ export async function POST(request: NextRequest) {
     await writer.close();
     console.log('[Server] Writer closed successfully');
 
+    // Return the response with the stream
+    console.log('[Server] Returning response with stream...');
     return new Response(stream.readable, {
       headers: {
         'Content-Type': 'text/event-stream',
