@@ -62,8 +62,8 @@ export function FileUploadArea({
         cursor-pointer
         group
         ${isDragging ? 
-          'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30 scale-102' : 
-          'border-gray-300 dark:border-gray-700 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:border-blue-500 dark:hover:bg-blue-950/20'
+          'border-blue-500 bg-blue-500/90 dark:border-blue-600 dark:bg-blue-900/90' : 
+          'border-gray-300 dark:border-gray-700 hover:border-blue-400 hover:bg-blue-500/90 dark:hover:border-blue-500 dark:hover:bg-blue-900/90'
         }
         ${error ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30' : ''}
         ${file ? 'border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/30' : ''}
@@ -83,11 +83,11 @@ export function FileUploadArea({
           </div>
         ) : file ? (
           <>
-            <div className="flex items-center space-x-2 text-green-600 dark:text-green-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
+            <div className="flex items-center space-x-2 text-green-600 dark:text-green-400 group-hover:text-white transition-colors">
               <FileText className="w-8 h-8" />
               <span className="text-lg font-medium">{file.name}</span>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
+            <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-white/90 transition-colors">
               Click or drop another file to replace
             </p>
           </>
@@ -98,8 +98,8 @@ export function FileUploadArea({
                 w-12 h-12 mb-2
                 transition-all duration-200
                 ${isDragging ? 
-                  'text-blue-500 dark:text-blue-400 scale-110' : 
-                  'text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:scale-110'
+                  'text-white scale-110' : 
+                  'text-gray-400 dark:text-gray-500 group-hover:text-white group-hover:scale-110'
                 }
               `}
             />
@@ -107,13 +107,13 @@ export function FileUploadArea({
               text-base font-medium
               transition-colors duration-200
               ${isDragging ? 
-                'text-blue-600 dark:text-blue-400' : 
-                'text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                'text-white' : 
+                'text-gray-600 dark:text-gray-300 group-hover:text-white'
               }
             `}>
               Drop your contract here or click to select
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-white/90 transition-colors">
               Supports PDF and DOCX files up to 10MB
             </p>
           </>
