@@ -19,9 +19,9 @@ export default function Hero() {
   const [error, setError] = useState<ErrorDisplayType | null>(null);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<'preprocessing' | 'analyzing' | 'complete'>('preprocessing');
+  const [processingStatus, setProcessingStatus] = useState<string>('');
   
   const handleFileSelect = async (selectedFile: File | null) => {
-    console.log('[Client] File selection started');
     if (!selectedFile) {
       setError({
         message: 'Please select a valid PDF or DOCX file.',
@@ -34,12 +34,12 @@ export default function Hero() {
     setIsAnalyzing(true);
     setProgress(1);
     setStage('preprocessing');
-    console.log('[Client] Started file processing, progress: 1%');
+    setProcessingStatus('Starting file processing...');
 
     try {
       // For PDFs, we validate and preload the document
       if (selectedFile.type === 'application/pdf') {
-        console.log('[Client] Validating PDF document');
+        setProcessingStatus('Validating PDF document...');
         await readPdfText(selectedFile, true);
       }
       
@@ -47,9 +47,12 @@ export default function Hero() {
       setFile(selectedFile);
       setAnalysis(null);
       setError(null);
-      console.log('[Client] File processed successfully, progress: 2%');
+      setProcessingStatus('File processed successfully');
+
+      // Clear the success message after a short delay
+      setTimeout(() => setProcessingStatus(''), 2000);
     } catch (error) {
-      console.error('[Client] Error processing uploaded file:', error);
+      console.error('Error processing uploaded file:', error);
       handleAnalysisError(error);
     } finally {
       setIsAnalyzing(false);
@@ -58,7 +61,6 @@ export default function Hero() {
   };
 
   const handleAnalyze = async () => {
-    console.log('[Client] Starting analysis process');
     if (!file) {
       setError({
         message: 'Please upload a file before analyzing.',
@@ -73,13 +75,13 @@ export default function Hero() {
     setAnalysis(null);
     setProgress(2);
     setStage('preprocessing');
-    console.log('[Client] Reset states and starting preprocessing');
+    setProcessingStatus('Starting contract analysis...');
 
     const startTime = Date.now();
     trackAnalysisStart(file.type);
 
     try {
-      console.log('[Client] Reading file content');
+      setProcessingStatus('Reading document content...');
       let text: string;
       if (file.type === 'application/pdf') {
         text = await readPdfText(file);
@@ -87,7 +89,6 @@ export default function Hero() {
         text = await file.text();
       }
       setProgress(5);
-      console.log('[Client] File content read successfully, progress: 5%');
 
       // Create FormData
       const formData = new FormData();
@@ -95,7 +96,7 @@ export default function Hero() {
       formData.append('filename', file.name);
 
       // Initial analysis state
-      console.log('[Client] Setting initial analysis state');
+      setProcessingStatus('Initializing AI analysis...');
       setAnalysis({
         summary: "Starting analysis...",
         keyTerms: [],
@@ -113,7 +114,7 @@ export default function Hero() {
         }
       });
 
-      console.log('[Client] Making POST request to /api/analyze');
+      setProcessingStatus('Connecting to analysis service...');
       // Make initial POST request
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -124,7 +125,6 @@ export default function Hero() {
         throw new Error('No response body received from server');
       }
 
-      console.log('[Client] Got response, setting up stream reading');
       // Setup streaming response handling
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -132,10 +132,7 @@ export default function Hero() {
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) {
-          console.log('[Client] Stream complete');
-          break;
-        }
+        if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n\n');
@@ -145,10 +142,18 @@ export default function Hero() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              console.log('[Client] Received update:', data);
               
               setProgress(data.progress);
               setStage(data.stage);
+
+              // Update status based on stage and progress
+              if (data.stage === 'preprocessing') {
+                setProcessingStatus('Preparing document for analysis...');
+              } else if (data.stage === 'analyzing') {
+                if (data.currentChunk && data.totalChunks) {
+                  setProcessingStatus(`Analyzing section ${data.currentChunk} of ${data.totalChunks}`);
+                }
+              }
 
               if (data.currentChunk && data.totalChunks) {
                 setAnalysis(prev => prev ? {
@@ -162,27 +167,28 @@ export default function Hero() {
               }
 
               if (data.type === 'complete') {
-                console.log('[Client] Analysis complete, updating final state');
+                setProcessingStatus('Analysis complete!');
                 setAnalysis(data.result);
                 const analysisTime = (Date.now() - startTime) / 1000;
                 trackAnalysisComplete(file.type, analysisTime);
+                // Clear the success message after a short delay
+                setTimeout(() => setProcessingStatus(''), 2000);
                 break;
               } else if (data.type === 'error') {
                 throw new Error(data.error);
               }
             } catch (e) {
-              console.error('[Client] Error parsing server update:', e);
+              console.error('Error parsing server update:', e);
             }
           }
         }
       }
 
     } catch (error) {
-      console.error('[Client] Error analyzing contract:', error);
+      console.error('Error analyzing contract:', error);
       handleAnalysisError(error);
     } finally {
       setIsAnalyzing(false);
-      console.log('[Client] Analysis process complete');
     }
   };
 
@@ -217,6 +223,7 @@ export default function Hero() {
           error={error}
           onFileSelect={handleFileSelect}
           isUploading={isAnalyzing && progress <= 2}
+          processingStatus={processingStatus}
         />
 
         <div className="flex justify-center mt-6">
