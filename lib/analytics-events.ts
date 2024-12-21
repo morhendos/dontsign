@@ -1,4 +1,4 @@
-import { trackEvent } from './analytics';
+import { event as trackEvent } from './analytics';
 
 // Analysis events
 export function trackAnalysisStart(fileType: string) {
