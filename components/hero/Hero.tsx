@@ -20,7 +20,7 @@ export default function Hero() {
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<'preprocessing' | 'analyzing' | 'complete'>('preprocessing');
   const [processingStatus, setProcessingStatus] = useState<string>('');
-  
+
   const handleFileSelect = async (selectedFile: File | null) => {
     if (!selectedFile) {
       setError({
@@ -209,12 +209,12 @@ export default function Hero() {
   };
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50">
+    <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-5xl font-bold mb-6 tracking-tight text-gray-900 text-center">
+        <h1 className="text-5xl font-bold mb-6 tracking-tight text-gray-900 dark:text-white text-center">
           Don't Sign Until<br />You're Sure
         </h1>
-        <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto text-center">
+        <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 max-w-2xl mx-auto text-center">
           Upload your contract, let AI highlight the risks and key terms.
         </p>
 

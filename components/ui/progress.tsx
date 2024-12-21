@@ -9,12 +9,12 @@ export interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
-  ({ className, value = 0, indicatorColor = 'bg-blue-600', ...props }, ref) => {
+  ({ className, value = 0, indicatorColor = 'bg-blue-600 dark:bg-blue-500', ...props }, ref) => {
     return (
       <div
         ref={ref}
         className={cn(
-          "relative h-4 w-full overflow-hidden rounded-full bg-gray-100",
+          "relative h-4 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700",
           className
         )}
         {...props}
