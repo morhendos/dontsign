@@ -14,5 +14,17 @@ export interface AnalysisResult {
 
 export interface ErrorDisplay {
   message: string;
-  type: 'error' | 'warning';
+  type: "error" | "warning";
 }
+
+export type FileStatus = {
+  file: File | null;
+  error: ErrorDisplay | null;
+  isAnalyzing: boolean;
+};
+
+export type AnalysisStatus = {
+  result: AnalysisResult | null;
+  error: ErrorDisplay | null;
+  isAnalyzing: boolean;
+};
