@@ -20,10 +20,6 @@ export default function Hero() {
   const [error, setError] = useState<ErrorDisplayType | null>(null);
   const [progress, setProgress] = useState({ currentChunk: 0, totalChunks: 0 });
 
-  const handleProgress = (current: number, total: number) => {
-    setProgress({ currentChunk: current + 1, totalChunks: total });
-  };
-
   const handleFileSelect = (selectedFile: File | null) => {
     if (!selectedFile) {
       setError({
@@ -67,7 +63,9 @@ export default function Hero() {
       formData.append('text', text);
       formData.append('filename', file.name);
 
-      const result = await analyzeContract(formData, handleProgress);
+      const result = await analyzeContract(formData, (current, total) => {
+        setProgress({ currentChunk: current, totalChunks: total });
+      });
       
       if (result) {
         setAnalysis(result);
@@ -79,7 +77,6 @@ export default function Hero() {
       handleAnalysisError(error);
     } finally {
       setIsAnalyzing(false);
-      setProgress({ currentChunk: 0, totalChunks: 0 });
     }
   };
 
