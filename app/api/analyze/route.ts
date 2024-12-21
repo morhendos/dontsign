@@ -144,10 +144,10 @@ export async function POST(request: NextRequest) {
               console.log(`[Server] Chunk ${i + 1} analysis completed`);
               
               // Aggregate results
-              allKeyTerms = [...allKeyTerms, ...chunkAnalysis.keyTerms];
-              allPotentialRisks = [...allPotentialRisks, ...chunkAnalysis.potentialRisks];
-              allImportantClauses = [...allImportantClauses, ...chunkAnalysis.importantClauses];
-              allRecommendations = [...allRecommendations, ...chunkAnalysis.recommendations];
+              allKeyTerms = Array.from(new Set([...allKeyTerms, ...chunkAnalysis.keyTerms]));
+              allPotentialRisks = Array.from(new Set([...allPotentialRisks, ...chunkAnalysis.potentialRisks]));
+              allImportantClauses = Array.from(new Set([...allImportantClauses, ...chunkAnalysis.importantClauses]));
+              allRecommendations = Array.from(new Set([...allRecommendations, ...(chunkAnalysis.recommendations || [])]));
             } catch (error) {
               console.error(`[Server] Error analyzing chunk ${i + 1}:`, error);
               throw new ContractAnalysisError(
