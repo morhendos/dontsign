@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       currentChunk: 0
     });
 
-    // Simulate chunk processing with progress updates
+    // Process chunks and send progress updates
     for (let i = 0; i < chunks.length; i++) {
       const progress = Math.floor(15 + ((i + 1) / chunks.length) * 85);
       await sendUpdate(writer, {
@@ -104,13 +104,19 @@ export async function POST(request: NextRequest) {
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing time
     }
 
-    // Send completion update
+    // Send completion update with results
     const mockResult = {
       summary: "Analysis complete",
       keyTerms: ["Term 1", "Term 2"],
       potentialRisks: ["Risk 1", "Risk 2"],
       importantClauses: ["Clause 1", "Clause 2"],
-      recommendations: ["Recommendation 1"]
+      recommendations: ["Recommendation 1"],
+      metadata: {
+        analyzedAt: new Date().toISOString(),
+        documentName: filename.toString(),
+        modelVersion: "gpt-3.5-turbo-1106",
+        totalChunks: chunks.length
+      }
     };
 
     await sendUpdate(writer, {
