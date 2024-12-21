@@ -7,25 +7,34 @@ interface AnalysisProgressProps {
 }
 
 export function AnalysisProgress({ currentChunk, totalChunks, isAnalyzing }: AnalysisProgressProps) {
-  // Only hide when not analyzing AND we haven't started yet
+  // Show progress bar while analyzing or if we have any progress
   if (!isAnalyzing && currentChunk === 0) return null;
 
-  const progress = Math.round((currentChunk / totalChunks) * 100) || 0;
+  const progress = totalChunks > 0 ? Math.round((currentChunk / totalChunks) * 100) : 0;
+  const isComplete = currentChunk === totalChunks && totalChunks > 0;
   
   return (
     <div className="w-full max-w-md mx-auto mt-4 space-y-2">
       <div className="flex justify-between text-sm text-gray-600">
-        <span>Analyzing contract...</span>
+        <span>
+          {isComplete 
+            ? 'Analysis complete!' 
+            : currentChunk === 0 
+              ? 'Starting analysis...'
+              : 'Analyzing contract...'}
+        </span>
         <span>{progress}%</span>
       </div>
       <Progress 
         value={progress} 
         className="h-2"
-        indicatorColor={progress === 100 ? 'bg-green-600' : 'bg-blue-600'}
+        indicatorColor={isComplete ? 'bg-green-600' : 'bg-blue-600'}
       />
-      <p className="text-sm text-gray-500 text-center">
-        Processing section {currentChunk} of {totalChunks}
-      </p>
+      {(currentChunk > 0 || totalChunks > 0) && (
+        <p className="text-sm text-gray-500 text-center">
+          Processing section {currentChunk} of {totalChunks}
+        </p>
+      )}
     </div>
   );
 }
