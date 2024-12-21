@@ -77,6 +77,139 @@ export default function Hero() {
     }
   };
 
+  const handleAnalyze = async () => {
+    if (!file) {
+      setError({
+        message: 'Please upload a file before analyzing.',
+        type: 'warning'
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setError(null);
+    setAnalysis(null);
+    setProgress(2);
+    setStage('preprocessing');
+    setStatusWithTimeout('Starting contract analysis...');
+
+    const startTime = Date.now();
+    trackAnalysisStart(file.type);
+
+    try {
+      setStatusWithTimeout('Reading document content...');
+      let text: string;
+      if (file.type === 'application/pdf') {
+        text = await readPdfText(file);
+      } else {
+        text = await file.text();
+      }
+      setProgress(5);
+
+      const formData = new FormData();
+      formData.append('text', text);
+      formData.append('filename', file.name);
+
+      setStatusWithTimeout('Initializing AI analysis...');
+      setAnalysis({
+        summary: "Starting analysis...",
+        keyTerms: [],
+        potentialRisks: [],
+        importantClauses: [],
+        recommendations: [],
+        metadata: {
+          analyzedAt: new Date().toISOString(),
+          documentName: file.name,
+          modelVersion: "gpt-3.5-turbo-1106",
+          totalChunks: 0,
+          currentChunk: 0,
+          stage: 'preprocessing',
+          progress: 5
+        }
+      });
+
+      setStatusWithTimeout('Connecting to analysis service...');
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.body) {
+        throw new Error('No response body received from server');
+      }
+
+      const reader = response.body.getReader();
+      readerRef.current = reader;
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                setProgress(data.progress);
+                setStage(data.stage);
+
+                if (data.stage === 'preprocessing') {
+                  setStatusWithTimeout('Preparing document for analysis...');
+                } else if (data.stage === 'analyzing') {
+                  if (data.currentChunk && data.totalChunks) {
+                    setStatusWithTimeout(
+                      `Analyzing section ${data.currentChunk} of ${data.totalChunks}`,
+                      5000
+                    );
+                  }
+                }
+
+                if (data.currentChunk && data.totalChunks) {
+                  setAnalysis(prev => prev ? {
+                    ...prev,
+                    metadata: {
+                      ...prev.metadata,
+                      currentChunk: data.currentChunk,
+                      totalChunks: data.totalChunks
+                    }
+                  } : prev);
+                }
+
+                if (data.type === 'complete' && data.result) {
+                  setStatusWithTimeout('Analysis complete!');
+                  setAnalysis(data.result);
+                  const analysisTime = (Date.now() - startTime) / 1000;
+                  trackAnalysisComplete(file.type, analysisTime);
+                  break;
+                } else if (data.type === 'error') {
+                  throw new Error(data.error);
+                }
+              } catch (e) {
+                console.error('Error parsing server update:', e);
+                throw e;
+              }
+            }
+          }
+        }
+      } finally {
+        readerRef.current = null;
+      }
+
+    } catch (error) {
+      console.error('Error analyzing contract:', error);
+      handleAnalysisError(error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleAnalysisError = (error: unknown) => {
     let errorMessage = 'An unexpected error occurred. Please try again.';
     let errorType: ErrorDisplayType['type'] = 'error';
@@ -92,3 +225,44 @@ export default function Hero() {
     setProgress(0);
     setStage('preprocessing');
   };
+
+  return (
+    <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-5xl font-bold mb-6 tracking-tight text-gray-900 dark:text-white text-center">
+          Don't Sign Until<br />You're Sure
+        </h1>
+        <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 max-w-2xl mx-auto text-center">
+          Upload your contract, let AI highlight the risks and key terms.
+        </p>
+
+        <FileUploadArea 
+          file={file}
+          error={error}
+          onFileSelect={handleFileSelect}
+          isUploading={isAnalyzing && progress <= 2}
+          processingStatus={processingStatus}
+        />
+
+        <div className="flex justify-center mt-6">
+          <AnalysisButton
+            isDisabled={!file || isAnalyzing}
+            isAnalyzing={isAnalyzing}
+            onClick={handleAnalyze}
+          />
+        </div>
+
+        <AnalysisProgress 
+          currentChunk={analysis?.metadata?.currentChunk ?? 0}
+          totalChunks={analysis?.metadata?.totalChunks ?? 0}
+          isAnalyzing={isAnalyzing}
+          stage={stage}
+          progress={progress}
+        />
+
+        {error && <ErrorDisplay error={error} />}
+        {analysis && <AnalysisResults analysis={analysis} />}
+      </div>
+    </section>
+  );
+}
