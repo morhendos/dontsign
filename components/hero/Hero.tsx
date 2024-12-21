@@ -60,7 +60,7 @@ export default function Hero() {
     try {
       if (selectedFile.type === 'application/pdf') {
         setStatusWithTimeout('Validating PDF document...');
-        await readPdfText(selectedFile, true);
+        await readPdfText(selectedFile); // Removed the second argument
       }
       
       setProgress(2);
