@@ -31,7 +31,7 @@ export function FileUploadArea({
     if (file.size > MAX_FILE_SIZE) {
       throw new PDFProcessingError(
         'File too large. Please upload a file smaller than 10MB.',
-        'INVALID_FORMAT'
+        'FILE_TOO_LARGE'
       );
     }
 
