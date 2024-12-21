@@ -122,82 +122,89 @@ function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
   return merged;
 }
 
+// Track the state of ongoing analyses
+const analysisState = new Map<string, {
+  results: AnalysisResult[];
+  currentChunk: number;
+  totalChunks: number;
+}>();
+
 export async function analyzeContract(formData: FormData) {
   try {
-    console.log('Starting contract analysis');
+    console.log('Processing contract analysis request');
     
     const text = formData.get("text");
     const filename = formData.get("filename");
 
-    if (!text || typeof text !== 'string') {
-      throw new ContractAnalysisError(
-        "No text content received",
-        "INVALID_INPUT"
-      );
+    if (!text || typeof text !== 'string' || !filename || typeof filename !== 'string') {
+      throw new ContractAnalysisError("Invalid input", "INVALID_INPUT");
     }
 
-    if (!filename || typeof filename !== 'string') {
-      throw new ContractAnalysisError(
-        "No filename received",
-        "INVALID_INPUT"
-      );
+    const stateKey = `${filename}-${text.length}`;
+    let state = analysisState.get(stateKey);
+
+    // Initialize new analysis if needed
+    if (!state) {
+      const chunks = splitIntoChunks(text);
+      if (chunks.length === 0) {
+        throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
+      }
+
+      state = {
+        results: [],
+        currentChunk: 0,
+        totalChunks: chunks.length,
+      };
+      analysisState.set(stateKey, state);
+
+      // Process first chunk
+      const result = await analyzeChunk(chunks[0], 0, chunks.length);
+      state.results.push(result);
+      state.currentChunk = 1;
+
+      // Start background processing of remaining chunks
+      (async () => {
+        try {
+          for (let i = 1; i < chunks.length; i++) {
+            const result = await analyzeChunk(chunks[i], i, chunks.length);
+            state.results.push(result);
+            state.currentChunk = i + 1;
+          }
+        } catch (error) {
+          console.error('Background processing error:', error);
+        }
+      })();
     }
 
-    const chunks = splitIntoChunks(text);
-    if (chunks.length === 0) {
-      throw new ContractAnalysisError(
-        "Document content is too short",
-        "INVALID_INPUT"
-      );
-    }
-
-    const analysisResults: AnalysisResult[] = [];
-    const baseMetadata = {
-      analyzedAt: new Date().toISOString(),
-      documentName: filename,
-      modelVersion: "gpt-3.5-turbo-1106",
-      totalChunks: chunks.length,
-      currentChunk: 0
-    };
-    
-    // Return initial state
-    return {
+    // Return current state
+    const analysis = state.results.length > 0 ? mergeAnalysisResults(state.results) : {
       summary: "Starting analysis...",
       keyTerms: [],
       potentialRisks: [],
       importantClauses: [],
-      recommendations: [],
-      metadata: baseMetadata
+      recommendations: []
     };
-    
-    // Process chunks and return updates
-    for (let i = 0; i < chunks.length; i++) {
-      const result = await analyzeChunk(chunks[i], i, chunks.length);
-      analysisResults.push(result);
-      
-      // Return partial results after each chunk
-      const partialAnalysis = mergeAnalysisResults(analysisResults);
-      return {
-        ...partialAnalysis,
-        metadata: {
-          ...baseMetadata,
-          currentChunk: i + 1
-        }
-      };
-    }
-    
-    // Return final results
-    const finalAnalysis = mergeAnalysisResults(analysisResults);
-    return {
-      ...finalAnalysis,
+
+    const response = {
+      ...analysis,
       metadata: {
-        ...baseMetadata,
-        currentChunk: chunks.length
+        analyzedAt: new Date().toISOString(),
+        documentName: filename,
+        modelVersion: "gpt-3.5-turbo-1106",
+        totalChunks: state.totalChunks,
+        currentChunk: state.currentChunk
       }
     };
 
+    // Clean up if analysis is complete
+    if (state.currentChunk === state.totalChunks) {
+      analysisState.delete(stateKey);
+    }
+
+    return response;
+
   } catch (error) {
-    console.error("Error generating analysis:", error);
+    console.error("Error in analyzeContract:", error);
     throw error;
   }
 }
