@@ -31,6 +31,7 @@ type AnalysisState = {
   currentChunk: number;
   totalChunks: number;
   startTime: string;
+  processingChunk: boolean; // Add this to track actual processing
 };
 
 const analysisState = new Map<string, AnalysisState>();
@@ -38,9 +39,17 @@ const analysisState = new Map<string, AnalysisState>();
 async function analyzeChunk(
   chunk: string,
   chunkIndex: number,
-  totalChunks: number
+  totalChunks: number,
+  stateKey: string
 ): Promise<AnalysisResult> {
   try {
+    // Update state to show we're processing this chunk
+    const state = analysisState.get(stateKey);
+    if (state) {
+      state.processingChunk = true;
+      state.currentChunk = chunkIndex;
+    }
+
     console.log(`Starting analysis of chunk ${chunkIndex + 1}/${totalChunks}`);
     
     const systemPrompt = "You are a legal expert. Analyze this contract section concisely.";
@@ -59,6 +68,12 @@ async function analyzeChunk(
       });
     });
 
+    // Mark chunk as completed
+    if (state) {
+      state.processingChunk = false;
+      state.currentChunk = chunkIndex + 1;
+    }
+
     const content = response.choices[0]?.message?.content;
     if (!content) {
       throw new ContractAnalysisError(
@@ -69,6 +84,11 @@ async function analyzeChunk(
 
     return JSON.parse(content) as AnalysisResult;
   } catch (error) {
+    // Reset processing state on error
+    const state = analysisState.get(stateKey);
+    if (state) {
+      state.processingChunk = false;
+    }
     console.error(`Error in analyzeChunk ${chunkIndex + 1}:`, error);
     throw error;
   }
@@ -128,7 +148,8 @@ export async function analyzeContract(formData: FormData) {
         results: [],
         currentChunk: 0,
         totalChunks: chunks.length,
-        startTime: new Date().toISOString()
+        startTime: new Date().toISOString(),
+        processingChunk: false
       };
       analysisState.set(stateKey, state);
 
@@ -136,10 +157,13 @@ export async function analyzeContract(formData: FormData) {
       (async () => {
         try {
           for (let i = 0; i < chunks.length; i++) {
-            const result = await analyzeChunk(chunks[i], i, chunks.length);
+            // Add small delay between chunks for visible progress
+            if (i > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            const result = await analyzeChunk(chunks[i], i, chunks.length, stateKey);
             state = analysisState.get(stateKey)!;
             state.results.push(result);
-            state.currentChunk = i + 1;
           }
         } catch (error) {
           console.error('Background processing error:', error);
@@ -160,8 +184,9 @@ export async function analyzeContract(formData: FormData) {
         recommendations: []
       };
     } else {
+      const aiSummary = state.results[state.results.length - 1].summary;
       analysis = {
-        summary: `Analyzing section ${state.currentChunk} of ${state.totalChunks}...`,
+        summary: `[Analysis in Progress] ${state.currentChunk} of ${state.totalChunks} sections processed.\n\n${aiSummary}`,
         keyTerms: state.results.flatMap(r => r.keyTerms),
         potentialRisks: state.results.flatMap(r => r.potentialRisks),
         importantClauses: state.results.flatMap(r => r.importantClauses),
@@ -182,8 +207,9 @@ export async function analyzeContract(formData: FormData) {
 
     // If analysis is complete, merge results and clean up
     if (state.currentChunk === state.totalChunks) {
+      const aiSummaries = state.results.map(r => r.summary).join('\n');
       const mergedAnalysis = {
-        summary: `Analysis complete. Found ${state.results.length} key sections.`,
+        summary: `Analysis complete. Found ${state.results.length} key sections.\n\nDetailed Analysis:\n${aiSummaries}`,
         keyTerms: [...new Set(state.results.flatMap(r => r.keyTerms))],
         potentialRisks: [...new Set(state.results.flatMap(r => r.potentialRisks))],
         importantClauses: [...new Set(state.results.flatMap(r => r.importantClauses))],
