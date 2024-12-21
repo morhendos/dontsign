@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as Sentry from '@sentry/nextjs';
-import { analyzeContract } from '@/app/actions';
 import { readPdfText } from '@/lib/pdf-utils';
 import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors';
 import { trackAnalysisStart, trackAnalysisComplete, trackError } from '@/lib/analytics-events';
@@ -21,6 +20,22 @@ export default function Hero() {
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<'preprocessing' | 'analyzing' | 'complete'>('preprocessing');
   
+  // Keep track of the EventSource instance
+  const eventSourceRef = useRef<EventSource | null>(null);
+  
+  // Cleanup function for the EventSource
+  const cleanupEventSource = () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+  };
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => cleanupEventSource();
+  }, []);
+  
   const handleFileSelect = async (selectedFile: File | null) => {
     if (!selectedFile) {
       setError({
@@ -32,17 +47,16 @@ export default function Hero() {
 
     // Start tracking upload progress
     setIsAnalyzing(true);
-    setProgress(1); // Show initial progress for upload
+    setProgress(1);
     setStage('preprocessing');
 
     try {
       // For PDFs, we validate and preload the document
       if (selectedFile.type === 'application/pdf') {
-        // Validate PDF structure (this will also cache the PDF for later use)
-        await readPdfText(selectedFile, true); // Added validateOnly parameter
+        await readPdfText(selectedFile, true);
       }
       
-      setProgress(2); // Upload complete
+      setProgress(2);
       setFile(selectedFile);
       setAnalysis(null);
       setError(null);
@@ -51,7 +65,7 @@ export default function Hero() {
       handleAnalysisError(error);
     } finally {
       setIsAnalyzing(false);
-      setProgress(0); // Reset progress until analysis starts
+      setProgress(0);
     }
   };
 
@@ -64,11 +78,15 @@ export default function Hero() {
       return;
     }
 
+    // Reset states
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
-    setProgress(2); // Start from 2% as upload is already done
+    setProgress(2);
     setStage('preprocessing');
+
+    // Cleanup any existing EventSource
+    cleanupEventSource();
 
     const startTime = Date.now();
     trackAnalysisStart(file.type);
@@ -77,12 +95,12 @@ export default function Hero() {
       let text: string;
       if (file.type === 'application/pdf') {
         text = await readPdfText(file);
-        setProgress(5); // PDF processing complete
       } else {
         text = await file.text();
-        setProgress(5); // Text extraction complete
       }
+      setProgress(5);
 
+      // Create FormData
       const formData = new FormData();
       formData.append('text', text);
       formData.append('filename', file.name);
@@ -105,54 +123,58 @@ export default function Hero() {
         }
       });
 
-      // Start analysis and handle progress updates
-      const result = await analyzeContract(formData);
-      
-      // Look for progress updates in the console output
-      const observer = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-          const node = mutation.target as HTMLElement;
-          const text = node.textContent || '';
-          if (text.includes('"type":"progress"')) {
-            try {
-              const progressData = JSON.parse(text);
-              if (progressData.type === 'progress') {
-                setProgress(progressData.progress);
-                setStage(progressData.stage);
-                if (progressData.current && progressData.total) {
-                  setAnalysis(prev => prev ? {
-                    ...prev,
-                    metadata: {
-                      ...prev.metadata,
-                      currentChunk: progressData.current,
-                      totalChunks: progressData.total
-                    }
-                  } : prev);
+      // Make initial POST request
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      // Setup streaming response handling
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || ''; // Keep the incomplete chunk in the buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6));
+            
+            setProgress(data.progress);
+            setStage(data.stage);
+
+            if (data.currentChunk && data.totalChunks) {
+              setAnalysis(prev => prev ? {
+                ...prev,
+                metadata: {
+                  ...prev.metadata,
+                  currentChunk: data.currentChunk,
+                  totalChunks: data.totalChunks
                 }
-              }
-            } catch (e) {
-              console.error('Error parsing progress data:', e);
+              } : prev);
+            }
+
+            if (data.type === 'complete') {
+              setAnalysis(data.result);
+              const analysisTime = (Date.now() - startTime) / 1000;
+              trackAnalysisComplete(file.type, analysisTime);
+              break;
+            } else if (data.type === 'error') {
+              throw new Error(data.error);
             }
           }
         }
-      });
-
-      // Start observing console output
-      const consoleOutput = document.querySelector('#console-output');
-      if (consoleOutput) {
-        observer.observe(consoleOutput, { childList: true, subtree: true });
       }
-
-      if (result) {
-        setAnalysis(result);
-        const analysisTime = (Date.now() - startTime) / 1000;
-        trackAnalysisComplete(file.type, analysisTime);
-        setProgress(100);
-        setStage('complete');
-      }
-
-      // Cleanup observer
-      observer.disconnect();
 
     } catch (error) {
       console.error('Error analyzing contract:', error);
