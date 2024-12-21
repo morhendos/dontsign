@@ -21,30 +21,19 @@ interface AnalysisMetadata {
   analyzedAt: string;
   documentName: string;
   modelVersion: string;
-  totalChunks?: number;
-  currentChunk?: number;
+  totalChunks: number;
+  currentChunk: number;
 }
 
-async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
-  let lastError: unknown;
-  
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      console.error(`Retry attempt ${attempt} failed:`, error);
-      lastError = error;
-      
-      if (attempt === maxAttempts) break;
-      
-      await new Promise((resolve) => 
-        setTimeout(resolve, Math.pow(2, attempt - 1) * 1000)
-      );
-    }
-  }
-  
-  throw lastError;
-}
+// Track the state of ongoing analyses
+type AnalysisState = {
+  results: AnalysisResult[];
+  currentChunk: number;
+  totalChunks: number;
+  startTime: string;
+};
+
+const analysisState = new Map<string, AnalysisState>();
 
 async function analyzeChunk(
   chunk: string,
@@ -57,7 +46,6 @@ async function analyzeChunk(
     const systemPrompt = "You are a legal expert. Analyze this contract section concisely.";
     const userPrompt = `Section ${chunkIndex + 1}/${totalChunks}:\n${chunk}\n\nProvide JSON with: summary (brief), keyTerms, potentialRisks, importantClauses, recommendations.`;
 
-    console.log(`Making API call for chunk ${chunkIndex + 1}`);
     const response = await withRetry(async () => {
       return await openai.chat.completions.create({
         model: "gpt-3.5-turbo-1106",
@@ -86,53 +74,22 @@ async function analyzeChunk(
   }
 }
 
-function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
-  if (!Array.isArray(results) || results.length === 0) {
-    throw new ContractAnalysisError(
-      'No analysis results to merge',
-      'TEXT_PROCESSING_ERROR'
-    );
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt === maxAttempts) break;
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+    }
   }
-
-  const merged: AnalysisResult = {
-    summary: "",
-    keyTerms: [],
-    potentialRisks: [],
-    importantClauses: [],
-    recommendations: [],
-  };
-
-  results.forEach(result => {
-    if (Array.isArray(result.keyTerms)) merged.keyTerms.push(...result.keyTerms);
-    if (Array.isArray(result.potentialRisks)) merged.potentialRisks.push(...result.potentialRisks);
-    if (Array.isArray(result.importantClauses)) merged.importantClauses.push(...result.importantClauses);
-    if (Array.isArray(result.recommendations)) merged.recommendations?.push(...result.recommendations);
-  });
-
-  merged.keyTerms = Array.from(new Set(merged.keyTerms));
-  merged.potentialRisks = Array.from(new Set(merged.potentialRisks));
-  merged.importantClauses = Array.from(new Set(merged.importantClauses));
-  if (merged.recommendations) {
-    merged.recommendations = Array.from(new Set(merged.recommendations));
-  }
-
-  merged.summary = `This contract analysis is based on ${results.length} sections. ` + 
-    (results[0]?.summary || 'No summary available.');
-
-  return merged;
+  throw lastError;
 }
-
-// Track the state of ongoing analyses
-const analysisState = new Map<string, {
-  results: AnalysisResult[];
-  currentChunk: number;
-  totalChunks: number;
-}>();
 
 export async function analyzeContract(formData: FormData) {
   try {
-    console.log('Processing contract analysis request');
-    
     const text = formData.get("text");
     const filename = formData.get("filename");
 
@@ -143,30 +100,44 @@ export async function analyzeContract(formData: FormData) {
     const stateKey = `${filename}-${text.length}`;
     let state = analysisState.get(stateKey);
 
-    // Initialize new analysis if needed
+    // Initialize new analysis
     if (!state) {
       const chunks = splitIntoChunks(text);
       if (chunks.length === 0) {
         throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
       }
 
+      // Return initial state immediately
+      const initialState = {
+        summary: "Starting analysis...",
+        keyTerms: [],
+        potentialRisks: [],
+        importantClauses: [],
+        recommendations: [],
+        metadata: {
+          analyzedAt: new Date().toISOString(),
+          documentName: filename,
+          modelVersion: "gpt-3.5-turbo-1106",
+          totalChunks: chunks.length,
+          currentChunk: 0
+        }
+      };
+
+      // Initialize state
       state = {
         results: [],
         currentChunk: 0,
         totalChunks: chunks.length,
+        startTime: new Date().toISOString()
       };
       analysisState.set(stateKey, state);
 
-      // Process first chunk
-      const result = await analyzeChunk(chunks[0], 0, chunks.length);
-      state.results.push(result);
-      state.currentChunk = 1;
-
-      // Start background processing of remaining chunks
+      // Start background processing
       (async () => {
         try {
-          for (let i = 1; i < chunks.length; i++) {
+          for (let i = 0; i < chunks.length; i++) {
             const result = await analyzeChunk(chunks[i], i, chunks.length);
+            state = analysisState.get(stateKey)!;
             state.results.push(result);
             state.currentChunk = i + 1;
           }
@@ -174,21 +145,34 @@ export async function analyzeContract(formData: FormData) {
           console.error('Background processing error:', error);
         }
       })();
+
+      return initialState;
     }
 
-    // Return current state
-    const analysis = state.results.length > 0 ? mergeAnalysisResults(state.results) : {
-      summary: "Starting analysis...",
-      keyTerms: [],
-      potentialRisks: [],
-      importantClauses: [],
-      recommendations: []
-    };
+    // Return current progress
+    let analysis: AnalysisResult;
+    if (state.results.length === 0) {
+      analysis = {
+        summary: "Starting analysis...",
+        keyTerms: [],
+        potentialRisks: [],
+        importantClauses: [],
+        recommendations: []
+      };
+    } else {
+      analysis = {
+        summary: `Analyzing section ${state.currentChunk} of ${state.totalChunks}...`,
+        keyTerms: state.results.flatMap(r => r.keyTerms),
+        potentialRisks: state.results.flatMap(r => r.potentialRisks),
+        importantClauses: state.results.flatMap(r => r.importantClauses),
+        recommendations: state.results.flatMap(r => r.recommendations || [])
+      };
+    }
 
     const response = {
       ...analysis,
       metadata: {
-        analyzedAt: new Date().toISOString(),
+        analyzedAt: state.startTime,
         documentName: filename,
         modelVersion: "gpt-3.5-turbo-1106",
         totalChunks: state.totalChunks,
@@ -196,9 +180,18 @@ export async function analyzeContract(formData: FormData) {
       }
     };
 
-    // Clean up if analysis is complete
+    // If analysis is complete, merge results and clean up
     if (state.currentChunk === state.totalChunks) {
+      const mergedAnalysis = {
+        summary: `Analysis complete. Found ${state.results.length} key sections.`,
+        keyTerms: [...new Set(state.results.flatMap(r => r.keyTerms))],
+        potentialRisks: [...new Set(state.results.flatMap(r => r.potentialRisks))],
+        importantClauses: [...new Set(state.results.flatMap(r => r.importantClauses))],
+        recommendations: [...new Set(state.results.flatMap(r => r.recommendations || []))],
+        metadata: response.metadata
+      };
       analysisState.delete(stateKey);
+      return mergedAnalysis;
     }
 
     return response;
