@@ -7,27 +7,20 @@ interface AnalysisProgressProps {
 }
 
 export function AnalysisProgress({ currentChunk, totalChunks, isAnalyzing }: AnalysisProgressProps) {
-  console.log('AnalysisProgress props:', { currentChunk, totalChunks, isAnalyzing });
-
-  // Remove the early return so we can see if it's receiving props
-  // if (!isAnalyzing || totalChunks === 0) return null;
-
-  const progress = Math.round((currentChunk / totalChunks) * 100) || 0;
-  console.log('Calculated progress:', progress);
-  
+  // MOCK: Always show progress at 50%
   return (
-    <div className="w-full max-w-md mx-auto mt-4 space-y-2 border border-red-500"> {/* Added border for visibility */}
+    <div className="w-full max-w-md mx-auto mt-4 space-y-2 border-2 border-red-500 p-4 bg-white"> {/* Added visible border and padding */}
       <div className="flex justify-between text-sm text-gray-600">
-        <span>Analyzing contract...</span>
-        <span>{progress}%</span>
+        <span>Analyzing contract... (MOCK)</span>
+        <span>50%</span>
       </div>
       <Progress 
-        value={progress} 
-        className="h-2"
-        indicatorColor={progress === 100 ? 'bg-green-600' : 'bg-blue-600'}
+        value={50} 
+        className="h-4" /* Made taller for visibility */
+        indicatorColor="bg-blue-600"
       />
       <p className="text-sm text-gray-500 text-center">
-        Processing section {currentChunk} of {totalChunks}
+        Processing section 5 of 10 (MOCK)
       </p>
     </div>
   );
