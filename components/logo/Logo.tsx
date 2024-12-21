@@ -9,7 +9,8 @@ export function Logo({ className = '' }: LogoProps) {
     <svg 
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 211.4 26.208"
-      className={`w-auto text-gray-900 dark:text-white transition-colors duration-200 ${className}`}
+      className={`w-auto h-6 text-gray-900 dark:text-white transition-colors duration-200 ${className}`}
+      preserveAspectRatio="xMidYMid meet"
       aria-label="dontSign.ai logo"
       role="img"
     >
