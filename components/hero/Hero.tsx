@@ -18,20 +18,7 @@ export default function Hero() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<ErrorDisplayType | null>(null);
-  const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
   
-  const currentChunk = analysis?.metadata?.currentChunk ?? 0;
-  const totalChunks = analysis?.metadata?.totalChunks ?? 0;
-
-  // Clean up polling on unmount
-  useEffect(() => {
-    return () => {
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-    };
-  }, [pollInterval]);
-
   const handleFileSelect = (selectedFile: File | null) => {
     if (!selectedFile) {
       setError({
@@ -44,12 +31,6 @@ export default function Hero() {
     setFile(selectedFile);
     setAnalysis(null);
     setError(null);
-
-    // Clear any existing polling
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      setPollInterval(null);
-    }
   };
 
   const handleAnalyze = async () => {
@@ -80,41 +61,33 @@ export default function Hero() {
       formData.append('text', text);
       formData.append('filename', file.name);
 
-      // Get initial analysis state
-      const initialResult = await analyzeContract(formData);
-      if (initialResult) {
-        setAnalysis(initialResult);
+      // Initial message
+      setAnalysis({
+        summary: "Starting analysis...",
+        keyTerms: [],
+        potentialRisks: [],
+        importantClauses: [],
+        recommendations: [],
+        metadata: {
+          analyzedAt: new Date().toISOString(),
+          documentName: file.name,
+          modelVersion: "gpt-3.5-turbo-1106",
+          totalChunks: 0,
+          currentChunk: 0
+        }
+      });
 
-        // Set up polling for updates
-        const interval = setInterval(async () => {
-          try {
-            const update = await analyzeContract(formData);
-            if (update) {
-              setAnalysis(update);
-              
-              // If analysis is complete, stop polling
-              if (update.metadata?.currentChunk === update.metadata?.totalChunks) {
-                clearInterval(interval);
-                setPollInterval(null);
-                const analysisTime = (Date.now() - startTime) / 1000;
-                trackAnalysisComplete(file.type, analysisTime);
-                setIsAnalyzing(false);
-              }
-            }
-          } catch (error) {
-            console.error('Error polling for updates:', error);
-            clearInterval(interval);
-            setPollInterval(null);
-            handleAnalysisError(error);
-            setIsAnalyzing(false);
-          }
-        }, 500);
-
-        setPollInterval(interval);
+      // Start analysis
+      const result = await analyzeContract(formData);
+      if (result) {
+        setAnalysis(result);
+        const analysisTime = (Date.now() - startTime) / 1000;
+        trackAnalysisComplete(file.type, analysisTime);
       }
     } catch (error) {
       console.error('Error analyzing contract:', error);
       handleAnalysisError(error);
+    } finally {
       setIsAnalyzing(false);
     }
   };
@@ -158,8 +131,8 @@ export default function Hero() {
         </div>
 
         <AnalysisProgress 
-          currentChunk={currentChunk}
-          totalChunks={totalChunks}
+          currentChunk={analysis?.metadata?.currentChunk ?? 0}
+          totalChunks={analysis?.metadata?.totalChunks ?? 0}
           isAnalyzing={isAnalyzing}
         />
 
