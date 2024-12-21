@@ -9,27 +9,34 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// [Previous interfaces remain the same...]
+interface AnalysisResult {
+  summary: string;
+  keyTerms: string[];
+  potentialRisks: string[];
+  importantClauses: string[];
+  recommendations?: string[];
+}
+
+interface AnalysisMetadata {
+  analyzedAt: string;
+  documentName: string;
+  modelVersion: string;
+  totalChunks: number;
+  currentChunk: number;
+}
 
 async function analyzeChunk(
   chunk: string,
   chunkIndex: number,
-  totalChunks: number,
-  stateKey: string
+  totalChunks: number
 ): Promise<AnalysisResult> {
   try {
-    const state = analysisState.get(stateKey);
-    if (state) {
-      // Increment currentChunk immediately to show progress
-      state.currentChunk = chunkIndex + 1;
-      state.processingChunk = true;
-    }
-
     console.log(`Starting analysis of chunk ${chunkIndex + 1}/${totalChunks}`);
     
     const systemPrompt = "You are a legal expert. Analyze this contract section concisely.";
     const userPrompt = `Section ${chunkIndex + 1}/${totalChunks}:\n${chunk}\n\nProvide JSON with: summary (brief), keyTerms, potentialRisks, importantClauses, recommendations.`;
 
+    console.log(`Making API call for chunk ${chunkIndex + 1}`);
     const response = await withRetry(async () => {
       return await openai.chat.completions.create({
         model: "gpt-3.5-turbo-1106",
@@ -43,10 +50,6 @@ async function analyzeChunk(
       });
     });
 
-    if (state) {
-      state.processingChunk = false;
-    }
-
     const content = response.choices[0]?.message?.content;
     if (!content) {
       throw new ContractAnalysisError(
@@ -57,13 +60,23 @@ async function analyzeChunk(
 
     return JSON.parse(content) as AnalysisResult;
   } catch (error) {
-    const state = analysisState.get(stateKey);
-    if (state) {
-      state.processingChunk = false;
-    }
     console.error(`Error in analyzeChunk ${chunkIndex + 1}:`, error);
     throw error;
   }
+}
+
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt === maxAttempts) break;
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+    }
+  }
+  throw lastError;
 }
 
 export async function analyzeContract(formData: FormData) {
@@ -75,110 +88,46 @@ export async function analyzeContract(formData: FormData) {
       throw new ContractAnalysisError("Invalid input", "INVALID_INPUT");
     }
 
-    const stateKey = `${filename}-${text.length}`;
-    let state = analysisState.get(stateKey);
-
-    // Initialize new analysis
-    if (!state) {
-      const chunks = splitIntoChunks(text);
-      if (chunks.length === 0) {
-        throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
-      }
-
-      // Return initial state immediately
-      const initialState = {
-        summary: "Starting analysis...",
-        keyTerms: [],
-        potentialRisks: [],
-        importantClauses: [],
-        recommendations: [],
-        metadata: {
-          analyzedAt: new Date().toISOString(),
-          documentName: filename,
-          modelVersion: "gpt-3.5-turbo-1106",
-          totalChunks: chunks.length,
-          currentChunk: 0
-        }
-      };
-
-      state = {
-        results: [],
-        currentChunk: 0,
-        totalChunks: chunks.length,
-        startTime: new Date().toISOString(),
-        processingChunk: false
-      };
-      analysisState.set(stateKey, state);
-
-      // Start background processing
-      (async () => {
-        try {
-          for (let i = 0; i < chunks.length; i++) {
-            // Add small delay between chunks
-            if (i > 0) {
-              // Shorter delay to make progress more visible
-              await new Promise(resolve => setTimeout(resolve, 500));
-            }
-            const result = await analyzeChunk(chunks[i], i, chunks.length, stateKey);
-            state = analysisState.get(stateKey)!;
-            state.results.push(result);
-          }
-        } catch (error) {
-          console.error('Background processing error:', error);
-        }
-      })();
-
-      return initialState;
+    const chunks = splitIntoChunks(text);
+    if (chunks.length === 0) {
+      throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    // Return current progress
-    let analysis: AnalysisResult;
-    if (state.results.length === 0) {
-      analysis = {
-        summary: "Starting analysis...",
-        keyTerms: [],
-        potentialRisks: [],
-        importantClauses: [],
-        recommendations: []
-      };
-    } else {
-      const aiSummary = state.results[state.results.length - 1].summary;
-      analysis = {
-        summary: `[Analysis in Progress] ${state.currentChunk} of ${state.totalChunks} sections processed.\n\n${aiSummary}`,
-        keyTerms: state.results.flatMap(r => r.keyTerms),
-        potentialRisks: state.results.flatMap(r => r.potentialRisks),
-        importantClauses: state.results.flatMap(r => r.importantClauses),
-        recommendations: state.results.flatMap(r => r.recommendations || [])
-      };
-    }
-
-    const response = {
-      ...analysis,
-      metadata: {
-        analyzedAt: state.startTime,
-        documentName: filename,
-        modelVersion: "gpt-3.5-turbo-1106",
-        totalChunks: state.totalChunks,
-        currentChunk: state.currentChunk
-      }
+    // Process chunks one by one
+    const results: AnalysisResult[] = [];
+    const metadata: AnalysisMetadata = {
+      analyzedAt: new Date().toISOString(),
+      documentName: filename,
+      modelVersion: "gpt-3.5-turbo-1106",
+      totalChunks: chunks.length,
+      currentChunk: 0
     };
 
-    // If analysis is complete, merge results and clean up
-    if (state.currentChunk === state.totalChunks && !state.processingChunk) {
-      const aiSummaries = state.results.map(r => r.summary).join('\n');
-      const mergedAnalysis = {
-        summary: `Analysis complete. Found ${state.results.length} key sections.\n\n\nDetailed Analysis:\n${aiSummaries}`,
-        keyTerms: [...new Set(state.results.flatMap(r => r.keyTerms))],
-        potentialRisks: [...new Set(state.results.flatMap(r => r.potentialRisks))],
-        importantClauses: [...new Set(state.results.flatMap(r => r.importantClauses))],
-        recommendations: [...new Set(state.results.flatMap(r => r.recommendations || []))],
-        metadata: response.metadata
-      };
-      analysisState.delete(stateKey);
-      return mergedAnalysis;
-    }
+    // Process first chunk
+    const firstResult = await analyzeChunk(chunks[0], 0, chunks.length);
+    results.push(firstResult);
+    metadata.currentChunk = 1;
 
-    return response;
+    // Process remaining chunks in parallel
+    await Promise.all(chunks.slice(1).map(async (chunk, index) => {
+      const result = await analyzeChunk(chunk, index + 1, chunks.length);
+      results.push(result);
+      metadata.currentChunk = index + 2; // +2 because we start from second chunk (index + 1) and already processed one
+      return result;
+    }));
+
+    // Merge all results
+    const aiSummaries = results.map(r => r.summary).join('\n');
+    const finalAnalysis = {
+      summary: `Analysis complete. Found ${results.length} key sections.\n\n\nDetailed Analysis:\n${aiSummaries}`,
+      keyTerms: [...new Set(results.flatMap(r => r.keyTerms))],
+      potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))],
+      importantClauses: [...new Set(results.flatMap(r => r.importantClauses))],
+      recommendations: [...new Set(results.flatMap(r => r.recommendations || []))],
+      metadata
+    };
+
+    return finalAnalysis;
 
   } catch (error) {
     console.error("Error in analyzeContract:", error);
