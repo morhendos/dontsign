@@ -18,8 +18,10 @@ export default function Hero() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<ErrorDisplayType | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [stage, setStage] = useState<'preprocessing' | 'analyzing' | 'complete'>('preprocessing');
   
-  const handleFileSelect = (selectedFile: File | null) => {
+  const handleFileSelect = async (selectedFile: File | null) => {
     if (!selectedFile) {
       setError({
         message: 'Please select a valid PDF or DOCX file.',
@@ -28,9 +30,29 @@ export default function Hero() {
       return;
     }
 
-    setFile(selectedFile);
-    setAnalysis(null);
-    setError(null);
+    // Start tracking upload progress
+    setIsAnalyzing(true);
+    setProgress(1); // Show initial progress for upload
+    setStage('preprocessing');
+
+    try {
+      // For PDFs, we validate and preload the document
+      if (selectedFile.type === 'application/pdf') {
+        // Validate PDF structure (this will also cache the PDF for later use)
+        await readPdfText(selectedFile, true); // Added validateOnly parameter
+      }
+      
+      setProgress(2); // Upload complete
+      setFile(selectedFile);
+      setAnalysis(null);
+      setError(null);
+    } catch (error) {
+      console.error('Error processing uploaded file:', error);
+      handleAnalysisError(error);
+    } finally {
+      setIsAnalyzing(false);
+      setProgress(0); // Reset progress until analysis starts
+    }
   };
 
   const handleAnalyze = async () => {
@@ -45,6 +67,8 @@ export default function Hero() {
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
+    setProgress(2); // Start from 2% as upload is already done
+    setStage('preprocessing');
 
     const startTime = Date.now();
     trackAnalysisStart(file.type);
@@ -53,15 +77,17 @@ export default function Hero() {
       let text: string;
       if (file.type === 'application/pdf') {
         text = await readPdfText(file);
+        setProgress(5); // PDF processing complete
       } else {
         text = await file.text();
+        setProgress(5); // Text extraction complete
       }
 
       const formData = new FormData();
       formData.append('text', text);
       formData.append('filename', file.name);
 
-      // Initial message
+      // Initial analysis state
       setAnalysis({
         summary: "Starting analysis...",
         keyTerms: [],
@@ -73,17 +99,61 @@ export default function Hero() {
           documentName: file.name,
           modelVersion: "gpt-3.5-turbo-1106",
           totalChunks: 0,
-          currentChunk: 0
+          currentChunk: 0,
+          stage: 'preprocessing',
+          progress: 5
         }
       });
 
-      // Start analysis
+      // Start analysis and handle progress updates
       const result = await analyzeContract(formData);
+      
+      // Look for progress updates in the console output
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          const node = mutation.target as HTMLElement;
+          const text = node.textContent || '';
+          if (text.includes('"type":"progress"')) {
+            try {
+              const progressData = JSON.parse(text);
+              if (progressData.type === 'progress') {
+                setProgress(progressData.progress);
+                setStage(progressData.stage);
+                if (progressData.current && progressData.total) {
+                  setAnalysis(prev => prev ? {
+                    ...prev,
+                    metadata: {
+                      ...prev.metadata,
+                      currentChunk: progressData.current,
+                      totalChunks: progressData.total
+                    }
+                  } : prev);
+                }
+              }
+            } catch (e) {
+              console.error('Error parsing progress data:', e);
+            }
+          }
+        }
+      });
+
+      // Start observing console output
+      const consoleOutput = document.querySelector('#console-output');
+      if (consoleOutput) {
+        observer.observe(consoleOutput, { childList: true, subtree: true });
+      }
+
       if (result) {
         setAnalysis(result);
         const analysisTime = (Date.now() - startTime) / 1000;
         trackAnalysisComplete(file.type, analysisTime);
+        setProgress(100);
+        setStage('complete');
       }
+
+      // Cleanup observer
+      observer.disconnect();
+
     } catch (error) {
       console.error('Error analyzing contract:', error);
       handleAnalysisError(error);
@@ -104,6 +174,8 @@ export default function Hero() {
     }
 
     setError({ message: errorMessage, type: errorType });
+    setProgress(0);
+    setStage('preprocessing');
   };
 
   return (
@@ -120,6 +192,7 @@ export default function Hero() {
           file={file}
           error={error}
           onFileSelect={handleFileSelect}
+          isUploading={isAnalyzing && progress <= 2}
         />
 
         <div className="flex justify-center mt-6">
@@ -134,6 +207,8 @@ export default function Hero() {
           currentChunk={analysis?.metadata?.currentChunk ?? 0}
           totalChunks={analysis?.metadata?.totalChunks ?? 0}
           isAnalyzing={isAnalyzing}
+          stage={stage}
+          progress={progress}
         />
 
         {error && <ErrorDisplay error={error} />}
