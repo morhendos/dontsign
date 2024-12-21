@@ -9,19 +9,10 @@ export interface AnalysisResult {
     documentName: string;
     modelVersion: string;
     totalChunks?: number;
-    currentChunk?: number;
-    stage?: 'preprocessing' | 'analyzing' | 'complete';
-    progress?: number;
   };
 }
 
 export interface ErrorDisplay {
   message: string;
   type: 'error' | 'warning';
-}
-
-export interface AnalysisProgress {
-  currentChunk: number;
-  totalChunks: number;
-  status: 'extracting' | 'analyzing' | 'complete' | 'error';
 }
