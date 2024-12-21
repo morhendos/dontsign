@@ -1,17 +1,30 @@
-export function AnalysisProgress() {
+import { Progress } from '@/components/ui/progress';
+
+interface AnalysisProgressProps {
+  currentChunk: number;
+  totalChunks: number;
+  isAnalyzing: boolean;
+}
+
+export function AnalysisProgress({ currentChunk, totalChunks, isAnalyzing }: AnalysisProgressProps) {
+  if (!isAnalyzing || totalChunks === 0) return null;
+
+  const progress = Math.round((currentChunk / totalChunks) * 100);
+  
   return (
-    <>
-      <div className="w-full h-16 bg-red-500 my-4 flex items-center justify-center text-white">
-        ABOVE PROGRESS BAR
+    <div className="w-full max-w-md mx-auto mt-4 space-y-2">
+      <div className="flex justify-between text-sm text-gray-600">
+        <span>Analyzing contract...</span>
+        <span>{progress}%</span>
       </div>
-      
-      <div className="w-full h-8 bg-blue-500 my-4">
-        {/* This is where progress bar should be */}
-      </div>
-      
-      <div className="w-full h-16 bg-green-500 my-4 flex items-center justify-center text-white">
-        BELOW PROGRESS BAR
-      </div>
-    </>
+      <Progress 
+        value={progress} 
+        className="h-2"
+        indicatorColor={progress === 100 ? 'bg-green-600' : 'bg-blue-600'}
+      />
+      <p className="text-sm text-gray-500 text-center">
+        Processing section {currentChunk} of {totalChunks}
+      </p>
+    </div>
   );
 }
