@@ -1,12 +1,15 @@
 'use client';
 
 import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
+import * as PDFJS from 'pdfjs-dist';
 import * as Sentry from '@sentry/nextjs';
 import { PDFProcessingError } from './errors';
 
 // Only initialize worker in browser environment
 if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
-  GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+  // Get the actual version being used
+  const pdfVersion = PDFJS.version;
+  GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfVersion}/pdf.worker.min.js`;
 }
 
 export async function readPdfText(file: File): Promise<string> {
@@ -30,13 +33,28 @@ export async function readPdfText(file: File): Promise<string> {
     // Convert file to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
     
+    // Add debug logging
+    console.log('PDF processing:', {
+      fileSize: file.size,
+      fileName: file.name,
+      workerSrc: GlobalWorkerOptions.workerSrc,
+      pdfVersion: PDFJS.version
+    });
+
     // Load PDF document
-    const pdf = await getDocument({
+    const loadingTask = getDocument({
       data: arrayBuffer,
       useWorkerFetch: false,  // Important: disable worker fetch to avoid CORS issues
       isEvalSupported: false, // Important: disable eval for security
       useSystemFonts: true    // Use system fonts when possible
-    }).promise;
+    });
+
+    // Add progress callback
+    loadingTask.onProgress = (progress) => {
+      console.log('PDF loading progress:', progress);
+    };
+
+    const pdf = await loadingTask.promise;
     
     // Validate page count
     const maxPages = pdf.numPages;
@@ -116,7 +134,7 @@ export async function readPdfText(file: File): Promise<string> {
     throw new PDFProcessingError(
       'Could not read PDF file',
       'EXTRACTION_ERROR',
-      error
+      error instanceof Error ? error : new Error(String(error))
     );
   }
 }
@@ -151,7 +169,7 @@ async function getPageText(pdf: PDFDocumentProxy, pageNo: number): Promise<strin
     throw new PDFProcessingError(
       `Failed to extract text from page ${pageNo}`,
       'EXTRACTION_ERROR',
-      error
+      error instanceof Error ? error : new Error(String(error))
     );
   }
 }
