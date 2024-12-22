@@ -1,73 +1,154 @@
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { rateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'edge';
 
+// Custom error type for better error handling
+class ContactFormError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public status: number
+  ) {
+    super(message);
+    this.name = 'ContactFormError';
+  }
+}
+
 export async function POST(request: Request) {
   try {
-    // Rate limit: 5 requests per hour per IP
     const ip = request.headers.get('x-forwarded-for') ?? 'anonymous';
-    const { success, reset, remaining } = await rateLimit({
-      uniqueKey: `contact:${ip}`,
-      limit: 5,
-      timeWindow: 3600 // 1 hour in seconds
+    
+    // Start a Sentry transaction
+    const transaction = Sentry.startTransaction({
+      name: 'contact-form-submission',
+      op: 'http.server',
+      tags: { ip }
     });
 
-    if (!success) {
+    try {
+      // Rate limit check
+      const { success, reset, remaining, error } = await rateLimit({
+        uniqueKey: `contact:${ip}`,
+        limit: 5,
+        timeWindow: 3600,
+        errorFallback: 'deny' // deny on errors for security
+      });
+
+      if (error) {
+        // Log rate limit errors to Sentry
+        Sentry.captureMessage('Rate limit error', {
+          level: 'error',
+          tags: {
+            error_code: error.code
+          },
+          extra: {
+            error_message: error.message,
+            ip
+          }
+        });
+      }
+
+      if (!success) {
+        return NextResponse.json(
+          { error: 'Too many requests. Please try again later.' },
+          { 
+            status: 429,
+            headers: {
+              'Retry-After': String(reset),
+              'X-RateLimit-Limit': '5',
+              'X-RateLimit-Remaining': String(remaining),
+              'X-RateLimit-Reset': String(reset)
+            }
+          }
+        );
+      }
+
+      // Parse and validate request body
+      let data;
+      try {
+        data = await request.json();
+      } catch {
+        throw new ContactFormError(
+          'Invalid request body',
+          'INVALID_JSON',
+          400
+        );
+      }
+
+      const { name, email, subject, message } = data;
+
+      // Validate required fields
+      if (!name || !email || !subject || !message) {
+        throw new ContactFormError(
+          'All fields are required',
+          'MISSING_FIELDS',
+          400
+        );
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new ContactFormError(
+          'Invalid email format',
+          'INVALID_EMAIL',
+          400
+        );
+      }
+
+      // Email sending would go here
+      // Log success to Sentry
+      Sentry.addBreadcrumb({
+        category: 'contact',
+        message: 'Contact form processed successfully',
+        level: 'info',
+        data: {
+          name,
+          email,
+          subject
+        }
+      });
+
       return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
+        { message: 'Message sent successfully' },
         { 
-          status: 429,
+          status: 200,
           headers: {
-            'Retry-After': String(reset),
             'X-RateLimit-Limit': '5',
             'X-RateLimit-Remaining': String(remaining),
             'X-RateLimit-Reset': String(reset)
           }
         }
       );
+
+    } finally {
+      // End the Sentry transaction
+      transaction.finish();
     }
 
-    const data = await request.json();
-    const { name, email, subject, message } = data;
-
-    // Validate required fields
-    if (!name || !email || !subject || !message) {
-      return NextResponse.json(
-        { error: 'All fields are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      );
-    }
-
-    // Here you would typically send the email using your preferred service
-    // For example, using SendGrid, AWS SES, or other email service
-    console.log('Contact form submission:', { name, email, subject, message });
-
-    return NextResponse.json(
-      { message: 'Message sent successfully' },
-      { 
-        status: 200,
-        headers: {
-          'X-RateLimit-Limit': '5',
-          'X-RateLimit-Remaining': String(remaining),
-          'X-RateLimit-Reset': String(reset)
-        }
-      }
-    );
   } catch (error) {
-    console.error('Error processing contact form:', error);
+    // Determine error details
+    const status = error instanceof ContactFormError ? error.status : 500;
+    const code = error instanceof ContactFormError ? error.code : 'UNKNOWN';
+    const message = error instanceof Error ? 
+      error.message : 
+      'An error occurred while processing your request';
+
+    // Log to Sentry
+    Sentry.captureException(error, {
+      tags: {
+        error_code: code
+      }
+    });
+
     return NextResponse.json(
-      { error: 'An error occurred while sending your message' },
-      { status: 500 }
+      { 
+        error: message,
+        code 
+      },
+      { status }
     );
   }
 }
