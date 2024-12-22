@@ -1,6 +1,6 @@
 'use client';
 
-import * as PDFJS from 'pdfjs-dist/legacy/build/pdf';
+import * as PDFJS from 'pdfjs-dist/build/pdf.min.mjs';
 import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
 import * as Sentry from '@sentry/nextjs';
 import { PDFProcessingError } from './errors';
