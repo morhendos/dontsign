@@ -8,6 +8,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      scale: {
+        '101': '1.01',
+        '102': '1.02',
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -69,10 +73,24 @@ module.exports = {
             transform: 'translateY(0)'
           },
         },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'pulse-subtle': {
+          '0%, 100%': {
+            opacity: '1',
+          },
+          '50%': {
+            opacity: '0.8',
+          },
+        },
       },
       animation: {
         'fade-up': 'fade-up 0.5s ease-out',
         'fade-down': 'fade-down 0.5s ease-out',
+        'fade-in': 'fade-in 0.3s ease-out',
+        'pulse-subtle': 'pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
     },
   },
