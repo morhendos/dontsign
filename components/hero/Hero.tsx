@@ -14,20 +14,38 @@ import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 export default function Hero() {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const hideTimeoutRef = useRef<NodeJS.Timeout>();
   const [processingStatus, setProcessingStatus] = useState<string>('');
-  const [showLog, setShowLog] = useState(true);
+  const [showLog, setShowLog] = useState(false);
 
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
 
-  // Cleanup timeout on unmount
+  // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
     };
   }, []);
+
+  // Function to schedule log hiding
+  const scheduleLogHiding = () => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+    }
+    hideTimeoutRef.current = setTimeout(() => {
+      // Only hide if there's no active entries
+      const hasActiveEntries = entries.some(entry => entry.status === 'active');
+      if (!hasActiveEntries) {
+        setShowLog(false);
+      }
+    }, 2000);
+  };
 
   // Enhanced status handler that updates both the temporary and persistent logs
   const setStatusWithTimeout = (status: string, duration = 2000) => {
@@ -38,10 +56,18 @@ export default function Hero() {
     }
     timeoutRef.current = setTimeout(() => setProcessingStatus(''), duration);
 
-    // Show log if hidden and add entry
+    // Show log and add entry
     setShowLog(true);
     addEntry(status);
   };
+
+  // Monitor entries for activity changes
+  useEffect(() => {
+    const hasActiveEntries = entries.some(entry => entry.status === 'active');
+    if (!hasActiveEntries && entries.length > 0) {
+      scheduleLogHiding();
+    }
+  }, [entries]);
 
   // File handling
   const {
@@ -127,10 +153,10 @@ export default function Hero() {
         {analysis && <AnalysisResults analysis={analysis} />}
 
         {/* Floating Analysis Log */}
-        {showLog && entries.length > 0 && (
+        {entries.length > 0 && (
           <AnalysisLog 
             entries={entries}
-            onClose={() => setShowLog(false)}
+            isVisible={showLog}
           />
         )}
       </div>
