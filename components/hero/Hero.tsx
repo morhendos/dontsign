@@ -8,11 +8,16 @@ import { AnalysisButton } from '../contract-analysis/AnalysisButton';
 import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
+import AnalysisLog from '../analysis-log/AnalysisLog';
+import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 
 export default function Hero() {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
   const [processingStatus, setProcessingStatus] = useState<string>('');
+
+  // Analysis log handling
+  const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -23,12 +28,17 @@ export default function Hero() {
     };
   }, []);
 
+  // Enhanced status handler that updates both the temporary and persistent logs
   const setStatusWithTimeout = (status: string, duration = 2000) => {
+    // Update the temporary status (for upload area)
     setProcessingStatus(status);
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     timeoutRef.current = setTimeout(() => setProcessingStatus(''), duration);
+
+    // Add to persistent log
+    addEntry(status);
   };
 
   // File handling
@@ -56,6 +66,19 @@ export default function Hero() {
 
   // Combined error state (file error takes precedence)
   const error = fileError || analysisError;
+
+  // Update log entry status when error occurs
+  useEffect(() => {
+    if (error) {
+      updateLastEntry('error');
+    }
+  }, [error, updateLastEntry]);
+
+  // Clear logs when starting new analysis
+  const handleAnalyzeWithLogReset = async (file: File | null) => {
+    clearEntries();
+    await handleAnalyze(file);
+  };
   
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -80,10 +103,20 @@ export default function Hero() {
           <AnalysisButton
             isDisabled={!file || isAnalyzing || isProcessing}
             isAnalyzing={isAnalyzing}
-            onClick={() => handleAnalyze(file)}
+            onClick={() => handleAnalyzeWithLogReset(file)}
           />
         </div>
 
+        {/* Analysis Progress Log */}
+        {entries.length > 0 && (
+          <div className="mt-6 animate-in fade-in slide-in-from-top-4">
+            <AnalysisLog 
+              entries={entries}
+            />
+          </div>
+        )}
+
+        {/* Existing Progress Indicator */}
         {isAnalyzing && (
           <AnalysisProgress 
             currentChunk={analysis?.metadata?.currentChunk ?? 0}
