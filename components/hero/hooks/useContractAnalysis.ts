@@ -12,6 +12,8 @@ export type AnalysisStage = 'preprocessing' | 'analyzing' | 'complete';
 interface UseContractAnalysisProps {
   /** Callback function to handle status updates during analysis */
   onStatusUpdate?: (status: string, duration?: number) => void;
+  /** Callback for signaling when a process is complete */
+  onEntryComplete?: () => void;
 }
 
 /** Response structure from the analysis service */
@@ -38,22 +40,8 @@ interface AnalysisStreamResponse {
  *
  * @param props - Configuration options for the hook
  * @returns Object containing analysis state and control functions
- *
- * @example
- * ```tsx
- * const {
- *   analysis,
- *   isAnalyzing,
- *   error,
- *   progress,
- *   stage,
- *   handleAnalyze
- * } = useContractAnalysis({
- *   onStatusUpdate: (status) => console.log(status)
- * });
- * ```
  */
-export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps = {}) => {
+export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseContractAnalysisProps = {}) => {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<ErrorDisplay | null>(null);
@@ -73,7 +61,7 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
   const handleAnalyze = async (file: File | null) => {
     if (!file) {
       setError({
-        message: 'Please upload a file before analyzing.',
+        message: 'Please upload a file before analyzing',
         type: 'warning'
       });
       return;
@@ -95,7 +83,7 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
     setAnalysis(null);
     setProgress(2);
     setStage('preprocessing');
-    onStatusUpdate?.('Starting contract analysis...');
+    onStatusUpdate?.('Starting contract analysis', 2000);
 
     const startTime = Date.now();
     trackAnalysisStart(file.type);
@@ -115,7 +103,7 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
         description: 'Read document content'
       });
 
-      console.log('[Client] Reading document content...');
+      console.log('[Client] Reading document content');
       let text: string;
       if (file.type === 'application/pdf') {
         text = await readPdfText(file);
@@ -130,10 +118,10 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
       formData.append('text', text);
       formData.append('filename', file.name);
 
-      onStatusUpdate?.('Initializing AI analysis...');
+      onStatusUpdate?.('Initializing AI analysis', 2000);
       console.log('[Client] Initializing analysis state');
       setAnalysis({
-        summary: "Starting analysis...",
+        summary: "Starting analysis",
         keyTerms: [],
         potentialRisks: [],
         importantClauses: [],
@@ -155,8 +143,8 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
         description: 'Make request to analysis service'
       });
 
-      console.log('[Client] Making request to analysis service...');
-      onStatusUpdate?.('Connecting to analysis service...');
+      console.log('[Client] Making request to analysis service');
+      onStatusUpdate?.('Connecting to analysis service', 2000);
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData
@@ -180,7 +168,7 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
       const decoder = new TextDecoder();
       let buffer = '';
 
-      console.log('[Client] Starting to read stream...');
+      console.log('[Client] Starting to read stream');
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -221,7 +209,7 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
                 });
 
                 if (data.stage === 'preprocessing') {
-                  onStatusUpdate?.('Preparing document for analysis...');
+                  onStatusUpdate?.('Preparing document for analysis', 3000);
                 } else if (data.stage === 'analyzing' && data.currentChunk && data.totalChunks) {
                   onStatusUpdate?.(
                     `Analyzing section ${data.currentChunk} of ${data.totalChunks}`,
@@ -249,7 +237,8 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
 
                 if (data.type === 'complete' && data.result) {
                   console.log('[Client] Analysis complete, got result:', data.result);
-                  onStatusUpdate?.('Analysis complete!');
+                  onStatusUpdate?.('Analysis complete', 2000);
+                  onEntryComplete?.(); // Mark the final status as complete
                   setAnalysis(data.result);
                   const analysisTime = (Date.now() - startTime) / 1000;
                   trackAnalysisComplete(file.type, analysisTime);
