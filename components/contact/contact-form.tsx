@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
 
 type FormStatus = {
   type: "success" | "error" | null;
@@ -73,74 +74,97 @@ export default function ContactForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {status.type && (
-        <Alert variant={status.type === "error" ? "destructive" : "default"}>
-          <AlertDescription>{status.message}</AlertDescription>
-        </Alert>
-      )}
+    <Card className="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800/50 backdrop-blur-sm">
+      <CardContent className="p-6 md:p-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {status.type && (
+            <Alert 
+              variant={status.type === "error" ? "destructive" : "default"}
+              className="animate-fadeIn"
+            >
+              <AlertDescription>{status.message}</AlertDescription>
+            </Alert>
+          )}
 
-      <div className="grid gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="John Doe"
-            required
-            disabled={isSubmitting}
-          />
-        </div>
+          <div className="grid gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Name
+              </Label>
+              <Input
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="John Doe"
+                required
+                disabled={isSubmitting}
+                className="bg-white dark:bg-gray-900"
+              />
+            </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="john@example.com"
-            required
-            disabled={isSubmitting}
-          />
-        </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Email
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="john@example.com"
+                required
+                disabled={isSubmitting}
+                className="bg-white dark:bg-gray-900"
+              />
+            </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="subject">Subject</Label>
-          <Input
-            id="subject"
-            name="subject"
-            value={formData.subject}
-            onChange={handleChange}
-            placeholder="How can we help?"
-            required
-            disabled={isSubmitting}
-          />
-        </div>
+            <div className="grid gap-2">
+              <Label htmlFor="subject" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Subject
+              </Label>
+              <Input
+                id="subject"
+                name="subject"
+                value={formData.subject}
+                onChange={handleChange}
+                placeholder="How can we help?"
+                required
+                disabled={isSubmitting}
+                className="bg-white dark:bg-gray-900"
+              />
+            </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="message">Message</Label>
-          <Textarea
-            id="message"
-            name="message"
-            value={formData.message}
-            onChange={handleChange}
-            placeholder="Tell us more about your inquiry..."
-            required
-            disabled={isSubmitting}
-            className="min-h-[150px]"
-          />
-        </div>
-      </div>
+            <div className="grid gap-2">
+              <Label htmlFor="message" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Message
+              </Label>
+              <Textarea
+                id="message"
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                placeholder="Tell us more about your inquiry..."
+                required
+                disabled={isSubmitting}
+                className="min-h-[150px] bg-white dark:bg-gray-900"
+              />
+            </div>
+          </div>
 
-      <div className="flex justify-end">
-        <Button type="submit" size="lg" disabled={isSubmitting}>
-          {isSubmitting ? "Sending..." : "Send Message"}
-        </Button>
-      </div>
-    </form>
+          <div className="flex justify-end pt-4">
+            <Button 
+              type="submit" 
+              size="lg" 
+              disabled={isSubmitting}
+              className="w-full sm:w-auto transition-all duration-200 hover:shadow-lg"
+            >
+              {isSubmitting ? "Sending..." : "Send Message"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
