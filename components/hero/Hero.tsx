@@ -13,7 +13,7 @@ import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 
 // Timing constants
 const HIDE_DELAY_AFTER_COMPLETE = 2000; // 2s delay after completion
-const HIDE_DELAY_AFTER_HOVER = 300;    // 300ms delay after mouse leave
+const HIDE_DELAY_AFTER_HOVER = 100;     // 100ms delay after mouse leave (much quicker)
 
 export default function Hero() {
   // Status message handling
