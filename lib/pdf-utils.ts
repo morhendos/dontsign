@@ -1,13 +1,13 @@
 'use client';
 
-import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
-import worker from 'pdfjs-dist/build/pdf.worker.entry';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import * as Sentry from '@sentry/nextjs';
 import { PDFProcessingError } from './errors';
 
 // Only initialize worker in browser environment
 if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
-  GlobalWorkerOptions.workerSrc = worker;
+  GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
 }
 
 export async function readPdfText(file: File): Promise<string> {
