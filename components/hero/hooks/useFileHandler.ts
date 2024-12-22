@@ -93,7 +93,7 @@ export const useFileHandler = ({
 
     setIsProcessing(true);
     setProgress(10);
-    onStatusUpdate?.('Checking file format...', 2000);
+    onStatusUpdate?.('Checking file format', 2000);
 
     try {
       // Validate file
@@ -103,22 +103,22 @@ export const useFileHandler = ({
       }
 
       setProgress(30);
-      onStatusUpdate?.('File format verified...', 1500);
+      onStatusUpdate?.('File format verified', 1500);
 
       // For PDFs, verify we can extract text
       if (selectedFile.type === 'application/pdf') {
         setProgress(50);
-        onStatusUpdate?.('Parsing PDF content...', 2000);
+        onStatusUpdate?.('Extracting PDF content', 2000);
         await readPdfText(selectedFile);
         setProgress(80);
-        onStatusUpdate?.('PDF content extracted successfully', 1500);
+        onStatusUpdate?.('PDF content extracted', 1500);
       }
       
       // Update state
       setProgress(100);
       setFile(selectedFile);
       setError(null);
-      onStatusUpdate?.('File ready for analysis!', 2000);
+      onStatusUpdate?.('File ready for analysis', 2000);
       // Signal that this entry should be marked as complete
       onEntryComplete?.();
     } catch (error) {
