@@ -1,84 +1,85 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Metadata } from 'next';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Terms of Service - DontSign",
-  description: "Terms of service and usage conditions for DontSign Contract Analysis tool"
+  description: "Terms of service and usage conditions for DontSign AI Contract Analysis tool"
 };
 
 export default function TermsOfService() {
   return (
-    <div className="container mx-auto py-12 px-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Terms of Service</CardTitle>
-        </CardHeader>
-        <CardContent className="prose dark:prose-invert max-w-none">
-          <h2>1. Acceptance of Terms</h2>
-          <p>
-            By accessing and using DontSign, you agree to be bound by these Terms of Service
-            and all applicable laws and regulations.
-          </p>
+    <div className="container mx-auto max-w-4xl">
+      <div className="space-y-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
+          <p className="text-muted-foreground">Last updated: December 22, 2024</p>
+        </div>
 
-          <h2>2. Service Description</h2>
-          <p>
-            DontSign provides AI-powered contract analysis services. While we strive for accuracy,
-            our analysis should not be considered legal advice. Always consult with qualified legal
-            professionals for important decisions.
-          </p>
+        <section className="space-y-6 text-lg">
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold">Overview</h2>
+            <p>
+              DontSign provides AI-powered contract analysis services. By using our service, you agree to these terms and our privacy policy.
+            </p>
+          </div>
 
-          <h2>3. User Responsibilities</h2>
-          <p>
-            You agree to:
-          </p>
-          <ul>
-            <li>Provide accurate information</li>
-            <li>Maintain confidentiality of your account</li>
-            <li>Use the service only for lawful purposes</li>
-            <li>Not attempt to circumvent any security measures</li>
-          </ul>
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold">Service Description</h2>
+            <p>
+              Our AI-powered tools analyze contracts to help identify key terms, potential risks, and important clauses. While we strive for accuracy, please note:
+            </p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Our analysis is not a substitute for legal advice</li>
+              <li>Always consult qualified legal professionals for important decisions</li>
+              <li>Analysis results are based on AI interpretation and may require human verification</li>
+            </ul>
+          </div>
 
-          <h2>4. Intellectual Property</h2>
-          <p>
-            You retain rights to your contracts and documents. You grant us a limited license to
-            process and analyze them for providing our services.
-          </p>
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold">User Responsibilities</h2>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Ensure you have the right to upload and analyze submitted contracts</li>
+              <li>Maintain the confidentiality of your account credentials</li>
+              <li>Use the service only for lawful purposes</li>
+              <li>Do not attempt to reverse engineer or compromise the service</li>
+            </ul>
+          </div>
 
-          <h2>5. Limitation of Liability</h2>
-          <p>
-            DontSign is provided "as is" without warranties. We are not liable for any damages
-            arising from your use of the service or any decisions made based on our analysis.
-          </p>
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold">Data Usage</h2>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>You retain all rights to your contracts and documents</li>
+              <li>We process your data as described in our{" "}
+                <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
+              </li>
+              <li>Analysis results are confidential and accessible only to you</li>
+            </ul>
+          </div>
 
-          <h2>6. Data Processing</h2>
-          <p>
-            We process your data in accordance with our{" "}
-            <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
-            By using our service, you consent to such processing.
-          </p>
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold">Service Limitations</h2>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Service availability may vary and maintenance windows may occur</li>
+              <li>Analysis speed depends on document complexity and system load</li>
+              <li>Some document formats or languages may not be fully supported</li>
+            </ul>
+          </div>
 
-          <h2>7. Service Modifications</h2>
-          <p>
-            We reserve the right to modify or discontinue the service at any time, with or
-            without notice.
-          </p>
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold">Changes to Terms</h2>
+            <p>
+              We may update these terms to reflect service improvements or legal requirements. Continued use after changes constitutes acceptance of updated terms.
+            </p>
+          </div>
 
-          <h2>8. Governing Law</h2>
-          <p>
-            These terms are governed by the laws of the jurisdiction where DontSign is registered,
-            without regard to its conflict of law provisions.
-          </p>
-
-          <h2>9. Contact</h2>
-          <p>
-            For any questions about these Terms, please{" "}
-            <a href="/contact" className="text-primary hover:underline">contact us</a>.
-          </p>
-
-          <p className="text-sm text-muted-foreground mt-8">
-            Last updated: December 22, 2024
-          </p>
-        </CardContent>
-      </Card>
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold">Contact</h2>
+            <p>
+              For questions about these terms, please visit our{" "}
+              <a href="/contact" className="text-primary hover:underline">contact page</a>.
+            </p>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
