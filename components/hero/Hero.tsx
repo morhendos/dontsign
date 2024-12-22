@@ -14,6 +14,13 @@ export default function Hero() {
   const timeoutRef = useRef<NodeJS.Timeout>();
   const [processingStatus, setProcessingStatus] = useState<string>('');
 
+  // Add debug logging
+  useEffect(() => {
+    console.log('Current stage:', stage);
+    console.log('Is analyzing:', isAnalyzing);
+    console.log('Analysis progress:', analysisProgress);
+  }, [stage, isAnalyzing, analysisProgress]);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -24,6 +31,7 @@ export default function Hero() {
   }, []);
 
   const setStatusWithTimeout = (status: string, duration = 2000) => {
+    console.log('Setting status:', status); // Debug log
     setProcessingStatus(status);
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -83,6 +91,16 @@ export default function Hero() {
             onClick={() => handleAnalyze(file)}
           />
         </div>
+
+        {/* Debug info */}
+        <pre className="text-xs mt-4 text-gray-500">
+          {JSON.stringify({
+            isAnalyzing,
+            stage,
+            analysisProgress,
+            processingStatus
+          }, null, 2)}
+        </pre>
 
         {isAnalyzing && (
           <AnalysisProgress 
