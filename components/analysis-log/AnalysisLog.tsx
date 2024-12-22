@@ -31,33 +31,33 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({ entries, className, onClose }
   const renderIcon = (status: LogEntry['status']) => {
     switch (status) {
       case 'complete':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
+        return <CheckCircle className="w-3.5 h-3.5 text-green-500" />;
       case 'active':
-        return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
+        return <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />;
       case 'error':
-        return <Circle className="w-4 h-4 text-red-500" />;
+        return <Circle className="w-3.5 h-3.5 text-red-500" />;
       default:
-        return <Circle className="w-4 h-4 text-gray-300" />;
+        return <Circle className="w-3.5 h-3.5 text-gray-300" />;
     }
   };
 
   if (entries.length === 0) return null;
 
   return (
-    <div className="fixed right-4 bottom-4 z-50"> {/* Added z-50 and wrapper div */}
+    <div className="fixed right-4 bottom-4 z-50">
       <Card 
         className={cn(
-          'w-96 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm',
+          'w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm',
           'shadow-lg border-gray-200 dark:border-gray-800',
           'transition-all duration-300 ease-in-out',
           'max-h-[calc(100vh-2rem)]',
           className
         )}
       >
-        <CardContent className="p-0 relative"> {/* Added relative positioning */}
+        <CardContent className="p-0 relative">
           {/* Header */}
-          <div className="sticky top-0 z-10 flex items-center justify-between p-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
-            <h3 className="font-medium text-sm text-gray-700 dark:text-gray-300">
+          <div className="sticky top-0 z-10 flex items-center justify-between p-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
+            <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300">
               Analysis Progress
             </h3>
             {onClose && (
@@ -65,35 +65,32 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({ entries, className, onClose }
                 onClick={onClose}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
           {/* Log entries */}
-          <div className="relative"> {/* Added relative positioning container */}
-            <ScrollArea className="h-[60vh] overflow-hidden">
-              <div className="p-3 space-y-2" ref={scrollRef}>
+          <div className="relative">
+            <ScrollArea className="h-[40vh] overflow-hidden">
+              <div className="py-1 px-2 space-y-1" ref={scrollRef}>
                 {entries.map((entry, index) => (
                   <div
                     key={entry.id}
                     ref={index === entries.length - 1 ? lastEntryRef : null}
                     className={cn(
-                      'flex items-start gap-3 p-2 rounded-lg transition-all duration-300',
+                      'flex items-start gap-2 px-2 py-1.5 rounded-md transition-all duration-300',
                       'animate-in slide-in-from-right-5',
                       entry.status === 'error' && 'bg-red-50 dark:bg-red-950/50',
                       entry.status === 'active' && 'bg-blue-50 dark:bg-blue-950/50'
                     )}
                   >
-                    <div className="flex-shrink-0 mt-1">
+                    <div className="flex-shrink-0 mt-0.5">
                       {renderIcon(entry.status)}
                     </div>
                     <div className="flex-grow min-w-0">
-                      <p className="text-sm text-gray-700 dark:text-gray-200 leading-tight">
+                      <p className="text-xs text-gray-700 dark:text-gray-200 leading-tight">
                         {entry.message}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {entry.timestamp.toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
