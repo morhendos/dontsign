@@ -8,28 +8,93 @@ import { AnalysisButton } from '../contract-analysis/AnalysisButton';
 import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
+import AnalysisLog from '../analysis-log/AnalysisLog';
+import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
+
+// Timing constants
+const HIDE_DELAY_AFTER_COMPLETE = 2000; // 2s delay after completion
+const HIDE_DELAY_AFTER_HOVER = 100;     // 100ms delay after mouse leave (much quicker)
 
 export default function Hero() {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const hideTimeoutRef = useRef<NodeJS.Timeout>();
   const [processingStatus, setProcessingStatus] = useState<string>('');
+  const [showLog, setShowLog] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Cleanup timeout on unmount
+  // Analysis log handling
+  const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
+
+  // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
     };
   }, []);
 
+  // Function to schedule log hiding
+  const scheduleLogHiding = (wasHovered: boolean = false) => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+    }
+    // Only schedule hiding if not hovered
+    if (!isHovered) {
+      const delay = wasHovered ? HIDE_DELAY_AFTER_HOVER : HIDE_DELAY_AFTER_COMPLETE;
+      hideTimeoutRef.current = setTimeout(() => {
+        // Only hide if there's no active entries and not hovered
+        const hasActiveEntries = entries.some(entry => entry.status === 'active');
+        if (!hasActiveEntries && !isHovered) {
+          setShowLog(false);
+        }
+      }, delay);
+    }
+  };
+
+  // Handle log visibility changes (including hover)
+  const handleVisibilityChange = (visible: boolean) => {
+    setIsHovered(visible);
+    if (visible) {
+      // Clear any pending hide timeout when showing
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+      setShowLog(true);
+    } else {
+      // Schedule hiding when mouse leaves
+      const hasActiveEntries = entries.some(entry => entry.status === 'active');
+      if (!hasActiveEntries) {
+        scheduleLogHiding(true); // Pass true to indicate it's from hover end
+      }
+    }
+  };
+
+  // Enhanced status handler that updates both the temporary and persistent logs
   const setStatusWithTimeout = (status: string, duration = 2000) => {
+    // Update the temporary status (for upload area)
     setProcessingStatus(status);
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     timeoutRef.current = setTimeout(() => setProcessingStatus(''), duration);
+
+    // Show log and add entry
+    setShowLog(true);
+    addEntry(status);
   };
+
+  // Monitor entries for activity changes
+  useEffect(() => {
+    const hasActiveEntries = entries.some(entry => entry.status === 'active');
+    if (!hasActiveEntries && entries.length > 0 && !isHovered) {
+      scheduleLogHiding();
+    }
+  }, [entries, isHovered]);
 
   // File handling
   const {
@@ -39,7 +104,8 @@ export default function Hero() {
     progress: fileProgress,
     handleFileSelect
   } = useFileHandler({
-    onStatusUpdate: setStatusWithTimeout
+    onStatusUpdate: setStatusWithTimeout,
+    onEntryComplete: () => updateLastEntry('complete')
   });
 
   // Contract analysis
@@ -51,11 +117,26 @@ export default function Hero() {
     stage,
     handleAnalyze
   } = useContractAnalysis({
-    onStatusUpdate: setStatusWithTimeout
+    onStatusUpdate: setStatusWithTimeout,
+    onEntryComplete: () => updateLastEntry('complete')
   });
 
   // Combined error state (file error takes precedence)
   const error = fileError || analysisError;
+
+  // Update log entry status when error occurs
+  useEffect(() => {
+    if (error) {
+      updateLastEntry('error');
+    }
+  }, [error, updateLastEntry]);
+
+  // Clear logs and show log window when starting new analysis
+  const handleAnalyzeWithLogReset = async (file: File | null) => {
+    clearEntries();
+    setShowLog(true);
+    await handleAnalyze(file);
+  };
   
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -80,10 +161,11 @@ export default function Hero() {
           <AnalysisButton
             isDisabled={!file || isAnalyzing || isProcessing}
             isAnalyzing={isAnalyzing}
-            onClick={() => handleAnalyze(file)}
+            onClick={() => handleAnalyzeWithLogReset(file)}
           />
         </div>
 
+        {/* Existing Progress Indicator */}
         {isAnalyzing && (
           <AnalysisProgress 
             currentChunk={analysis?.metadata?.currentChunk ?? 0}
@@ -96,6 +178,15 @@ export default function Hero() {
 
         {error && <ErrorDisplay error={error} />}
         {analysis && <AnalysisResults analysis={analysis} />}
+
+        {/* Floating Analysis Log */}
+        {entries.length > 0 && (
+          <AnalysisLog 
+            entries={entries}
+            isVisible={showLog}
+            onVisibilityChange={handleVisibilityChange}
+          />
+        )}
       </div>
     </section>
   );
