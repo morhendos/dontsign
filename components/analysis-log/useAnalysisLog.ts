@@ -25,7 +25,7 @@ export const useAnalysisLog = (): AnalysisLogState => {
     setEntries(current => {
       // If there's an active entry, mark it as complete
       const updated = current.map(e => 
-        e.status === 'active' ? { ...e, status: 'complete' } : e
+        e.status === 'active' ? { ...e, status: 'complete' as const } : e
       );
       return [...updated, entry];
     });
@@ -36,7 +36,7 @@ export const useAnalysisLog = (): AnalysisLogState => {
       if (current.length === 0) return current;
       
       return current.map((entry, index) => 
-        index === current.length - 1 ? { ...entry, status } : entry
+        index === current.length - 1 ? { ...entry, status: status as LogEntry['status'] } : entry
       );
     });
   }, []);
