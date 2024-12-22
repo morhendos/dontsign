@@ -16,9 +16,13 @@ const config: Config = {
       },
     },
     extend: {
-      colors: {
+      backgroundColor: {
         background: "hsl(var(--background) / <alpha-value>)",
-        foreground: "hsl(var(--foreground) / <alpha-value>)",
+      },
+      textColor: {
+        foreground: "hsl(var(--foreground) / <alpha-value>)"
+      },
+      colors: {
         card: {
           DEFAULT: "hsl(var(--card) / <alpha-value>)",
           foreground: "hsl(var(--card-foreground) / <alpha-value>)"
