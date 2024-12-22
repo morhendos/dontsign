@@ -49,7 +49,7 @@ export default function ContactForm() {
 
       setStatus({
         type: 'success',
-        message: 'Message sent successfully! We'll get back to you soon.'
+        message: 'Message sent successfully! We will get back to you soon.'
       });
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (error) {
