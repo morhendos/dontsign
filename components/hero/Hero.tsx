@@ -6,6 +6,7 @@ import { useFileHandler } from './hooks/useFileHandler';
 import { FileUploadArea } from '../contract-upload/FileUploadArea';
 import { AnalysisButton } from '../contract-analysis/AnalysisButton';
 import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
+import { AnalysisLog } from '../contract-analysis/AnalysisLog';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
 
@@ -55,13 +56,6 @@ export default function Hero() {
     onStatusUpdate: setStatusWithTimeout
   });
 
-  // Add debug logging after all variables are declared
-  useEffect(() => {
-    console.log('Current stage:', stage);
-    console.log('Is analyzing:', isAnalyzing);
-    console.log('Analysis progress:', analysisProgress);
-  }, [stage, isAnalyzing, analysisProgress]);
-
   // Combined error state (file error takes precedence)
   const error = fileError || analysisError;
   
@@ -92,15 +86,15 @@ export default function Hero() {
           />
         </div>
 
-        {/* Debug info */}
-        <pre className="text-xs mt-4 text-gray-500">
-          {JSON.stringify({
-            isAnalyzing,
-            stage,
-            analysisProgress,
-            processingStatus
-          }, null, 2)}
-        </pre>
+        {/* Analysis Log */}
+        <AnalysisLog
+          isAnalyzing={isAnalyzing}
+          stage={stage}
+          progress={analysisProgress}
+          processingStatus={processingStatus}
+          currentChunk={analysis?.metadata?.currentChunk}
+          totalChunks={analysis?.metadata?.totalChunks}
+        />
 
         {isAnalyzing && (
           <AnalysisProgress 
