@@ -12,6 +12,8 @@ export type AnalysisStage = 'preprocessing' | 'analyzing' | 'complete';
 interface UseContractAnalysisProps {
   /** Callback function to handle status updates during analysis */
   onStatusUpdate?: (status: string, duration?: number) => void;
+  /** Callback function called when an entry is complete */
+  onEntryComplete?: () => void;
 }
 
 /** Response structure from the analysis service */
@@ -53,7 +55,10 @@ interface AnalysisStreamResponse {
  * });
  * ```
  */
-export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps = {}) => {
+export const useContractAnalysis = ({ 
+  onStatusUpdate,
+  onEntryComplete
+}: UseContractAnalysisProps = {}) => {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<ErrorDisplay | null>(null);
@@ -250,6 +255,10 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
                 if (data.type === 'complete' && data.result) {
                   console.log('[Client] Analysis complete, got result:', data.result);
                   onStatusUpdate?.('Analysis complete!');
+                  // Mark the last entry as complete
+                  requestAnimationFrame(() => {
+                    onEntryComplete?.();
+                  });
                   setAnalysis(data.result);
                   const analysisTime = (Date.now() - startTime) / 1000;
                   trackAnalysisComplete(file.type, analysisTime);
