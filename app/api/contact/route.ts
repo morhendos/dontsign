@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
+const rateLimitData = new Map<string, number[]>();
 
-// Custom error type for better error handling
 class ContactFormError extends Error {
   constructor(
     message: string,
@@ -14,49 +14,24 @@ class ContactFormError extends Error {
   }
 }
 
-// Simple cache-based rate limiting
 async function checkRateLimit(key: string): Promise<{ success: boolean; reset?: number }> {
-  try {
-    const now = Date.now();
-    const cache = await caches.open('rate-limit');
-    const response = await cache.match(key);
-    
-    if (!response) {
-      // First request
-      await cache.put(
-        key,
-        new Response(JSON.stringify({ requests: [now] }), {
-          headers: { 'Content-Type': 'application/json' }
-        })
-      );
-      return { success: true };
-    }
-
-    const data = await response.json();
-    const hourAgo = now - (60 * 60 * 1000);
-    const recentRequests = data.requests.filter((time: number) => time > hourAgo);
-
-    if (recentRequests.length >= 5) {
-      const oldestRequest = Math.min(...recentRequests);
-      const reset = oldestRequest + (60 * 60 * 1000);
-      return { success: false, reset };
-    }
-
-    // Add current request
-    recentRequests.push(now);
-    await cache.put(
-      key,
-      new Response(JSON.stringify({ requests: recentRequests }), {
-        headers: { 'Content-Type': 'application/json' }
-      })
-    );
-
-    return { success: true };
-  } catch (error) {
-    // On error, allow the request but log it
-    console.error('Rate limit error:', error);
-    return { success: true };
+  const now = Date.now();
+  const hourAgo = now - (60 * 60 * 1000);
+  
+  // Get and clean old requests
+  const requests = (rateLimitData.get(key) || []).filter(time => time > hourAgo);
+  
+  if (requests.length >= 5) {
+    const oldestRequest = Math.min(...requests);
+    const reset = oldestRequest + (60 * 60 * 1000);
+    return { success: false, reset };
   }
+  
+  // Add current request
+  requests.push(now);
+  rateLimitData.set(key, requests);
+  
+  return { success: true };
 }
 
 export async function POST(request: Request) {
@@ -77,7 +52,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Parse and validate request body
+    // Parse request body
     let data;
     try {
       data = await request.json();
@@ -119,7 +94,7 @@ export async function POST(request: Request) {
     );
 
   } catch (error) {
-    // Determine error details
+    // Handle errors
     const status = error instanceof ContactFormError ? error.status : 500;
     const code = error instanceof ContactFormError ? error.code : 'UNKNOWN';
     const message = error instanceof Error ? 
