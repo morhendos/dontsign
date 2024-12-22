@@ -71,7 +71,7 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({ entries, className, onClose }
 
           {/* Log entries */}
           <div className="relative">
-            <ScrollArea className="h-[28vh] overflow-hidden">
+            <ScrollArea className="max-h-[20vh] overflow-y-auto">
               <div className="py-1 px-2 space-y-1" ref={scrollRef}>
                 {entries.map((entry, index) => (
                   <div
