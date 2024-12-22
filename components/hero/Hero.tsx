@@ -64,7 +64,8 @@ export default function Hero() {
     stage,
     handleAnalyze
   } = useContractAnalysis({
-    onStatusUpdate: setStatusWithTimeout
+    onStatusUpdate: setStatusWithTimeout,
+    onEntryComplete: () => updateLastEntry('complete')
   });
 
   // Combined error state (file error takes precedence)
