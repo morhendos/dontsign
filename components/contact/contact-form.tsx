@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type FormStatus = {
-  type: 'success' | 'error' | null;
+  type: "success" | "error" | null;
   message: string | null;
 };
 
@@ -21,12 +21,15 @@ type FormData = {
 
 export default function ContactForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [status, setStatus] = useState<FormStatus>({ type: null, message: null });
+  const [status, setStatus] = useState<FormStatus>({
+    type: null,
+    message: null,
+  });
   const [formData, setFormData] = useState<FormData>({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,42 +38,44 @@ export default function ContactForm() {
     setStatus({ type: null, message: null });
 
     try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/submit-contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send message');
+        throw new Error(data.error || "Failed to send message");
       }
 
       setStatus({
-        type: 'success',
-        message: 'Message sent successfully! We will get back to you soon.'
+        type: "success",
+        message: "Message sent successfully! We will get back to you soon.",
       });
-      setFormData({ name: '', email: '', subject: '', message: '' });
+      setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (error) {
       setStatus({
-        type: 'error',
-        message: error instanceof Error ? error.message : 'An error occurred'
+        type: "error",
+        message: error instanceof Error ? error.message : "An error occurred",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {status.type && (
-        <Alert variant={status.type === 'error' ? "destructive" : "default"}>
+        <Alert variant={status.type === "error" ? "destructive" : "default"}>
           <AlertDescription>{status.message}</AlertDescription>
         </Alert>
       )}
@@ -133,7 +138,7 @@ export default function ContactForm() {
 
       <div className="flex justify-end">
         <Button type="submit" size="lg" disabled={isSubmitting}>
-          {isSubmitting ? 'Sending...' : 'Send Message'}
+          {isSubmitting ? "Sending..." : "Send Message"}
         </Button>
       </div>
     </form>
