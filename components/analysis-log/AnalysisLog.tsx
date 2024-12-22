@@ -15,9 +15,15 @@ interface AnalysisLogProps {
   entries: LogEntry[];
   className?: string;
   onClose?: () => void;
+  isVisible?: boolean;
 }
 
-const AnalysisLog: React.FC<AnalysisLogProps> = ({ entries, className, onClose }) => {
+const AnalysisLog: React.FC<AnalysisLogProps> = ({ 
+  entries, 
+  className, 
+  onClose,
+  isVisible = true 
+}) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastEntryRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +50,13 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({ entries, className, onClose }
   if (entries.length === 0) return null;
 
   return (
-    <div className="fixed right-4 top-24 z-50">
+    <div 
+      className={cn(
+        'fixed right-4 top-24 z-50',
+        'transition-all duration-500 ease-in-out',
+        isVisible ? 'translate-x-0' : 'translate-x-[120%]'
+      )}
+    >
       <Card 
         className={cn(
           'w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm',
