@@ -29,27 +29,45 @@ interface ProgressUpdate {
   error?: string;
 }
 
+function validateAnalysisResult(result: any): result is AnalysisResult {
+  const hasArrayProperty = (obj: any, prop: string): boolean => 
+    Array.isArray(obj[prop]) && obj[prop].every(item => typeof item === 'string');
+
+  return (
+    result &&
+    typeof result === 'object' &&
+    hasArrayProperty(result, 'keyTerms') &&
+    hasArrayProperty(result, 'potentialRisks') &&
+    hasArrayProperty(result, 'importantClauses') &&
+    (!result.recommendations || hasArrayProperty(result, 'recommendations'))
+  );
+}
+
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number): Promise<AnalysisResult> {
+  console.log(`[Server] Analyzing chunk ${chunkIndex + 1}/${totalChunks}`);
+  
   const prompt = `Analyze the following contract text and provide a structured analysis in JSON format. 
 This is chunk ${chunkIndex + 1} of ${totalChunks}.
 
 Contract text:
 ${chunk}
 
-Provide your analysis as a JSON object with the following structure:
+You must respond with a valid JSON object containing these arrays:
 {
-  "keyTerms": [list of important terms and definitions],
-  "potentialRisks": [list of concerning clauses or potential risks],
-  "importantClauses": [list of significant clauses and their implications],
-  "recommendations": [list of points for review or negotiation]
-}`;
+  "keyTerms": ["term 1", "term 2", ...],
+  "potentialRisks": ["risk 1", "risk 2", ...],
+  "importantClauses": ["clause 1", "clause 2", ...],
+  "recommendations": ["recommendation 1", "recommendation 2", ...]
+}
+
+Each array must contain strings. Even if you find nothing relevant, return empty arrays, but maintain the structure.`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-3.5-turbo-1106",
     messages: [
       {
         role: "system",
-        content: "You are a legal analysis assistant specialized in contract review. Analyze the contract and return results in JSON format. Focus on identifying key terms, potential risks, and important clauses. Be concise and precise."
+        content: "You are a legal analysis assistant specialized in contract review. Analyze the contract and return results in JSON format. Focus on identifying key terms, potential risks, and important clauses. Be concise and precise. Always return arrays for all fields, even if empty."
       },
       {
         role: "user",
@@ -68,14 +86,36 @@ Provide your analysis as a JSON object with the following structure:
     );
   }
 
+  console.log('[Server] Raw OpenAI response:', content);
+
+  let parsedContent: any;
   try {
-    return JSON.parse(content) as AnalysisResult;
+    parsedContent = JSON.parse(content);
   } catch (error) {
+    console.error('[Server] JSON parsing error:', error);
     throw new ContractAnalysisError(
       'Invalid JSON response from AI model',
       'API_ERROR'
     );
   }
+
+  if (!validateAnalysisResult(parsedContent)) {
+    console.error('[Server] Invalid analysis result structure:', parsedContent);
+    throw new ContractAnalysisError(
+      'Invalid analysis result structure from AI model',
+      'API_ERROR'
+    );
+  }
+
+  // Ensure all required arrays exist, even if empty
+  const result: AnalysisResult = {
+    keyTerms: parsedContent.keyTerms || [],
+    potentialRisks: parsedContent.potentialRisks || [],
+    importantClauses: parsedContent.importantClauses || [],
+    recommendations: parsedContent.recommendations || []
+  };
+
+  return result;
 }
 
 export async function POST(request: NextRequest) {
@@ -183,19 +223,7 @@ export async function POST(request: NextRequest) {
               },
               {
                 role: "user",
-                content: `Based on the following findings, provide a concise executive summary of the contract:
-
-Key Terms:
-${allKeyTerms.map(term => `- ${term}`).join('\n')}
-
-Potential Risks:
-${allPotentialRisks.map(risk => `- ${risk}`).join('\n')}
-
-Important Clauses:
-${allImportantClauses.map(clause => `- ${clause}`).join('\n')}
-
-Recommendations:
-${allRecommendations.map(rec => `- ${rec}`).join('\n')}`
+                content: `Based on the following findings, provide a concise executive summary of the contract:\n\nKey Terms:\n${allKeyTerms.map(term => `- ${term}`).join('\n')}\n\nPotential Risks:\n${allPotentialRisks.map(risk => `- ${risk}`).join('\n')}\n\nImportant Clauses:\n${allImportantClauses.map(clause => `- ${clause}`).join('\n')}\n\nRecommendations:\n${allRecommendations.map(rec => `- ${rec}`).join('\n')}`
               }
             ],
             temperature: 0.3
