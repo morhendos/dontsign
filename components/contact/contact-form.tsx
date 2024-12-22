@@ -99,7 +99,7 @@ export default function ContactForm() {
                 placeholder="John Doe"
                 required
                 disabled={isSubmitting}
-                className="bg-white dark:bg-gray-900"
+                className="bg-white dark:bg-gray-900 input-with-subtle-focus"
               />
             </div>
 
@@ -116,7 +116,7 @@ export default function ContactForm() {
                 placeholder="john@example.com"
                 required
                 disabled={isSubmitting}
-                className="bg-white dark:bg-gray-900"
+                className="bg-white dark:bg-gray-900 input-with-subtle-focus"
               />
             </div>
 
@@ -132,7 +132,7 @@ export default function ContactForm() {
                 placeholder="How can we help?"
                 required
                 disabled={isSubmitting}
-                className="bg-white dark:bg-gray-900"
+                className="bg-white dark:bg-gray-900 input-with-subtle-focus"
               />
             </div>
 
@@ -148,7 +148,7 @@ export default function ContactForm() {
                 placeholder="Tell us more about your inquiry..."
                 required
                 disabled={isSubmitting}
-                className="min-h-[150px] bg-white dark:bg-gray-900"
+                className="min-h-[150px] bg-white dark:bg-gray-900 input-with-subtle-focus"
               />
             </div>
           </div>
