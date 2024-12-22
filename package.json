@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cp node_modules/pdfjs-dist/build/pdf.worker.min.js public/pdf.worker.js && next dev",
-    "build": "cp node_modules/pdfjs-dist/build/pdf.worker.min.js public/pdf.worker.js && next build",
+    "predev": "mkdir -p public && cp node_modules/pdfjs-dist/build/pdf.worker.mjs public/pdf.worker.js",
+    "dev": "next dev",
+    "prebuild": "mkdir -p public && cp node_modules/pdfjs-dist/build/pdf.worker.mjs public/pdf.worker.js",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
