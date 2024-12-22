@@ -3,9 +3,10 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { PDFProcessingError } from "@/lib/errors";
-import { trackUploadStart, trackUploadError } from "@/lib/analytics-events";
+import { trackUploadStart } from "@/lib/analytics-events";
 import { LoadingSpinner } from "../ui/loading-spinner";
 import { Upload, FileText } from "lucide-react";
+import { AnimatedAppear } from "../ui/animated-appear";
 import type { ErrorDisplay } from "@/types/analysis";
 
 interface FileUploadAreaProps {
@@ -49,93 +50,97 @@ export function FileUploadArea({
     onDragLeave: () => setIsDragging(false),
     accept: {
       "application/pdf": [".pdf"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        [".docx"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
     },
     maxFiles: 1,
     multiple: false,
   });
 
   return (
-    <div
-      {...getRootProps()}
-      className={`
-        w-full max-w-3xl mx-auto p-8 mt-8
-        border-2 border-dashed rounded-lg
-        transition-all duration-200 ease-in-out
-        cursor-pointer
-        group
-        ${
-          isDragging
-            ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30 scale-102"
+    <AnimatedAppear direction="up" duration={500}>
+      <div
+        {...getRootProps()}
+        className={`
+          w-full max-w-3xl mx-auto p-8 mt-8
+          border-2 border-dashed rounded-lg
+          transition-all duration-300 ease-in-out
+          cursor-pointer
+          group
+          transform
+          ${isDragging ? 'scale-102' : 'hover:scale-101'}
+          ${isDragging
+            ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30"
             : "border-gray-300 dark:border-gray-700 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:border-blue-500 dark:hover:bg-blue-950/20"
-        }
-        ${
-          error
+          }
+          ${error
             ? "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30"
             : ""
-        }
-        ${
-          file
+          }
+          ${file
             ? "border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/30"
             : ""
-        }
-      `}
-    >
-      <div className="flex flex-col items-center justify-center space-y-4 text-center">
-        <input {...getInputProps()} />
+          }
+        `}
+      >
+        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <input {...getInputProps()} />
 
-        {isUploading ? (
-          <div className="flex flex-col items-center space-y-4">
-            <LoadingSpinner />
-            {processingStatus && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {processingStatus}
-              </p>
-            )}
-          </div>
-        ) : file ? (
-          <>
-            <div className="flex items-center space-x-2 text-green-800 dark:text-green-100 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
-              <FileText className="w-8 h-8" />
-              <span className="text-lg font-medium">{file.name}</span>
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
-              Click or drop another file to replace
-            </p>
-          </>
-        ) : (
-          <>
-            <Upload
-              className={`
-                w-12 h-12 mb-2
-                transition-all duration-200
-                ${
-                  isDragging
-                    ? "text-blue-500 dark:text-blue-400 scale-110"
-                    : "text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:scale-110"
-                }
-              `}
-            />
-            <p
-              className={`
-              text-base font-medium
-              transition-colors duration-200
-              ${
-                isDragging
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400"
-              }
-            `}
-            >
-              Drop your contract here or click to select
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Supports PDF and DOCX files up to 10MB
-            </p>
-          </>
-        )}
+          {isUploading ? (
+            <AnimatedAppear direction="up" duration={300}>
+              <div className="flex flex-col items-center space-y-4">
+                <LoadingSpinner />
+                {processingStatus && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 animate-fadeIn">
+                    {processingStatus}
+                  </p>
+                )}
+              </div>
+            </AnimatedAppear>
+          ) : file ? (
+            <AnimatedAppear direction="up" duration={300}>
+              <>
+                <div className="flex items-center space-x-2 text-green-800 dark:text-green-100 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
+                  <FileText className="w-8 h-8 transition-transform duration-300 group-hover:scale-110" />
+                  <span className="text-lg font-medium">{file.name}</span>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
+                  Click or drop another file to replace
+                </p>
+              </>
+            </AnimatedAppear>
+          ) : (
+            <AnimatedAppear direction="up" duration={300}>
+              <>
+                <Upload
+                  className={`
+                    w-12 h-12 mb-2
+                    transition-all duration-300
+                    ${isDragging
+                      ? "text-blue-500 dark:text-blue-400 scale-110"
+                      : "text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:scale-110"
+                    }
+                  `}
+                />
+                <p
+                  className={`
+                    text-base font-medium
+                    transition-colors duration-300
+                    ${isDragging
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                    }
+                  `}
+                >
+                  Drop your contract here or click to select
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
+                  Supports PDF and DOCX files up to 10MB
+                </p>
+              </>
+            </AnimatedAppear>
+          )}
+        </div>
       </div>
-    </div>
+    </AnimatedAppear>
   );
 }
