@@ -17,6 +17,7 @@ export default function Hero() {
   const hideTimeoutRef = useRef<NodeJS.Timeout>();
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const [showLog, setShowLog] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
@@ -38,13 +39,34 @@ export default function Hero() {
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
     }
-    hideTimeoutRef.current = setTimeout(() => {
-      // Only hide if there's no active entries
+    // Only schedule hiding if not hovered
+    if (!isHovered) {
+      hideTimeoutRef.current = setTimeout(() => {
+        // Only hide if there's no active entries and not hovered
+        const hasActiveEntries = entries.some(entry => entry.status === 'active');
+        if (!hasActiveEntries && !isHovered) {
+          setShowLog(false);
+        }
+      }, 2000);
+    }
+  };
+
+  // Handle log visibility changes (including hover)
+  const handleVisibilityChange = (visible: boolean) => {
+    setIsHovered(visible);
+    if (visible) {
+      // Clear any pending hide timeout when showing
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+      setShowLog(true);
+    } else {
+      // Schedule hiding when mouse leaves
       const hasActiveEntries = entries.some(entry => entry.status === 'active');
       if (!hasActiveEntries) {
-        setShowLog(false);
+        scheduleLogHiding();
       }
-    }, 2000);
+    }
   };
 
   // Enhanced status handler that updates both the temporary and persistent logs
@@ -64,10 +86,10 @@ export default function Hero() {
   // Monitor entries for activity changes
   useEffect(() => {
     const hasActiveEntries = entries.some(entry => entry.status === 'active');
-    if (!hasActiveEntries && entries.length > 0) {
+    if (!hasActiveEntries && entries.length > 0 && !isHovered) {
       scheduleLogHiding();
     }
-  }, [entries]);
+  }, [entries, isHovered]);
 
   // File handling
   const {
@@ -157,6 +179,7 @@ export default function Hero() {
           <AnalysisLog 
             entries={entries}
             isVisible={showLog}
+            onVisibilityChange={handleVisibilityChange}
           />
         )}
       </div>
