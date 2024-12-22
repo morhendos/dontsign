@@ -5,7 +5,8 @@ import { useDropzone } from "react-dropzone";
 import { PDFProcessingError } from "@/lib/errors";
 import { trackUploadStart, trackUploadError } from "@/lib/analytics-events";
 import { LoadingSpinner } from "../ui/loading-spinner";
-import { Upload, FileText } from "lucide-react";
+import { Upload, FileText, ArrowRight } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import type { ErrorDisplay } from "@/types/analysis";
 
 interface FileUploadAreaProps {
@@ -14,6 +15,7 @@ interface FileUploadAreaProps {
   onFileSelect: (file: File | null) => void;
   isUploading: boolean;
   processingStatus?: string;
+  progress?: number;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -24,6 +26,7 @@ export function FileUploadArea({
   onFileSelect,
   isUploading,
   processingStatus,
+  progress = 0,
 }: FileUploadAreaProps) {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -65,6 +68,7 @@ export function FileUploadArea({
         transition-all duration-200 ease-in-out
         cursor-pointer
         group
+        relative
         ${
           isDragging
             ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30 scale-102"
@@ -86,13 +90,22 @@ export function FileUploadArea({
         <input {...getInputProps()} />
 
         {isUploading ? (
-          <div className="flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center space-y-4 w-full max-w-md">
             <LoadingSpinner />
-            {processingStatus && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {processingStatus}
-              </p>
-            )}
+            <div className="w-full space-y-2">
+              <Progress value={progress} className="h-1" />
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500 dark:text-gray-400">
+                  {progress}%
+                </span>
+                {processingStatus && (
+                  <span className="text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                    <ArrowRight className="w-4 h-4" />
+                    {processingStatus}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         ) : file ? (
           <>
