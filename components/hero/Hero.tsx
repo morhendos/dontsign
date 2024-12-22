@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useContractAnalysis } from './hooks/useContractAnalysis';
 import { useFileHandler } from './hooks/useFileHandler';
 import { FileUploadArea } from '../contract-upload/FileUploadArea';
@@ -15,7 +15,11 @@ import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 const HIDE_DELAY_AFTER_COMPLETE = 2000; // 2s delay after completion
 const HIDE_DELAY_AFTER_HOVER = 500;     // 500ms delay after mouse leave
 
-export default function Hero() {
+interface HeroProps {
+  className?: string;
+}
+
+const Hero: React.FC<HeroProps> = ({ className = '' }) => {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
   const hideTimeoutRef = useRef<NodeJS.Timeout>();
@@ -144,7 +148,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <section className={`py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 ${className}`}>
       <div className="max-w-5xl mx-auto">
         <h1 className="text-5xl font-bold mb-6 tracking-tight text-gray-900 dark:text-white text-center">
           Don't Sign Until<br />You're Sure
@@ -170,7 +174,7 @@ export default function Hero() {
           />
         </div>
 
-        {/* Existing Progress Indicator */}
+        {/* Progress Indicator */}
         {isAnalyzing && (
           <AnalysisProgress 
             currentChunk={analysis?.metadata?.currentChunk ?? 0}
@@ -195,4 +199,6 @@ export default function Hero() {
       </div>
     </section>
   );
-}
+};
+
+export default Hero;
