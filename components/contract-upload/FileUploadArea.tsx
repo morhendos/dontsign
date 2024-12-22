@@ -82,7 +82,7 @@ export function FileUploadArea({
           }
         `}
       >
-        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+        <div className="flex flex-col items-center justify-center space-y-4 text-center h-full">
           <input {...getInputProps()} />
 
           {isUploading ? (
@@ -98,7 +98,7 @@ export function FileUploadArea({
             </AnimatedAppear>
           ) : file ? (
             <AnimatedAppear direction="up" duration={300}>
-              <>
+              <div className="flex flex-col items-center space-y-2">
                 <div className="flex items-center space-x-2 text-green-800 dark:text-green-100 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
                   <FileText className="w-8 h-8 transition-transform duration-300 group-hover:scale-110" />
                   <span className="text-lg font-medium">{file.name}</span>
@@ -106,14 +106,14 @@ export function FileUploadArea({
                 <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
                   Click or drop another file to replace
                 </p>
-              </>
+              </div>
             </AnimatedAppear>
           ) : (
             <AnimatedAppear direction="up" duration={300}>
-              <>
+              <div className="flex flex-col items-center space-y-2">
                 <Upload
                   className={`
-                    w-12 h-12 mb-2
+                    w-12 h-12
                     transition-all duration-300
                     ${isDragging
                       ? "text-blue-500 dark:text-blue-400 scale-110"
@@ -136,7 +136,7 @@ export function FileUploadArea({
                 <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
                   Supports PDF and DOCX files up to 10MB
                 </p>
-              </>
+              </div>
             </AnimatedAppear>
           )}
         </div>
