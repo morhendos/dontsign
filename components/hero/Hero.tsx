@@ -14,13 +14,6 @@ export default function Hero() {
   const timeoutRef = useRef<NodeJS.Timeout>();
   const [processingStatus, setProcessingStatus] = useState<string>('');
 
-  // Add debug logging
-  useEffect(() => {
-    console.log('Current stage:', stage);
-    console.log('Is analyzing:', isAnalyzing);
-    console.log('Analysis progress:', analysisProgress);
-  }, [stage, isAnalyzing, analysisProgress]);
-
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -61,6 +54,13 @@ export default function Hero() {
   } = useContractAnalysis({
     onStatusUpdate: setStatusWithTimeout
   });
+
+  // Add debug logging after all variables are declared
+  useEffect(() => {
+    console.log('Current stage:', stage);
+    console.log('Is analyzing:', isAnalyzing);
+    console.log('Analysis progress:', analysisProgress);
+  }, [stage, isAnalyzing, analysisProgress]);
 
   // Combined error state (file error takes precedence)
   const error = fileError || analysisError;
