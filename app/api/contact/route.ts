@@ -1,87 +1,70 @@
 import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
-const rateLimitData = new Map<string, number[]>();
 
-class ContactFormError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public status: number
-  ) {
-    super(message);
-    this.name = 'ContactFormError';
-  }
-}
+// Simple rate limit storage
+type RateLimitStore = Record<string, number[]>;
+let rateLimitStore: RateLimitStore = {};
 
-async function checkRateLimit(key: string): Promise<{ success: boolean; reset?: number }> {
-  const now = Date.now();
-  const hourAgo = now - (60 * 60 * 1000);
-  
-  // Get and clean old requests
-  const requests = (rateLimitData.get(key) || []).filter(time => time > hourAgo);
-  
-  if (requests.length >= 5) {
-    const oldestRequest = Math.min(...requests);
-    const reset = oldestRequest + (60 * 60 * 1000);
-    return { success: false, reset };
-  }
-  
-  // Add current request
-  requests.push(now);
-  rateLimitData.set(key, requests);
-  
-  return { success: true };
-}
+type ErrorResponse = {
+  error: string;
+  code?: string;
+};
 
 export async function POST(request: Request) {
   try {
     // Rate limiting
     const ip = request.headers.get('x-forwarded-for') ?? 'anonymous';
-    const { success, reset } = await checkRateLimit(`contact:${ip}`);
+    const now = Date.now();
+    const hourAgo = now - (60 * 60 * 1000);
     
-    if (!success) {
-      return NextResponse.json(
+    // Clean up old requests and get valid ones
+    const key = `contact:${ip}`;
+    const oldRequests = rateLimitStore[key] || [];
+    const requests = oldRequests.filter(time => time > hourAgo);
+    
+    if (requests.length >= 5) {
+      const oldestRequest = Math.min(...requests);
+      const reset = oldestRequest + (60 * 60 * 1000);
+      const retryAfter = Math.ceil((reset - now) / 1000);
+      
+      return NextResponse.json<ErrorResponse>(
         { error: 'Too many requests. Please try again later.' },
         { 
           status: 429,
-          headers: reset ? {
-            'Retry-After': String(Math.ceil((reset - Date.now()) / 1000))
-          } : undefined
+          headers: { 'Retry-After': String(retryAfter) }
         }
       );
     }
+    
+    // Add current request
+    requests.push(now);
+    rateLimitStore[key] = requests;
 
     // Parse request body
-    let data;
-    try {
-      data = await request.json();
-    } catch {
-      throw new ContactFormError(
-        'Invalid request body',
-        'INVALID_JSON',
-        400
-      );
-    }
-
+    const data = await request.json();
     const { name, email, subject, message } = data;
 
     // Validate required fields
     if (!name || !email || !subject || !message) {
-      throw new ContactFormError(
-        'All fields are required',
-        'MISSING_FIELDS',
-        400
+      return NextResponse.json<ErrorResponse>(
+        { 
+          error: 'All fields are required',
+          code: 'MISSING_FIELDS'
+        },
+        { status: 400 }
       );
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new ContactFormError(
-        'Invalid email format',
-        'INVALID_EMAIL',
-        400
+      return NextResponse.json<ErrorResponse>(
+        { 
+          error: 'Invalid email format',
+          code: 'INVALID_EMAIL'
+        },
+        { status: 400 }
       );
     }
 
@@ -94,25 +77,14 @@ export async function POST(request: Request) {
     );
 
   } catch (error) {
-    // Handle errors
-    const status = error instanceof ContactFormError ? error.status : 500;
-    const code = error instanceof ContactFormError ? error.code : 'UNKNOWN';
-    const message = error instanceof Error ? 
-      error.message : 
-      'An error occurred while processing your request';
-
-    console.error('Contact form error:', { 
-      code,
-      message,
-      error
-    });
-
-    return NextResponse.json(
+    console.error('Contact form error:', error);
+    
+    return NextResponse.json<ErrorResponse>(
       { 
-        error: message,
-        code 
+        error: 'An error occurred while processing your request',
+        code: 'INTERNAL_ERROR'
       },
-      { status }
+      { status: 500 }
     );
   }
 }
