@@ -57,9 +57,9 @@
  
 @layer base {
   * {
-    @apply border-[#e5e7eb] dark:border-[#374151];
+    @apply border-border;
   }
   body {
-    @apply bg-[#ffffff] dark:bg-[#111827] text-[#111827] dark:text-[#f9fafb];
+    @apply bg-background text-foreground;
   }
 }
