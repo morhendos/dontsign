@@ -43,7 +43,7 @@ export const useAnalysisLog = (): AnalysisLogState => {
       if (current.length === 0) return current;
       
       return current.map((entry, index) => 
-        index === current.length - 1 ? { ...entry, status } : entry
+        index === current.length - 1 ? { ...entry, status: status as LogEntry['status'] } : entry
       );
     });
   }, []);
