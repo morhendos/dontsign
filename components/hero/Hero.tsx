@@ -15,6 +15,7 @@ export default function Hero() {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
   const [processingStatus, setProcessingStatus] = useState<string>('');
+  const [showLog, setShowLog] = useState(true);
 
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
@@ -37,7 +38,8 @@ export default function Hero() {
     }
     timeoutRef.current = setTimeout(() => setProcessingStatus(''), duration);
 
-    // Add to persistent log
+    // Show log if hidden and add entry
+    setShowLog(true);
     addEntry(status);
   };
 
@@ -74,9 +76,10 @@ export default function Hero() {
     }
   }, [error, updateLastEntry]);
 
-  // Clear logs when starting new analysis
+  // Clear logs and show log window when starting new analysis
   const handleAnalyzeWithLogReset = async (file: File | null) => {
     clearEntries();
+    setShowLog(true);
     await handleAnalyze(file);
   };
   
@@ -107,15 +110,6 @@ export default function Hero() {
           />
         </div>
 
-        {/* Analysis Progress Log */}
-        {entries.length > 0 && (
-          <div className="mt-6 animate-in fade-in slide-in-from-top-4">
-            <AnalysisLog 
-              entries={entries}
-            />
-          </div>
-        )}
-
         {/* Existing Progress Indicator */}
         {isAnalyzing && (
           <AnalysisProgress 
@@ -129,6 +123,14 @@ export default function Hero() {
 
         {error && <ErrorDisplay error={error} />}
         {analysis && <AnalysisResults analysis={analysis} />}
+
+        {/* Floating Analysis Log */}
+        {showLog && entries.length > 0 && (
+          <AnalysisLog 
+            entries={entries}
+            onClose={() => setShowLog(false)}
+          />
+        )}
       </div>
     </section>
   );
