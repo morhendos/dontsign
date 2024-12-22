@@ -4,7 +4,7 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       // Fix for pdf.worker.js not found
-      'pdfjs-dist': 'pdfjs-dist/legacy/build/pdf',
+      'pdfjs-dist': 'pdfjs-dist/build',
     };
     return config;
   },
