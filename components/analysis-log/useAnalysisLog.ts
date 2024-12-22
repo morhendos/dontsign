@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { LogEntry } from './AnalysisLog';
 
 export interface AnalysisLogState {
@@ -9,14 +9,21 @@ export interface AnalysisLogState {
 }
 
 /**
- * Hook to manage analysis log entries
+ * Hook to manage analysis log entries with guaranteed unique IDs
  */
 export const useAnalysisLog = (): AnalysisLogState => {
   const [entries, setEntries] = useState<LogEntry[]>([]);
+  const idCounter = useRef(0);
+
+  // Generate a guaranteed unique ID by combining timestamp and counter
+  const generateUniqueId = () => {
+    idCounter.current += 1;
+    return `${Date.now()}-${idCounter.current}`;
+  };
 
   const addEntry = useCallback((message: string, status: LogEntry['status'] = 'active') => {
     const entry: LogEntry = {
-      id: Date.now().toString(),
+      id: generateUniqueId(),
       message,
       status,
       timestamp: new Date()
@@ -43,6 +50,8 @@ export const useAnalysisLog = (): AnalysisLogState => {
 
   const clearEntries = useCallback(() => {
     setEntries([]);
+    // Reset the counter when clearing entries
+    idCounter.current = 0;
   }, []);
 
   return {
