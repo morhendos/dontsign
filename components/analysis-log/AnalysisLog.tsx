@@ -44,13 +44,12 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({ entries, className, onClose }
   if (entries.length === 0) return null;
 
   return (
-    <div className="fixed right-4 bottom-4 z-50">
+    <div className="fixed right-4 top-24 z-50">
       <Card 
         className={cn(
           'w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm',
           'shadow-lg border-gray-200 dark:border-gray-800',
           'transition-all duration-300 ease-in-out',
-          'max-h-[calc(100vh-2rem)]',
           className
         )}
       >
@@ -72,7 +71,7 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({ entries, className, onClose }
 
           {/* Log entries */}
           <div className="relative">
-            <ScrollArea className="h-[40vh] overflow-hidden">
+            <ScrollArea className="h-[28vh] overflow-hidden">
               <div className="py-1 px-2 space-y-1" ref={scrollRef}>
                 {entries.map((entry, index) => (
                   <div
