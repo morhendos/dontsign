@@ -1,15 +1,13 @@
 'use client';
 
 import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
-import * as PDFJS from 'pdfjs-dist';
+import worker from 'pdfjs-dist/build/pdf.worker.entry';
 import * as Sentry from '@sentry/nextjs';
 import { PDFProcessingError } from './errors';
 
 // Only initialize worker in browser environment
 if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
-  // Get the actual version being used
-  const pdfVersion = PDFJS.version;
-  GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfVersion}/pdf.worker.min.js`;
+  GlobalWorkerOptions.workerSrc = worker;
 }
 
 export async function readPdfText(file: File): Promise<string> {
@@ -37,8 +35,7 @@ export async function readPdfText(file: File): Promise<string> {
     console.log('PDF processing:', {
       fileSize: file.size,
       fileName: file.name,
-      workerSrc: GlobalWorkerOptions.workerSrc,
-      pdfVersion: PDFJS.version
+      workerSrc: GlobalWorkerOptions.workerSrc
     });
 
     // Load PDF document
