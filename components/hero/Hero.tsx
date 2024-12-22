@@ -6,29 +6,35 @@ import { useFileHandler } from './hooks/useFileHandler';
 import { FileUploadArea } from '../contract-upload/FileUploadArea';
 import { AnalysisButton } from '../contract-analysis/AnalysisButton';
 import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
+import { ProcessingMessages } from '../contract-analysis/ProcessingMessages';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
+import type { ProcessingMessage } from '@/types/analysis';
 
 export default function Hero() {
-  // Status message handling
-  const timeoutRef = useRef<NodeJS.Timeout>();
-  const [processingStatus, setProcessingStatus] = useState<string>('');
+  const [messages, setMessages] = useState<ProcessingMessage[]>([]);
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+  const addMessage = (text: string, type: 'file' | 'analysis') => {
+    const newMessage: ProcessingMessage = {
+      id: crypto.randomUUID(),
+      text,
+      timestamp: Date.now(),
+      type,
+      status: 'active'
     };
-  }, []);
 
-  const setStatusWithTimeout = (status: string, duration = 2000) => {
-    setProcessingStatus(status);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = setTimeout(() => setProcessingStatus(''), duration);
+    setMessages(prev => [...prev, newMessage]);
+    return newMessage.id;
+  };
+
+  const completeMessage = (id: string) => {
+    setMessages(prev => 
+      prev.map(msg => 
+        msg.id === id 
+          ? { ...msg, status: 'completed' } 
+          : msg
+      )
+    );
   };
 
   // File handling
@@ -39,7 +45,7 @@ export default function Hero() {
     progress: fileProgress,
     handleFileSelect
   } = useFileHandler({
-    onStatusUpdate: setStatusWithTimeout
+    onStatusUpdate: (status) => addMessage(status, 'file')
   });
 
   // Contract analysis
@@ -51,7 +57,7 @@ export default function Hero() {
     stage,
     handleAnalyze
   } = useContractAnalysis({
-    onStatusUpdate: setStatusWithTimeout
+    onStatusUpdate: (status) => addMessage(status, 'analysis')
   });
 
   // Combined error state (file error takes precedence)
@@ -72,7 +78,7 @@ export default function Hero() {
           error={error}
           onFileSelect={handleFileSelect}
           isUploading={isProcessing || (isAnalyzing && analysisProgress <= 2)}
-          processingStatus={processingStatus}
+          processingStatus={messages[messages.length - 1]?.text}
           progress={isProcessing ? fileProgress : analysisProgress}
         />
 
@@ -84,10 +90,9 @@ export default function Hero() {
           />
         </div>
 
-        {isAnalyzing && (
-          <AnalysisProgress 
-            currentChunk={analysis?.metadata?.currentChunk ?? 0}
-            totalChunks={analysis?.metadata?.totalChunks ?? 0}
+        {(isAnalyzing || messages.length > 0) && (
+          <ProcessingMessages 
+            messages={messages}
             isAnalyzing={isAnalyzing}
             stage={stage}
             progress={analysisProgress}
