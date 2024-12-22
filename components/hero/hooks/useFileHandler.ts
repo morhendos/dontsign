@@ -5,6 +5,8 @@ import type { ErrorDisplay } from '@/types/analysis';
 interface UseFileHandlerProps {
   /** Callback function to handle status updates during file processing */
   onStatusUpdate?: (status: string, duration?: number) => void;
+  /** Callback function called when an entry is complete */
+  onEntryComplete?: () => void;
   /** Initial progress to start with */
   initialProgress?: number;
 }
@@ -39,6 +41,7 @@ interface FileHandlerResult {
  */
 export const useFileHandler = ({ 
   onStatusUpdate,
+  onEntryComplete,
   initialProgress = 0
 }: UseFileHandlerProps = {}): FileHandlerResult => {
   const [file, setFile] = useState<File | null>(null);
@@ -116,6 +119,10 @@ export const useFileHandler = ({
       setFile(selectedFile);
       setError(null);
       onStatusUpdate?.('File ready for analysis!', 2000);
+      // Mark the last entry as complete
+      requestAnimationFrame(() => {
+        onEntryComplete?.();
+      });
     } catch (error) {
       console.error('Error processing uploaded file:', error);
       setError({
