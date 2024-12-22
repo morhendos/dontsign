@@ -57,9 +57,6 @@ export default function Hero() {
   // Combined error state (file error takes precedence)
   const error = fileError || analysisError;
   
-  // Combined progress (use file progress during upload, analysis progress during analysis)
-  const progress = isProcessing ? fileProgress : analysisProgress;
-
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-5xl mx-auto">
@@ -74,8 +71,9 @@ export default function Hero() {
           file={file}
           error={error}
           onFileSelect={handleFileSelect}
-          isUploading={isProcessing || (isAnalyzing && progress <= 2)}
+          isUploading={isProcessing || (isAnalyzing && analysisProgress <= 2)}
           processingStatus={processingStatus}
+          progress={isProcessing ? fileProgress : analysisProgress}
         />
 
         <div className="flex justify-center mt-6">
@@ -86,13 +84,15 @@ export default function Hero() {
           />
         </div>
 
-        <AnalysisProgress 
-          currentChunk={analysis?.metadata?.currentChunk ?? 0}
-          totalChunks={analysis?.metadata?.totalChunks ?? 0}
-          isAnalyzing={isAnalyzing}
-          stage={stage}
-          progress={progress}
-        />
+        {isAnalyzing && (
+          <AnalysisProgress 
+            currentChunk={analysis?.metadata?.currentChunk ?? 0}
+            totalChunks={analysis?.metadata?.totalChunks ?? 0}
+            isAnalyzing={isAnalyzing}
+            stage={stage}
+            progress={analysisProgress}
+          />
+        )}
 
         {error && <ErrorDisplay error={error} />}
         {analysis && <AnalysisResults analysis={analysis} />}
