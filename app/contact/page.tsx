@@ -1,8 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import ContactForm from "@/components/contact/contact-form";
 
 export const metadata = {
   title: "Contact Us - DontSign",
@@ -20,57 +17,7 @@ export default function Contact() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action="/api/contact" className="space-y-6">
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="John Doe"
-                  required
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="john@example.com"
-                  required
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  name="subject"
-                  placeholder="How can we help?"
-                  required
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="message">Message</Label>
-                <Textarea
-                  id="message"
-                  name="message"
-                  placeholder="Tell us more about your inquiry..."
-                  required
-                  className="min-h-[150px]"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <Button type="submit" size="lg">
-                Send Message
-              </Button>
-            </div>
-          </form>
+          <ContactForm />
 
           <div className="mt-8 border-t pt-8">
             <h3 className="text-lg font-semibold mb-4">Other Ways to Reach Us</h3>
