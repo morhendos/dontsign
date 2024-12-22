@@ -34,6 +34,7 @@ interface AnalysisStreamResponse {
  * - Progress tracking
  * - Error handling
  * - Analytics tracking
+ * - Error monitoring with Sentry
  *
  * @param props - Configuration options for the hook
  * @returns Object containing analysis state and control functions
@@ -78,6 +79,17 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
       return;
     }
 
+    // Start a new Sentry transaction for the entire analysis process
+    const transaction = Sentry.startTransaction({
+      name: 'analyze_contract',
+      op: 'analyze'
+    });
+
+    // Set the transaction as the current span for child operations
+    Sentry.configureScope(scope => {
+      scope.setSpan(transaction);
+    });
+
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
@@ -90,6 +102,19 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
     console.log('[Client] Analysis started');
 
     try {
+      // Add file info to Sentry scope for better error context
+      Sentry.setContext("file", {
+        type: file.type,
+        size: file.size,
+        name: file.name
+      });
+
+      // Track document reading as a separate operation
+      const readSpan = transaction.startChild({
+        op: 'read_document',
+        description: 'Read document content'
+      });
+
       console.log('[Client] Reading document content...');
       let text: string;
       if (file.type === 'application/pdf') {
@@ -99,6 +124,7 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
       }
       setProgress(5);
       console.log('[Client] Document content read successfully');
+      readSpan.finish();
 
       const formData = new FormData();
       formData.append('text', text);
@@ -123,6 +149,12 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
         }
       });
 
+      // Track API request as a separate operation
+      const requestSpan = transaction.startChild({
+        op: 'api_request',
+        description: 'Make request to analysis service'
+      });
+
       console.log('[Client] Making request to analysis service...');
       onStatusUpdate?.('Connecting to analysis service...');
       const response = await fetch('/api/analyze', {
@@ -135,6 +167,14 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
         throw new Error('No response body received from server');
       }
 
+      requestSpan.finish();
+
+      // Track stream processing as a separate operation
+      const streamSpan = transaction.startChild({
+        op: 'stream_processing',
+        description: 'Process analysis stream'
+      });
+
       const reader = response.body.getReader();
       readerRef.current = reader;
       const decoder = new TextDecoder();
@@ -144,13 +184,15 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
       try {
         while (true) {
           const { done, value } = await reader.read();
+          console.log('[Client] Stream read iteration:', { done, hasValue: !!value });
+          
           if (done) {
-            console.log('[Client] Stream ended');
+            console.log('[Client] Stream ended normally');
             break;
           }
 
           const chunk = decoder.decode(value, { stream: true });
-          console.log('[Client] Received chunk:', chunk);
+          console.log('[Client] Received chunk data:', chunk);
           buffer += chunk;
           const lines = buffer.split('\n\n');
           buffer = lines.pop() || '';
@@ -163,6 +205,20 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
                 
                 if (data.progress) setProgress(data.progress);
                 if (data.stage) setStage(data.stage);
+
+                // Add breadcrumb for each analysis update
+                Sentry.addBreadcrumb({
+                  category: 'analysis',
+                  message: `Analysis update received`,
+                  level: 'info',
+                  data: {
+                    type: data.type,
+                    stage: data.stage,
+                    progress: data.progress,
+                    currentChunk: data.currentChunk,
+                    totalChunks: data.totalChunks
+                  }
+                });
 
                 if (data.stage === 'preprocessing') {
                   onStatusUpdate?.('Preparing document for analysis...');
@@ -203,6 +259,12 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
                 }
               } catch (e) {
                 console.error('[Client] Error parsing server update:', e);
+                Sentry.captureException(e, {
+                  extra: {
+                    rawLine: line,
+                    stage: 'parsing_update'
+                  }
+                });
                 throw e;
               }
             }
@@ -211,13 +273,23 @@ export const useContractAnalysis = ({ onStatusUpdate }: UseContractAnalysisProps
       } finally {
         console.log('[Client] Cleaning up reader');
         readerRef.current = null;
+        streamSpan.finish();
       }
 
     } catch (error) {
       console.error('[Client] Error analyzing contract:', error);
+      Sentry.captureException(error, {
+        extra: {
+          fileType: file.type,
+          fileName: file.name,
+          analysisStage: stage,
+          progress: progress
+        }
+      });
       handleAnalysisError(error);
     } finally {
       setIsAnalyzing(false);
+      transaction.finish();
     }
   };
 
