@@ -19,3 +19,11 @@ export interface ErrorDisplay {
   message: string;
   type: 'error' | 'warning';
 }
+
+export interface ProcessingMessage {
+  id: string;
+  text: string;
+  timestamp: number;
+  type: 'file' | 'analysis';
+  status: 'active' | 'completed';
+}
