@@ -11,6 +11,10 @@ import { AnalysisResults } from '../analysis-results/AnalysisResults';
 import AnalysisLog from '../analysis-log/AnalysisLog';
 import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 
+// Timing constants
+const HIDE_DELAY_AFTER_COMPLETE = 2000; // 2s delay after completion
+const HIDE_DELAY_AFTER_HOVER = 300;    // 300ms delay after mouse leave
+
 export default function Hero() {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -35,19 +39,20 @@ export default function Hero() {
   }, []);
 
   // Function to schedule log hiding
-  const scheduleLogHiding = () => {
+  const scheduleLogHiding = (wasHovered: boolean = false) => {
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
     }
     // Only schedule hiding if not hovered
     if (!isHovered) {
+      const delay = wasHovered ? HIDE_DELAY_AFTER_HOVER : HIDE_DELAY_AFTER_COMPLETE;
       hideTimeoutRef.current = setTimeout(() => {
         // Only hide if there's no active entries and not hovered
         const hasActiveEntries = entries.some(entry => entry.status === 'active');
         if (!hasActiveEntries && !isHovered) {
           setShowLog(false);
         }
-      }, 2000);
+      }, delay);
     }
   };
 
@@ -64,7 +69,7 @@ export default function Hero() {
       // Schedule hiding when mouse leaves
       const hasActiveEntries = entries.some(entry => entry.status === 'active');
       if (!hasActiveEntries) {
-        scheduleLogHiding();
+        scheduleLogHiding(true); // Pass true to indicate it's from hover end
       }
     }
   };
