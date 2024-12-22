@@ -3,8 +3,8 @@ const nextConfig = {
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
-      // Fix for pdf.worker.js not found
-      'pdfjs-dist': 'pdfjs-dist/build',
+      // Make sure we're using the legacy build of PDF.js
+      'pdfjs-dist': 'pdfjs-dist/legacy/build',
     };
     return config;
   },

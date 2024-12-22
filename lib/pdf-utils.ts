@@ -1,13 +1,13 @@
 'use client';
 
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import type { PDFDocumentProxy } from 'pdfjs-dist';
+import * as PDFJS from 'pdfjs-dist/legacy/build/pdf';
+import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
 import * as Sentry from '@sentry/nextjs';
 import { PDFProcessingError } from './errors';
 
 // Only initialize worker in browser environment
-if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
-  GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
+if (typeof window !== 'undefined' && !PDFJS.GlobalWorkerOptions.workerSrc) {
+  PDFJS.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
 }
 
 export async function readPdfText(file: File): Promise<string> {
@@ -35,11 +35,11 @@ export async function readPdfText(file: File): Promise<string> {
     console.log('PDF processing:', {
       fileSize: file.size,
       fileName: file.name,
-      workerSrc: GlobalWorkerOptions.workerSrc
+      workerSrc: PDFJS.GlobalWorkerOptions.workerSrc
     });
 
     // Load PDF document
-    const loadingTask = getDocument({
+    const loadingTask = PDFJS.getDocument({
       data: arrayBuffer,
       useWorkerFetch: false,  // Important: disable worker fetch to avoid CORS issues
       isEvalSupported: false, // Important: disable eval for security
