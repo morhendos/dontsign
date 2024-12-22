@@ -36,20 +36,6 @@ interface FileHandlerResult {
  *
  * @param props - Configuration options for the hook
  * @returns Object containing file state and control functions
- *
- * @example
- * ```tsx
- * const {
- *   file,
- *   error,
- *   isProcessing,
- *   progress,
- *   handleFileSelect,
- *   resetFile
- * } = useFileHandler({
- *   onStatusUpdate: (status) => console.log(status)
- * });
- * ```
  */
 export const useFileHandler = ({ 
   onStatusUpdate,
@@ -103,8 +89,8 @@ export const useFileHandler = ({
     }
 
     setIsProcessing(true);
-    setProgress(1);
-    onStatusUpdate?.('Starting file processing...');
+    setProgress(10);
+    onStatusUpdate?.('Checking file format...', 2000);
 
     try {
       // Validate file
@@ -113,17 +99,23 @@ export const useFileHandler = ({
         return;
       }
 
+      setProgress(30);
+      onStatusUpdate?.('File format verified...', 1500);
+
       // For PDFs, verify we can extract text
       if (selectedFile.type === 'application/pdf') {
-        onStatusUpdate?.('Validating PDF document...');
+        setProgress(50);
+        onStatusUpdate?.('Parsing PDF content...', 2000);
         await readPdfText(selectedFile);
+        setProgress(80);
+        onStatusUpdate?.('PDF content extracted successfully', 1500);
       }
       
       // Update state
-      setProgress(2);
+      setProgress(100);
       setFile(selectedFile);
       setError(null);
-      onStatusUpdate?.('File processed successfully');
+      onStatusUpdate?.('File ready for analysis!', 2000);
     } catch (error) {
       console.error('Error processing uploaded file:', error);
       setError({
