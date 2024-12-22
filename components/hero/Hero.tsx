@@ -13,7 +13,7 @@ import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 
 // Timing constants
 const HIDE_DELAY_AFTER_COMPLETE = 2000; // 2s delay after completion
-const HIDE_DELAY_AFTER_HOVER = 100;     // 100ms delay after mouse leave (much quicker)
+const HIDE_DELAY_AFTER_HOVER = 500;     // 500ms delay after mouse leave
 
 export default function Hero() {
   // Status message handling
@@ -40,36 +40,40 @@ export default function Hero() {
 
   // Function to schedule log hiding
   const scheduleLogHiding = (wasHovered: boolean = false) => {
+    // Always clear existing timeout first
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
     }
-    // Only schedule hiding if not hovered
-    if (!isHovered) {
-      const delay = wasHovered ? HIDE_DELAY_AFTER_HOVER : HIDE_DELAY_AFTER_COMPLETE;
-      hideTimeoutRef.current = setTimeout(() => {
-        // Only hide if there's no active entries and not hovered
-        const hasActiveEntries = entries.some(entry => entry.status === 'active');
-        if (!hasActiveEntries && !isHovered) {
-          setShowLog(false);
-        }
-      }, delay);
-    }
+
+    // Don't schedule hiding if component is currently hovered
+    if (isHovered) return;
+
+    const delay = wasHovered ? HIDE_DELAY_AFTER_HOVER : HIDE_DELAY_AFTER_COMPLETE;
+    hideTimeoutRef.current = setTimeout(() => {
+      // Double check that component is still not hovered before hiding
+      const hasActiveEntries = entries.some(entry => entry.status === 'active');
+      if (!hasActiveEntries && !isHovered) {
+        setShowLog(false);
+      }
+    }, delay);
   };
 
   // Handle log visibility changes (including hover)
   const handleVisibilityChange = (visible: boolean) => {
     setIsHovered(visible);
     if (visible) {
-      // Clear any pending hide timeout when showing
+      // When hovering, clear any pending hide timeout and show the log
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
       }
       setShowLog(true);
     } else {
-      // Schedule hiding when mouse leaves
+      // When mouse leaves, schedule hiding if there are no active entries
       const hasActiveEntries = entries.some(entry => entry.status === 'active');
       if (!hasActiveEntries) {
-        scheduleLogHiding(true); // Pass true to indicate it's from hover end
+        requestAnimationFrame(() => {
+          scheduleLogHiding(true); // Pass true to indicate it's from hover end
+        });
       }
     }
   };
@@ -91,10 +95,11 @@ export default function Hero() {
   // Monitor entries for activity changes
   useEffect(() => {
     const hasActiveEntries = entries.some(entry => entry.status === 'active');
+    // Only schedule hiding if we have entries but none are active and not currently hovered
     if (!hasActiveEntries && entries.length > 0 && !isHovered) {
       scheduleLogHiding();
     }
-  }, [entries, isHovered]);
+  }, [entries, isHovered]); // Added isHovered to dependencies
 
   // File handling
   const {
