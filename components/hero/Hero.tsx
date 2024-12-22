@@ -51,7 +51,8 @@ export default function Hero() {
     progress: fileProgress,
     handleFileSelect
   } = useFileHandler({
-    onStatusUpdate: setStatusWithTimeout
+    onStatusUpdate: setStatusWithTimeout,
+    onEntryComplete: () => updateLastEntry('complete')
   });
 
   // Contract analysis
