@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "mkdir -p public && cp node_modules/pdfjs-dist/build/pdf.worker.mjs public/pdf.worker.js",
+    "predev": "mkdir -p public && cp node_modules/pdfjs-dist/legacy/build/pdf.worker.js public/pdf.worker.js",
     "dev": "next dev",
-    "prebuild": "mkdir -p public && cp node_modules/pdfjs-dist/build/pdf.worker.mjs public/pdf.worker.js",
+    "prebuild": "mkdir -p public && cp node_modules/pdfjs-dist/legacy/build/pdf.worker.js public/pdf.worker.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
