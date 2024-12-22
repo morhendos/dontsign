@@ -1,41 +1,63 @@
 import { useState, useCallback, useRef } from 'react';
-import { LogEntry, LogStatus } from './types';
+import type { LogEntry } from './AnalysisLog';
 
-export function useAnalysisLog() {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+export interface AnalysisLogState {
+  entries: LogEntry[];
+  addEntry: (message: string, status?: LogEntry['status']) => void;
+  updateLastEntry: (status: LogEntry['status']) => void;
+  clearEntries: () => void;
+}
+
+/**
+ * Hook to manage analysis log entries with guaranteed unique IDs
+ */
+export const useAnalysisLog = (): AnalysisLogState => {
+  const [entries, setEntries] = useState<LogEntry[]>([]);
   const idCounter = useRef(0);
 
-  const addLog = useCallback((message: string, status: LogStatus = 'info') => {
-    const newLog: LogEntry = {
-      id: `log-${idCounter.current++}`,
+  // Generate a guaranteed unique ID by combining timestamp and counter
+  const generateUniqueId = () => {
+    idCounter.current += 1;
+    return `${Date.now()}-${idCounter.current}`;
+  };
+
+  const addEntry = useCallback((message: string, status: LogEntry['status'] = 'active') => {
+    const entry: LogEntry = {
+      id: generateUniqueId(),
       message,
       status,
-      timestamp: Date.now()
+      timestamp: new Date()
     };
 
-    setLogs(prevLogs => [...prevLogs, newLog]);
-    return newLog.id;
+    setEntries(current => {
+      // If there's an active entry, mark it as complete
+      const updated = current.map(e => 
+        e.status === 'active' ? { ...e, status: 'complete' as const } : e
+      );
+      return [...updated, entry];
+    });
   }, []);
 
-  const updateLog = useCallback((id: string, updates: Partial<Omit<LogEntry, 'id'>>) => {
-    setLogs(prevLogs =>
-      prevLogs.map(log =>
-        log.id === id
-          ? { ...log, ...updates }
-          : log
-      )
-    );
+  const updateLastEntry = useCallback((status: LogEntry['status']) => {
+    setEntries(current => {
+      if (current.length === 0) return current;
+      
+      return current.map((entry, index) => 
+        index === current.length - 1 ? { ...entry, status } : entry
+      );
+    });
   }, []);
 
-  const clearLogs = useCallback(() => {
-    setLogs([]);
+  const clearEntries = useCallback(() => {
+    setEntries([]);
+    // Reset the counter when clearing entries
     idCounter.current = 0;
   }, []);
 
   return {
-    logs,
-    addLog,
-    updateLog,
-    clearLogs
+    entries,
+    addEntry,
+    updateLastEntry,
+    clearEntries
   };
-}
+};
