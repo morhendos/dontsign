@@ -36,6 +36,7 @@ function validateAnalysisResult(result: any): result is AnalysisResult {
   return (
     result &&
     typeof result === 'object' &&
+    typeof result.summary === 'string' &&
     hasArrayProperty(result, 'keyTerms') &&
     hasArrayProperty(result, 'potentialRisks') &&
     hasArrayProperty(result, 'importantClauses') &&
@@ -52,22 +53,23 @@ This is chunk ${chunkIndex + 1} of ${totalChunks}.
 Contract text:
 ${chunk}
 
-You must respond with a valid JSON object containing these arrays:
+You must respond with a valid JSON object containing these fields:
 {
+  "summary": "A brief summary of this section's content",
   "keyTerms": ["term 1", "term 2", ...],
   "potentialRisks": ["risk 1", "risk 2", ...],
   "importantClauses": ["clause 1", "clause 2", ...],
   "recommendations": ["recommendation 1", "recommendation 2", ...]
 }
 
-Each array must contain strings. Even if you find nothing relevant, return empty arrays, but maintain the structure.`;
+The summary should be a string, and all other fields must be arrays of strings. Even if you find nothing relevant, return empty arrays, but maintain the structure.`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-3.5-turbo-1106",
     messages: [
       {
         role: "system",
-        content: "You are a legal analysis assistant specialized in contract review. Analyze the contract and return results in JSON format. Focus on identifying key terms, potential risks, and important clauses. Be concise and precise. Always return arrays for all fields, even if empty."
+        content: "You are a legal analysis assistant specialized in contract review. Analyze the contract and return results in JSON format. Focus on identifying key terms, potential risks, and important clauses. Be concise and precise. Always return arrays for all fields, even if empty. Include a brief summary of the analyzed section."
       },
       {
         role: "user",
@@ -107,8 +109,9 @@ Each array must contain strings. Even if you find nothing relevant, return empty
     );
   }
 
-  // Ensure all required arrays exist, even if empty
+  // Ensure all required fields exist, even if empty
   const result: AnalysisResult = {
+    summary: parsedContent.summary || 'No summary available for this section',
     keyTerms: parsedContent.keyTerms || [],
     potentialRisks: parsedContent.potentialRisks || [],
     importantClauses: parsedContent.importantClauses || [],
@@ -178,6 +181,7 @@ export async function POST(request: NextRequest) {
           let allPotentialRisks: string[] = [];
           let allImportantClauses: string[] = [];
           let allRecommendations: string[] = [];
+          let chunkSummaries: string[] = [];
 
           for (let i = 0; i < chunks.length; i++) {
             const progress = Math.floor(15 + ((i + 1) / chunks.length) * 85);
@@ -203,6 +207,7 @@ export async function POST(request: NextRequest) {
               allPotentialRisks = [...allPotentialRisks, ...chunkAnalysis.potentialRisks];
               allImportantClauses = [...allImportantClauses, ...chunkAnalysis.importantClauses];
               allRecommendations = [...allRecommendations, ...(chunkAnalysis.recommendations || [])];
+              chunkSummaries.push(chunkAnalysis.summary);
             } catch (error) {
               console.error(`[Server] Error analyzing chunk ${i + 1}:`, error);
               throw new ContractAnalysisError(
@@ -223,7 +228,7 @@ export async function POST(request: NextRequest) {
               },
               {
                 role: "user",
-                content: `Based on the following findings, provide a concise executive summary of the contract:\n\nKey Terms:\n${allKeyTerms.map(term => `- ${term}`).join('\n')}\n\nPotential Risks:\n${allPotentialRisks.map(risk => `- ${risk}`).join('\n')}\n\nImportant Clauses:\n${allImportantClauses.map(clause => `- ${clause}`).join('\n')}\n\nRecommendations:\n${allRecommendations.map(rec => `- ${rec}`).join('\n')}`
+                content: `Based on the following findings, provide a concise executive summary of the contract:\n\nSection Summaries:\n${chunkSummaries.map((summary, i) => `Section ${i + 1}: ${summary}`).join('\n')}\n\nKey Terms:\n${allKeyTerms.map(term => `- ${term}`).join('\n')}\n\nPotential Risks:\n${allPotentialRisks.map(risk => `- ${risk}`).join('\n')}\n\nImportant Clauses:\n${allImportantClauses.map(clause => `- ${clause}`).join('\n')}\n\nRecommendations:\n${allRecommendations.map(rec => `- ${rec}`).join('\n')}`
               }
             ],
             temperature: 0.3
