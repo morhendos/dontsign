@@ -39,8 +39,8 @@ export default function Hero() {
   }, []);
 
   // Function to schedule log hiding
-  const scheduleLogHiding = (wasHovered: boolean = false) => {
-    // Always clear existing timeout first
+  const scheduleLogHiding = () => {
+    // Clear any existing timeout
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
     }
@@ -48,32 +48,42 @@ export default function Hero() {
     // Don't schedule hiding if component is currently hovered
     if (isHovered) return;
 
-    const delay = wasHovered ? HIDE_DELAY_AFTER_HOVER : HIDE_DELAY_AFTER_COMPLETE;
     hideTimeoutRef.current = setTimeout(() => {
       // Double check that component is still not hovered before hiding
       const hasActiveEntries = entries.some(entry => entry.status === 'active');
       if (!hasActiveEntries && !isHovered) {
         setShowLog(false);
       }
-    }, delay);
+    }, HIDE_DELAY_AFTER_COMPLETE);
   };
 
   // Handle log visibility changes (including hover)
   const handleVisibilityChange = (visible: boolean) => {
     setIsHovered(visible);
+    
+    // When mouse enters
     if (visible) {
-      // When hovering, clear any pending hide timeout and show the log
+      // Clear any pending hide timeout and show the log
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
       }
       setShowLog(true);
     } else {
-      // When mouse leaves, schedule hiding if there are no active entries
+      // When mouse leaves, immediately schedule hiding
       const hasActiveEntries = entries.some(entry => entry.status === 'active');
       if (!hasActiveEntries) {
-        requestAnimationFrame(() => {
-          scheduleLogHiding(true); // Pass true to indicate it's from hover end
-        });
+        // Clear any existing timeout first
+        if (hideTimeoutRef.current) {
+          clearTimeout(hideTimeoutRef.current);
+        }
+        
+        // Set new timeout with HIDE_DELAY_AFTER_HOVER
+        hideTimeoutRef.current = setTimeout(() => {
+          // Only hide if still not hovered and no active entries
+          if (!isHovered && !entries.some(entry => entry.status === 'active')) {
+            setShowLog(false);
+          }
+        }, HIDE_DELAY_AFTER_HOVER);
       }
     }
   };
