@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import { useState, useRef, useEffect } from "react";
-import { useContractAnalysis } from "./hooks/useContractAnalysis";
-import { useFileHandler } from "./hooks/useFileHandler";
-import { useLogVisibility } from "./hooks/useLogVisibility";
-import { FileUploadArea } from "../contract-upload/FileUploadArea";
-import { AnalysisButton } from "../contract-analysis/AnalysisButton";
-import { AnalysisProgress } from "../contract-analysis/AnalysisProgress";
-import { ErrorDisplay } from "../error/ErrorDisplay";
-import { AnalysisResults } from "../analysis-results/AnalysisResults";
-import AnalysisLog from "../analysis-log/AnalysisLog";
-import { useAnalysisLog } from "../analysis-log/useAnalysisLog";
+import { useState, useRef, useEffect } from 'react';
+import { useContractAnalysis } from './hooks/useContractAnalysis';
+import { useFileHandler } from './hooks/useFileHandler';
+import { useLogVisibility } from './hooks/useLogVisibility';
+import { FileUploadArea } from '../contract-upload/FileUploadArea';
+import { AnalysisButton } from '../contract-analysis/AnalysisButton';
+import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
+import { ErrorDisplay } from '../error/ErrorDisplay';
+import { AnalysisResults } from '../analysis-results/AnalysisResults';
+import AnalysisLog from '../analysis-log/AnalysisLog';
+import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 
 export default function Hero() {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
-  const [processingStatus, setProcessingStatus] = useState<string>("");
+  const [processingStatus, setProcessingStatus] = useState<string>('');
 
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
@@ -35,7 +35,7 @@ export default function Hero() {
     }
 
     timeoutRef.current = setTimeout(() => {
-      setProcessingStatus("");
+      setProcessingStatus('');
       timeoutRef.current = undefined;
     }, duration);
 
@@ -53,7 +53,7 @@ export default function Hero() {
     handleFileSelect,
   } = useFileHandler({
     onStatusUpdate: setStatusWithTimeout,
-    onEntryComplete: () => updateLastEntry("complete"),
+    onEntryComplete: () => updateLastEntry('complete'),
   });
 
   // Contract analysis
@@ -66,7 +66,7 @@ export default function Hero() {
     handleAnalyze,
   } = useContractAnalysis({
     onStatusUpdate: setStatusWithTimeout,
-    onEntryComplete: () => updateLastEntry("complete"),
+    onEntryComplete: () => updateLastEntry('complete'),
   });
 
   // Combined error state (file error takes precedence)
@@ -74,7 +74,7 @@ export default function Hero() {
 
   useEffect(() => {
     if (error) {
-      updateLastEntry("error");
+      updateLastEntry('error');
     }
   }, [error, updateLastEntry]);
 
