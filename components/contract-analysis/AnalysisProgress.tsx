@@ -8,7 +8,13 @@ interface AnalysisProgressProps {
   progress: number;
 }
 
-export function AnalysisProgress({ currentChunk, totalChunks, isAnalyzing, stage, progress }: AnalysisProgressProps) {
+export function AnalysisProgress({ 
+  currentChunk, 
+  totalChunks, 
+  isAnalyzing, 
+  stage, 
+  progress 
+}: AnalysisProgressProps) {
   // Show progress bar while analyzing or if we have any progress
   if (!isAnalyzing && currentChunk === 0) return null;
 
@@ -19,20 +25,25 @@ export function AnalysisProgress({ currentChunk, totalChunks, isAnalyzing, stage
     <div className="w-full max-w-md mx-auto mt-4 space-y-2">
       <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
         <span>
-          {isComplete 
+          {stage === 'complete' 
             ? 'Analysis complete!' 
-            : currentChunk === 0 
-              ? 'Starting analysis...'
-              : 'Analyzing contract...'}
+            : stage === 'preprocessing'
+              ? 'Preparing document...'
+              : currentChunk === 0 
+                ? 'Starting analysis...'
+                : 'Analyzing contract...'}
         </span>
-        <span>{calculatedProgress}%</span>
+        <div>
+          <span className="mr-4">[Debug] Overall: {progress}%</span>
+          <span>Chunks: {calculatedProgress}%</span>
+        </div>
       </div>
       <Progress 
-        value={calculatedProgress} 
+        value={progress} 
         className="h-2"
-        indicatorColor={isComplete ? 'bg-green-600 dark:bg-green-500' : 'bg-blue-600 dark:bg-blue-500'}
+        indicatorColor={stage === 'complete' ? 'bg-green-600 dark:bg-green-500' : 'bg-blue-600 dark:bg-blue-500'}
       />
-      {(currentChunk > 0 || totalChunks > 0) && (
+      {stage === 'analyzing' && totalChunks > 0 && (
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
           Processing section {currentChunk} of {totalChunks}
         </p>
