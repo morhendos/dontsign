@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useContractAnalysis } from './hooks/useContractAnalysis';
 import { useFileHandler } from './hooks/useFileHandler';
+import { useLogVisibility } from './hooks/useLogVisibility';
 import { FileUploadArea } from '../contract-upload/FileUploadArea';
 import { AnalysisButton } from '../contract-analysis/AnalysisButton';
 import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
@@ -11,100 +12,22 @@ import { AnalysisResults } from '../analysis-results/AnalysisResults';
 import AnalysisLog from '../analysis-log/AnalysisLog';
 import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 
-// Timing constants for log visibility
-const HIDE_DELAY_AFTER_COMPLETE = 2000; // 2s delay after completion
-const HIDE_DELAY_AFTER_HOVER = 150;     // 150ms quick fade after mouse leave
-
-type HideReason = 'hover' | 'auto' | null;
-
 export default function Hero() {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
-  const hideTimeoutRef = useRef<NodeJS.Timeout>();
-  const hideReasonRef = useRef<HideReason>(null);
   const [processingStatus, setProcessingStatus] = useState<string>('');
-  const [showLog, setShowLog] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  const isHoveredRef = useRef(false);
 
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
+  const {
+    isVisible: showLog,
+    onVisibilityChange: handleVisibilityChange,
+    show: showLogWithAutoHide
+  } = useLogVisibility();
 
-  // Keep isHoveredRef in sync with isHovered state
-  useEffect(() => {
-    isHoveredRef.current = isHovered;
-  }, [isHovered]);
-
-  // Clean up timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-    };
-  }, []);
-
-  const clearHideTimeout = () => {
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-      hideTimeoutRef.current = undefined;
-      hideReasonRef.current = null;
-    }
-  };
-
-  const setHideTimeout = (delay: number, reason: HideReason) => {
-    // Don't set a new timeout if we already have one with higher priority
-    if (hideReasonRef.current === 'hover' && reason === 'auto') {
-      return;
-    }
-
-    clearHideTimeout();
-    console.log(`[Debug] Setting ${reason} hide timeout: ${delay}ms`);
-    
-    hideReasonRef.current = reason;
-    hideTimeoutRef.current = setTimeout(() => {
-      console.log(`[Debug] ${reason} hide timeout executed. isHovered=${isHoveredRef.current}`);
-      if (!isHoveredRef.current) {
-        setShowLog(false);
-        hideReasonRef.current = null;
-      }
-    }, delay);
-  };
-
-  // Handle log visibility changes (including hover)
-  const handleVisibilityChange = (visible: boolean) => {
-    console.log(`[Debug] handleVisibilityChange called with visible=${visible}`);
-    setIsHovered(visible);
-    
-    if (visible) {
-      clearHideTimeout();
-      setShowLog(true);
-    } else {
-      const hasActiveEntries = entries.some(entry => entry.status === 'active');
-      console.log(`[Debug] Mouse left, hasActiveEntries: ${hasActiveEntries}`);
-      
-      if (!hasActiveEntries) {
-        setHideTimeout(HIDE_DELAY_AFTER_HOVER, 'hover');
-      }
-    }
-  };
-
-  // Monitor entries for activity changes
-  useEffect(() => {
-    const hasActiveEntries = entries.some(entry => entry.status === 'active');
-    console.log(`[Debug] Entries changed: active=${hasActiveEntries}, count=${entries.length}`);
-    
-    // Only set up auto-hide if:
-    // 1. No active entries
-    // 2. We have some entries
-    // 3. Not being hovered
-    // 4. No hover hide in progress
-    if (!hasActiveEntries && entries.length > 0 && !isHovered) {
-      setHideTimeout(HIDE_DELAY_AFTER_COMPLETE, 'auto');
-    }
-  }, [entries, isHovered]);
-
-  // Rest of the component remains the same...
+  // Enhanced status handler that updates both the temporary and persistent logs
   const setStatusWithTimeout = (status: string, duration = 2000) => {
+    // Update the temporary status (for upload area)
     setProcessingStatus(status);
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -116,7 +39,8 @@ export default function Hero() {
       timeoutRef.current = undefined;
     }, duration);
 
-    setShowLog(true);
+    // Show log and add entry
+    showLogWithAutoHide();
     addEntry(status);
   };
 
@@ -132,6 +56,7 @@ export default function Hero() {
     onEntryComplete: () => updateLastEntry('complete')
   });
 
+  // Contract analysis
   const {
     analysis,
     isAnalyzing,
@@ -144,6 +69,7 @@ export default function Hero() {
     onEntryComplete: () => updateLastEntry('complete')
   });
 
+  // Combined error state (file error takes precedence)
   const error = fileError || analysisError;
 
   useEffect(() => {
@@ -152,9 +78,10 @@ export default function Hero() {
     }
   }, [error, updateLastEntry]);
 
+  // Clear logs and show log window when starting new analysis
   const handleAnalyzeWithLogReset = async (file: File | null) => {
     clearEntries();
-    setShowLog(true);
+    showLogWithAutoHide();
     await handleAnalyze(file);
   };
 
