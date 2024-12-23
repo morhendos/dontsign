@@ -1,115 +1,3 @@
-import { NextRequest } from 'next/server';
-import OpenAI from 'openai';
-import { splitIntoChunks } from '@/lib/text-utils';
-import { ContractAnalysisError } from '@/lib/errors';
-import { ANALYSIS_PROGRESS, calculateChunkProgress } from '@/lib/constants';
-
-// ... [keeping all existing imports and interfaces]
-
-export async function POST(request: NextRequest) {
-  const responseHeaders = {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-  };
-
-  try {
-    const data = await request.formData();
-    
-    const text = data.get('text');
-    const filename = data.get('filename');
-    
-    if (!text || typeof text !== 'string' || !filename) {
-      throw new ContractAnalysisError("Invalid input", "INVALID_INPUT");
-    }
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        const sendProgress = (stage: string, progress: number, currentChunk?: number, totalChunks?: number) => {
-          controller.enqueue(
-            `data: ${JSON.stringify({
-              type: 'progress',
-              stage,
-              progress,
-              ...(currentChunk !== undefined && { currentChunk }),
-              ...(totalChunks !== undefined && { totalChunks })
-            })}\\n\\n`
-          );
-        };
-
-        try {
-          // Initial progress
-          sendProgress('preprocessing', ANALYSIS_PROGRESS.STARTED);
-          
-          // File read progress
-          sendProgress('preprocessing', ANALYSIS_PROGRESS.FILE_READ);
-
-          // Text chunking
-          console.log('[Server] Starting text chunking...');
-          const chunks = splitIntoChunks(text);
-          if (chunks.length === 0) {
-            throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
-          }
-          
-          // Preprocessing complete
-          sendProgress('preprocessing', ANALYSIS_PROGRESS.PREPROCESSING);
-
-          // Analysis start
-          sendProgress('analyzing', ANALYSIS_PROGRESS.ANALYSIS_START, 0, chunks.length);
-
-          // Process chunks
-          let allKeyTerms: string[] = [];
-          let allPotentialRisks: string[] = [];
-          let allImportantClauses: string[] = [];
-          let allRecommendations: string[] = [];
-          let chunkSummaries: string[] = [];
-
-          for (let i = 0; i < chunks.length; i++) {
-            const progress = calculateChunkProgress(i + 1, chunks.length);
-            console.log(`[Server] Processing chunk ${i + 1}/${chunks.length}`);
-            
-            sendProgress('analyzing', progress, i + 1, chunks.length);
-
-            try {
-              const chunkAnalysis = await analyzeChunk(chunks[i], i, chunks.length);
-              
-              // Aggregate results
-              allKeyTerms = [...allKeyTerms, ...chunkAnalysis.keyTerms];
-              allPotentialRisks = [...allPotentialRisks, ...chunkAnalysis.potentialRisks];
-              allImportantClauses = [...allImportantClauses, ...chunkAnalysis.importantClauses];
-              allRecommendations = [...allRecommendations, ...(chunkAnalysis.recommendations || [])];
-              chunkSummaries.push(chunkAnalysis.summary);
-            } catch (error) {
-              console.error(`[Server] Error analyzing chunk ${i + 1}:`, error);
-              throw new ContractAnalysisError(
-                `Error analyzing section ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                'API_ERROR'
-              );
-            }
-          }
-
-          // Chunk analysis complete
-          sendProgress('analyzing', ANALYSIS_PROGRESS.SUMMARY_START);
-
-          // Generate final summary
-          console.log('[Server] Generating final summary...');
-          const summaryResponse = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo-1106",
-            messages: [
-              {
-                role: "system",
-                content: "You are a legal analysis assistant. Provide a concise executive summary of the contract analysis."
-              },
-              {
-                role: "user",
-                content: `Based on the following findings, provide a concise executive summary of the contract:\\n\\nSection Summaries:\\n${chunkSummaries.map((summary, i) => `Section ${i + 1}: ${summary}`).join('\\n')}\\n\\nKey Terms:\\n${allKeyTerms.map(term => `- ${term}`).join('\\n')}\\n\\nPotential Risks:\\n${allPotentialRisks.map(risk => `- ${risk}`).join('\\n')}\\n\\nImportant Clauses:\\n${allImportantClauses.map(clause => `- ${clause}`).join('\\n')}\\n\\nRecommendations:\\n${allRecommendations.map(rec => `- ${rec}`).join('\\n')}`
-              }
-            ],
-            temperature: 0.3
-          });
-
-          const summaryContent = summaryResponse.choices[0]?.message?.content;
-          if (!summaryContent) {
             throw new ContractAnalysisError(
               'No summary generated by AI model',
               'API_ERROR'
@@ -144,7 +32,7 @@ export async function POST(request: NextRequest) {
               stage: 'complete',
               progress: ANALYSIS_PROGRESS.COMPLETE,
               result: finalResult
-            })}\\n\\n`
+            })}\n\n`
           );
 
           controller.close();
@@ -157,7 +45,7 @@ export async function POST(request: NextRequest) {
               stage: 'preprocessing',
               progress: 0,
               error: error instanceof Error ? error.message : 'Unknown error'
-            })}\\n\\n`
+            })}\n\n`
           );
           controller.close();
         }
@@ -176,7 +64,7 @@ export async function POST(request: NextRequest) {
             stage: 'preprocessing',
             progress: 0,
             error: error instanceof Error ? error.message : 'Unknown error'
-          })}\\n\\n`
+          })}\n\n`
         );
         controller.close();
       }
