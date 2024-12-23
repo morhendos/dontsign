@@ -15,46 +15,64 @@ import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 const HIDE_DELAY_AFTER_COMPLETE = 2000; // 2s delay after completion
 const HIDE_DELAY_AFTER_HOVER = 150;     // 150ms quick fade after mouse leave
 
+type HideReason = 'hover' | 'auto' | null;
+
 export default function Hero() {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
   const hideTimeoutRef = useRef<NodeJS.Timeout>();
+  const hideReasonRef = useRef<HideReason>(null);
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const [showLog, setShowLog] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const isHoveredRef = useRef(false); // Use ref to access latest value in timeouts
+  const isHoveredRef = useRef(false);
 
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
-
-  // Clean up timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Keep isHoveredRef in sync with isHovered state
   useEffect(() => {
     isHoveredRef.current = isHovered;
   }, [isHovered]);
 
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    };
+  }, []);
+
   const clearHideTimeout = () => {
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
       hideTimeoutRef.current = undefined;
+      hideReasonRef.current = null;
     }
+  };
+
+  const setHideTimeout = (delay: number, reason: HideReason) => {
+    // Don't set a new timeout if we already have one with higher priority
+    if (hideReasonRef.current === 'hover' && reason === 'auto') {
+      return;
+    }
+
+    clearHideTimeout();
+    console.log(`[Debug] Setting ${reason} hide timeout: ${delay}ms`);
+    
+    hideReasonRef.current = reason;
+    hideTimeoutRef.current = setTimeout(() => {
+      console.log(`[Debug] ${reason} hide timeout executed. isHovered=${isHoveredRef.current}`);
+      if (!isHoveredRef.current) {
+        setShowLog(false);
+        hideReasonRef.current = null;
+      }
+    }, delay);
   };
 
   // Handle log visibility changes (including hover)
   const handleVisibilityChange = (visible: boolean) => {
     console.log(`[Debug] handleVisibilityChange called with visible=${visible}`);
-    
     setIsHovered(visible);
     
     if (visible) {
@@ -65,41 +83,27 @@ export default function Hero() {
       console.log(`[Debug] Mouse left, hasActiveEntries: ${hasActiveEntries}`);
       
       if (!hasActiveEntries) {
-        clearHideTimeout(); // Clear any existing timeouts
-        console.log(`[Debug] Setting hover hide timeout: ${HIDE_DELAY_AFTER_HOVER}ms`);
-        
-        // Use isHoveredRef to access latest hover state inside timeout
-        hideTimeoutRef.current = setTimeout(() => {
-          console.log(`[Debug] Hover hide timeout executed. isHovered=${isHoveredRef.current}`);
-          if (!isHoveredRef.current) {
-            setShowLog(false);
-          }
-        }, HIDE_DELAY_AFTER_HOVER);
+        setHideTimeout(HIDE_DELAY_AFTER_HOVER, 'hover');
       }
     }
   };
 
   // Monitor entries for activity changes
   useEffect(() => {
-    console.log(`[Debug] Entries changed: active=${entries.some(entry => entry.status === 'active')}, count=${entries.length}`);
-    
     const hasActiveEntries = entries.some(entry => entry.status === 'active');
+    console.log(`[Debug] Entries changed: active=${hasActiveEntries}, count=${entries.length}`);
     
-    // Only set up auto-hide if no active entries and not being hovered
+    // Only set up auto-hide if:
+    // 1. No active entries
+    // 2. We have some entries
+    // 3. Not being hovered
+    // 4. No hover hide in progress
     if (!hasActiveEntries && entries.length > 0 && !isHovered) {
-      clearHideTimeout(); // Clear any existing timeouts
-      console.log(`[Debug] Setting auto-hide timeout: ${HIDE_DELAY_AFTER_COMPLETE}ms`);
-      
-      hideTimeoutRef.current = setTimeout(() => {
-        console.log(`[Debug] Auto-hide timeout executed. isHovered=${isHoveredRef.current}`);
-        if (!isHoveredRef.current) {
-          setShowLog(false);
-        }
-      }, HIDE_DELAY_AFTER_COMPLETE);
+      setHideTimeout(HIDE_DELAY_AFTER_COMPLETE, 'auto');
     }
   }, [entries, isHovered]);
 
-  // Enhanced status handler that updates both the temporary and persistent logs
+  // Rest of the component remains the same...
   const setStatusWithTimeout = (status: string, duration = 2000) => {
     setProcessingStatus(status);
     if (timeoutRef.current) {
@@ -116,7 +120,7 @@ export default function Hero() {
     addEntry(status);
   };
 
-  // Rest of the component remains the same...
+  // File handling
   const {
     file,
     error: fileError,
