@@ -22,8 +22,10 @@ export default function Hero() {
   const {
     isVisible: showLog,
     onVisibilityChange: handleVisibilityChange,
-    show: showLogWithAutoHide,
-  } = useLogVisibility();
+    show: showLogWithAutoHide
+  } = useLogVisibility({
+    entries // Pass entries to track loading states
+  });
 
   // Enhanced status handler that updates both the temporary and persistent logs
   const setStatusWithTimeout = (status: string, duration = 2000) => {
@@ -33,7 +35,7 @@ export default function Hero() {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = undefined;
     }
-
+    
     timeoutRef.current = setTimeout(() => {
       setProcessingStatus('');
       timeoutRef.current = undefined;
@@ -50,10 +52,10 @@ export default function Hero() {
     error: fileError,
     isProcessing,
     progress: fileProgress,
-    handleFileSelect,
+    handleFileSelect
   } = useFileHandler({
     onStatusUpdate: setStatusWithTimeout,
-    onEntryComplete: () => updateLastEntry('complete'),
+    onEntryComplete: () => updateLastEntry('complete')
   });
 
   // Contract analysis
@@ -63,15 +65,16 @@ export default function Hero() {
     error: analysisError,
     progress: analysisProgress,
     stage,
-    handleAnalyze,
+    handleAnalyze
   } = useContractAnalysis({
     onStatusUpdate: setStatusWithTimeout,
-    onEntryComplete: () => updateLastEntry('complete'),
+    onEntryComplete: () => updateLastEntry('complete')
   });
 
   // Combined error state (file error takes precedence)
   const error = fileError || analysisError;
 
+  // Update log entry status when error occurs
   useEffect(() => {
     if (error) {
       updateLastEntry('error');
@@ -89,15 +92,13 @@ export default function Hero() {
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-5xl font-bold mb-6 tracking-tight text-gray-900 dark:text-white text-center">
-          Don't Sign Until
-          <br />
-          You're Sure
+          Don't Sign Until<br />You're Sure
         </h1>
         <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 max-w-2xl mx-auto text-center">
           Upload your contract, let AI highlight the risks and key terms.
         </p>
 
-        <FileUploadArea
+        <FileUploadArea 
           file={file}
           error={error}
           onFileSelect={handleFileSelect}
@@ -115,7 +116,7 @@ export default function Hero() {
         </div>
 
         {isAnalyzing && (
-          <AnalysisProgress
+          <AnalysisProgress 
             currentChunk={analysis?.metadata?.currentChunk ?? 0}
             totalChunks={analysis?.metadata?.totalChunks ?? 0}
             isAnalyzing={isAnalyzing}
@@ -128,7 +129,7 @@ export default function Hero() {
         {analysis && <AnalysisResults analysis={analysis} />}
 
         {entries.length > 0 && (
-          <AnalysisLog
+          <AnalysisLog 
             entries={entries}
             isVisible={showLog}
             onVisibilityChange={handleVisibilityChange}

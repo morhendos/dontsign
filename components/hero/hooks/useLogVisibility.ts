@@ -7,6 +7,8 @@ interface UseLogVisibilityProps {
   hoverHideDelay?: number;
   /** Time in ms to wait before auto-hiding when inactive */
   autoHideDelay?: number;
+  /** Optional array of entries to check for loading state */
+  entries?: Array<{ status: string }>;
 }
 
 interface LogVisibilityState {
@@ -25,6 +27,7 @@ interface LogVisibilityState {
  * - Quick hide after hover ends (customizable delay)
  * - Auto-hide when inactive (customizable delay)
  * - Hover state takes precedence over auto-hide
+ * - Stays visible when any entry is in loading state
  * - Proper cleanup of timeouts
  * - Type-safe implementation
  *
@@ -36,13 +39,15 @@ interface LogVisibilityState {
  *   show
  * } = useLogVisibility({
  *   hoverHideDelay: 150,
- *   autoHideDelay: 2000
+ *   autoHideDelay: 2000,
+ *   entries: analysisEntries
  * });
  * ```
  */
 export function useLogVisibility({
   hoverHideDelay = 150,
-  autoHideDelay = 2000
+  autoHideDelay = 2000,
+  entries = []
 }: UseLogVisibilityProps = {}): LogVisibilityState {
   // State management
   const [isVisible, setIsVisible] = useState(false);
@@ -76,8 +81,16 @@ export function useLogVisibility({
   };
 
   /**
+   * Check if any entry is in a loading state
+   */
+  const hasLoadingEntries = () => {
+    return entries.some(entry => entry.status === 'active');
+  };
+
+  /**
    * Sets up a timeout to hide the log.
    * Hover-based hiding takes precedence over auto-hide.
+   * Won't hide if any entries are in loading state.
    */
   const setHideTimeout = (delay: number, reason: HideReason) => {
     // Don't override hover timeout with auto-hide
@@ -89,7 +102,10 @@ export function useLogVisibility({
     
     hideReasonRef.current = reason;
     hideTimeoutRef.current = setTimeout(() => {
-      if (!isHoveredRef.current) {
+      // Only hide if:
+      // 1. Not being hovered
+      // 2. No entries are loading
+      if (!isHoveredRef.current && !hasLoadingEntries()) {
         setIsVisible(false);
         hideReasonRef.current = null;
       }
@@ -106,7 +122,10 @@ export function useLogVisibility({
       clearHideTimeout();
       setIsVisible(true);
     } else {
-      setHideTimeout(hoverHideDelay, 'hover');
+      // Only start hide timeout if no entries are loading
+      if (!hasLoadingEntries()) {
+        setHideTimeout(hoverHideDelay, 'hover');
+      }
     }
   };
 
@@ -115,10 +134,24 @@ export function useLogVisibility({
    */
   const show = () => {
     setIsVisible(true);
-    if (!isHovered) {
+    // Only set up auto-hide if not being hovered and no entries are loading
+    if (!isHovered && !hasLoadingEntries()) {
       setHideTimeout(autoHideDelay, 'auto');
     }
   };
+
+  // Monitor entries for loading state changes
+  useEffect(() => {
+    // If any entry starts loading, show the log
+    if (hasLoadingEntries()) {
+      clearHideTimeout(); // Cancel any pending hide
+      setIsVisible(true);
+    } else if (!isHovered) {
+      // If nothing is loading and we're not being hovered,
+      // start the auto-hide timer
+      setHideTimeout(autoHideDelay, 'auto');
+    }
+  }, [entries, autoHideDelay]);
 
   return {
     isVisible,
