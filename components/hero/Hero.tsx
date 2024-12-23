@@ -19,6 +19,7 @@ export default function Hero() {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
   const hideTimeoutRef = useRef<NodeJS.Timeout>();
+  const autoHideTimeoutRef = useRef<NodeJS.Timeout>();  // Separate timeout for auto-hide
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const [showLog, setShowLog] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -29,30 +30,21 @@ export default function Hero() {
   // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+      if (autoHideTimeoutRef.current) clearTimeout(autoHideTimeoutRef.current);
     };
   }, []);
 
-  const clearHideTimeout = () => {
+  const clearAllHideTimeouts = () => {
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
       hideTimeoutRef.current = undefined;
     }
-  };
-
-  const setHideTimeout = (delay: number, reason: string) => {
-    console.log(`[Debug] Setting hide timeout: ${delay}ms (${reason})`);
-    clearHideTimeout();
-    
-    hideTimeoutRef.current = setTimeout(() => {
-      console.log(`[Debug] Hide timeout executed (${reason})`);
-      setShowLog(false);
-    }, delay);
+    if (autoHideTimeoutRef.current) {
+      clearTimeout(autoHideTimeoutRef.current);
+      autoHideTimeoutRef.current = undefined;
+    }
   };
 
   // Handle log visibility changes (including hover)
@@ -61,17 +53,47 @@ export default function Hero() {
     setIsHovered(visible);
     
     if (visible) {
-      clearHideTimeout();
+      clearAllHideTimeouts();
       setShowLog(true);
     } else {
       const hasActiveEntries = entries.some(entry => entry.status === 'active');
-      console.log(`[Debug] Mouse left, hasActiveEntries: ${hasActiveEntries}`);
-      
       if (!hasActiveEntries) {
-        setHideTimeout(HIDE_DELAY_AFTER_HOVER, 'hover-end');
+        // Clear any existing timeouts
+        clearAllHideTimeouts();
+        
+        // Set quick hide timeout for hover end
+        hideTimeoutRef.current = setTimeout(() => {
+          console.log('[Debug] Quick hide timeout executed');
+          if (!isHovered) {
+            setShowLog(false);
+          }
+        }, HIDE_DELAY_AFTER_HOVER);
       }
     }
   };
+
+  // Handle auto-hide after completion
+  useEffect(() => {
+    const hasActiveEntries = entries.some(entry => entry.status === 'active');
+    console.log(`[Debug] Entries changed: active=${hasActiveEntries}, count=${entries.length}`);
+    
+    // Clear existing auto-hide timeout
+    if (autoHideTimeoutRef.current) {
+      clearTimeout(autoHideTimeoutRef.current);
+      autoHideTimeoutRef.current = undefined;
+    }
+
+    // Set new auto-hide timeout if conditions are met
+    if (!hasActiveEntries && entries.length > 0 && !isHovered) {
+      console.log('[Debug] Setting auto-hide timeout');
+      autoHideTimeoutRef.current = setTimeout(() => {
+        console.log('[Debug] Auto-hide timeout executed');
+        if (!isHovered) {
+          setShowLog(false);
+        }
+      }, HIDE_DELAY_AFTER_COMPLETE);
+    }
+  }, [entries, isHovered]);
 
   // Enhanced status handler that updates both the temporary and persistent logs
   const setStatusWithTimeout = (status: string, duration = 2000) => {
@@ -91,25 +113,6 @@ export default function Hero() {
     setShowLog(true);
     addEntry(status);
   };
-
-  // Monitor entries for activity changes
-  useEffect(() => {
-    console.log(`[Debug] Entries changed: active=${entries.some(entry => entry.status === 'active')}, count=${entries.length}`);
-    
-    // Only auto-hide if:
-    // 1. No active entries
-    // 2. We have some entries
-    // 3. Not being hovered
-    // 4. No existing hover timeout
-    const hasActiveEntries = entries.some(entry => entry.status === 'active');
-    
-    if (!hasActiveEntries && entries.length > 0 && !isHovered) {
-      // Don't override hover timeout
-      if (!hideTimeoutRef.current) {
-        setHideTimeout(HIDE_DELAY_AFTER_COMPLETE, 'auto-hide');
-      }
-    }
-  }, [entries]);
 
   // Rest of the component remains the same...
   const {
