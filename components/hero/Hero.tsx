@@ -38,42 +38,38 @@ export default function Hero() {
     };
   }, []);
 
-  // Function to schedule log hiding
-  const scheduleLogHiding = (fromHover: boolean = false) => {
-    // Clear any existing timeout
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-    }
-
-    // Don't schedule hiding if component is currently hovered
-    if (isHovered) return;
-
-    const delay = fromHover ? HIDE_DELAY_AFTER_HOVER : HIDE_DELAY_AFTER_COMPLETE;
-
-    hideTimeoutRef.current = setTimeout(() => {
-      // Double check that component is still not hovered before hiding
-      const hasActiveEntries = entries.some(entry => entry.status === 'active');
-      if (!hasActiveEntries && !isHovered) {
-        setShowLog(false);
-      }
-    }, delay);
-  };
-
   // Handle log visibility changes (including hover)
   const handleVisibilityChange = (visible: boolean) => {
+    console.log(`[Debug] handleVisibilityChange called with visible=${visible}`);
+    
+    // Update hover state first
     setIsHovered(visible);
     
     if (visible) {
       // When hovering, clear any pending hide timeout and show the log
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = undefined;
+        console.log('[Debug] Cleared hide timeout on hover');
       }
       setShowLog(true);
     } else {
-      // When mouse leaves, schedule hiding if there are no active entries
+      // When mouse leaves, immediately hide after delay
       const hasActiveEntries = entries.some(entry => entry.status === 'active');
+      console.log(`[Debug] Mouse left, hasActiveEntries: ${hasActiveEntries}`);
+      
       if (!hasActiveEntries) {
-        scheduleLogHiding(true); // Use the hover delay
+        // Clear any existing timeout first
+        if (hideTimeoutRef.current) {
+          clearTimeout(hideTimeoutRef.current);
+          hideTimeoutRef.current = undefined;
+        }
+        
+        console.log(`[Debug] Setting quick hide timeout: ${HIDE_DELAY_AFTER_HOVER}ms`);
+        hideTimeoutRef.current = setTimeout(() => {
+          console.log('[Debug] Quick hide timeout executed');
+          setShowLog(false);
+        }, HIDE_DELAY_AFTER_HOVER);
       }
     }
   };
@@ -84,8 +80,13 @@ export default function Hero() {
     setProcessingStatus(status);
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
     }
-    timeoutRef.current = setTimeout(() => setProcessingStatus(''), duration);
+    
+    timeoutRef.current = setTimeout(() => {
+      setProcessingStatus('');
+      timeoutRef.current = undefined;
+    }, duration);
 
     // Show log and add entry
     setShowLog(true);
@@ -95,13 +96,27 @@ export default function Hero() {
   // Monitor entries for activity changes
   useEffect(() => {
     const hasActiveEntries = entries.some(entry => entry.status === 'active');
-    // Only schedule hiding if we have entries but none are active and not currently hovered
+    console.log(`[Debug] Entries changed: active=${hasActiveEntries}, count=${entries.length}`);
+    
+    // Only auto-hide if no active entries and not being hovered
     if (!hasActiveEntries && entries.length > 0 && !isHovered) {
-      scheduleLogHiding(false); // Use the completion delay
+      console.log('[Debug] Setting auto-hide timeout');
+      
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = undefined;
+      }
+      
+      hideTimeoutRef.current = setTimeout(() => {
+        console.log('[Debug] Auto-hide timeout executed');
+        if (!isHovered) {
+          setShowLog(false);
+        }
+      }, HIDE_DELAY_AFTER_COMPLETE);
     }
   }, [entries, isHovered]);
 
-  // Rest of the component remains the same...
+  // File handling
   const {
     file,
     error: fileError,
@@ -113,6 +128,7 @@ export default function Hero() {
     onEntryComplete: () => updateLastEntry('complete')
   });
 
+  // Contract analysis
   const {
     analysis,
     isAnalyzing,
@@ -125,14 +141,17 @@ export default function Hero() {
     onEntryComplete: () => updateLastEntry('complete')
   });
 
+  // Combined error state (file error takes precedence)
   const error = fileError || analysisError;
 
+  // Update log entry status when error occurs
   useEffect(() => {
     if (error) {
       updateLastEntry('error');
     }
   }, [error, updateLastEntry]);
 
+  // Clear logs and show log window when starting new analysis
   const handleAnalyzeWithLogReset = async (file: File | null) => {
     clearEntries();
     setShowLog(true);
