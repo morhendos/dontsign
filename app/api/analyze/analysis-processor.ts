@@ -2,8 +2,7 @@ import { splitIntoChunks } from '@/lib/text-utils';
 import { ContractAnalysisError } from '@/lib/errors';
 import { ANALYSIS_PROGRESS } from '@/lib/constants';
 import { analyzeChunk, generateFinalSummary } from './chunk-analyzer';
-import type { ProgressHandler } from './progress-handler';
-import type { AnalysisResult } from './types';
+import type { ProgressHandler, AnalysisResult } from './types';
 
 export async function processDocument(
   text: string,
