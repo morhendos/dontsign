@@ -13,10 +13,10 @@ import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 
 // Timing constants for log visibility
 const HIDE_DELAY_AFTER_COMPLETE = 2000; // 2s delay after completion
-const HIDE_DELAY_AFTER_HOVER = 500;     // 500ms delay after mouse leave
+const HIDE_DELAY_AFTER_HOVER = 150;     // 150ms quick fade after mouse leave
 
 export default function Hero() {
-  // Status message handling
+  // Rest of the component remains the same...
   const timeoutRef = useRef<NodeJS.Timeout>();
   const hideTimeoutRef = useRef<NodeJS.Timeout>();
   const [processingStatus, setProcessingStatus] = useState<string>('');
@@ -77,7 +77,7 @@ export default function Hero() {
           clearTimeout(hideTimeoutRef.current);
         }
         
-        // Set new timeout with HIDE_DELAY_AFTER_HOVER
+        // Set new timeout with quick HIDE_DELAY_AFTER_HOVER
         hideTimeoutRef.current = setTimeout(() => {
           // Only hide if still not hovered and no active entries
           if (!isHovered && !entries.some(entry => entry.status === 'active')) {
