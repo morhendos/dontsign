@@ -11,7 +11,7 @@ import { AnalysisResults } from '../analysis-results/AnalysisResults';
 import AnalysisLog from '../analysis-log/AnalysisLog';
 import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 
-// Timing constants
+// Timing constants for log visibility
 const HIDE_DELAY_AFTER_COMPLETE = 2000; // 2s delay after completion
 const HIDE_DELAY_AFTER_HOVER = 500;     // 500ms delay after mouse leave
 
@@ -38,7 +38,7 @@ export default function Hero() {
     };
   }, []);
 
-  // Function to schedule log hiding
+  // Function to schedule log hiding after completion
   const scheduleLogHiding = () => {
     // Clear any existing timeout
     if (hideTimeoutRef.current) {
@@ -180,7 +180,6 @@ export default function Hero() {
           />
         </div>
 
-        {/* Existing Progress Indicator */}
         {isAnalyzing && (
           <AnalysisProgress 
             currentChunk={analysis?.metadata?.currentChunk ?? 0}
@@ -194,7 +193,6 @@ export default function Hero() {
         {error && <ErrorDisplay error={error} />}
         {analysis && <AnalysisResults analysis={analysis} />}
 
-        {/* Floating Analysis Log */}
         {entries.length > 0 && (
           <AnalysisLog 
             entries={entries}
