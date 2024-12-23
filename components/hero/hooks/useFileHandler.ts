@@ -28,7 +28,7 @@ interface FileHandlerResult {
 
 /**
  * A custom hook for handling file upload and processing functionality.
- * 
+ *
  * This hook manages:
  * - File selection and validation
  * - PDF/DOCX content extraction
@@ -39,10 +39,10 @@ interface FileHandlerResult {
  * @param props - Configuration options for the hook
  * @returns Object containing file state and control functions
  */
-export const useFileHandler = ({ 
+export const useFileHandler = ({
   onStatusUpdate,
   onEntryComplete,
-  initialProgress = 0
+  initialProgress = 0,
 }: UseFileHandlerProps = {}): FileHandlerResult => {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<ErrorDisplay | null>(null);
@@ -55,13 +55,13 @@ export const useFileHandler = ({
   const validateFile = (file: File): boolean => {
     const validTypes = [
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
 
     if (!validTypes.includes(file.type)) {
       setError({
         message: 'Please upload a PDF or DOCX file.',
-        type: 'error'
+        type: 'error',
       });
       return false;
     }
@@ -71,7 +71,7 @@ export const useFileHandler = ({
     if (file.size > maxSize) {
       setError({
         message: 'File size must be less than 10MB.',
-        type: 'error'
+        type: 'error',
       });
       return false;
     }
@@ -86,14 +86,14 @@ export const useFileHandler = ({
     if (!selectedFile) {
       setError({
         message: 'Please select a valid PDF or DOCX file.',
-        type: 'warning'
+        type: 'warning',
       });
       return;
     }
 
     setIsProcessing(true);
     setProgress(10);
-    onStatusUpdate?.('Checking file format...', 2000);
+    onStatusUpdate?.('Checking file format', 2000);
 
     try {
       // Validate file
@@ -103,17 +103,17 @@ export const useFileHandler = ({
       }
 
       setProgress(30);
-      onStatusUpdate?.('File format verified...', 1500);
+      onStatusUpdate?.('File format verified', 1500);
 
       // For PDFs, verify we can extract text
       if (selectedFile.type === 'application/pdf') {
         setProgress(50);
-        onStatusUpdate?.('Parsing PDF content...', 2000);
+        onStatusUpdate?.('Parsing PDF content', 2000);
         await readPdfText(selectedFile);
         setProgress(80);
         onStatusUpdate?.('PDF content extracted successfully', 1500);
       }
-      
+
       // Update state
       setProgress(100);
       setFile(selectedFile);
@@ -127,7 +127,7 @@ export const useFileHandler = ({
       console.error('Error processing uploaded file:', error);
       setError({
         message: 'Error processing file. Please try again.',
-        type: 'error'
+        type: 'error',
       });
       setProgress(0);
     } finally {
@@ -151,6 +151,6 @@ export const useFileHandler = ({
     isProcessing,
     progress,
     handleFileSelect,
-    resetFile
+    resetFile,
   };
 };
