@@ -12,8 +12,7 @@ export default function NotFound() {
           Page Not Found
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto leading-relaxed">
-          The page you're looking for may have been moved, deleted, or possibly never existed. 
-          Let's get you back on track.
+          This page is playing hide and seek (and winning).
         </p>
 
         {/* Link */}
