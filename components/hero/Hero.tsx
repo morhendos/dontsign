@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useRef, useEffect } from 'react';
 import { useContractAnalysis } from './hooks/useContractAnalysis';
 import { useFileHandler } from './hooks/useFileHandler';
@@ -51,7 +49,6 @@ export default function Hero() {
     file,
     error: fileError,
     isProcessing,
-    progress: fileProgress,
     handleFileSelect
   } = useFileHandler({
     onStatusUpdate: setStatusWithTimeout,
@@ -104,7 +101,6 @@ export default function Hero() {
           onFileSelect={handleFileSelect}
           isUploading={isProcessing || (isAnalyzing && analysisProgress <= 2)}
           processingStatus={processingStatus}
-          progress={isProcessing ? fileProgress : analysisProgress}
         />
 
         <div className="flex justify-center mt-6">
