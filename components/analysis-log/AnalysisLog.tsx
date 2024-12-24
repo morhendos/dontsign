@@ -83,10 +83,13 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({
     <div 
       ref={containerRef}
       className={cn(
-        'fixed right-4 top-24 z-40', // Lower z-index than header
+        'fixed right-4 top-28 z-50', // Adjusted top position and z-index
         'transition-all duration-300 ease-in-out',
         isVisible ? 'translate-x-0 opacity-100' : 'translate-x-[120%] opacity-0'
       )}
+      style={{ 
+        marginTop: '1rem' // Added extra margin from header
+      }}
     >
       <Card 
         className={cn(
