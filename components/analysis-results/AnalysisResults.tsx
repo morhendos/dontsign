@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle, AlertTriangle, FileText, Clock } from 'lucide-react';
+import { CheckCircle, AlertTriangle, FileText, Clock, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { AnalysisResult } from '@/types/analysis';
@@ -65,6 +65,14 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing, stage }: Analy
     return () => clearInterval(interval);
   };
 
+  const handleClose = () => {
+    setIsVisible(false);
+    // Wait for fade-out animation before calling onClose
+    setTimeout(() => {
+      onClose?.();
+    }, 300);
+  };
+
   const sections = [
     // Summary Section
     {
@@ -102,6 +110,7 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing, stage }: Analy
         'transition-opacity duration-300',
         isVisible ? 'opacity-100' : 'opacity-0'
       )}
+      onClick={handleClose}
     >
       <div 
         className={cn(
@@ -111,7 +120,16 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing, stage }: Analy
           isWidthExpanded ? 'w-full max-w-3xl mx-auto' : 'w-64 mx-auto',
           isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
         )}
+        onClick={e => e.stopPropagation()}
       >
+        {/* Close button */}
+        <button
+          onClick={handleClose}
+          className="absolute top-4 right-4 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
         <ScrollArea
           className={cn(
             'flex-1 transition-all duration-500 ease-out',
