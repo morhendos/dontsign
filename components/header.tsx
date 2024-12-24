@@ -64,7 +64,7 @@ export default function Header() {
           `} />
         </Link>
 
-        <div className="flex items-center space-x-8">
+        <div className="flex items-center space-x-6 md:space-x-8">
           <div className="hidden md:flex space-x-6">
             <a
               href="#how-it-works"
@@ -90,7 +90,7 @@ export default function Header() {
             </a>
           </div>
           
-          <div className="border-l pl-6 border-gray-200 dark:border-gray-700">
+          <div className="border-l border-gray-200 dark:border-gray-700 pl-6 -mr-2">
             <ThemeToggle />
           </div>
         </div>
