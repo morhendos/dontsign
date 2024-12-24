@@ -1,21 +1,35 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useContractAnalysis } from './hooks/useContractAnalysis';
 import { useFileHandler } from './hooks/useFileHandler';
 import { useLogVisibility } from './hooks/useLogVisibility';
-import { FileUploadArea } from '../contract-upload/FileUploadArea';
-import { AnalysisButton } from '../contract-analysis/AnalysisButton';
-import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
-import { ErrorDisplay } from '../error/ErrorDisplay';
-import { AnalysisResults } from '../analysis-results/AnalysisResults';
-import AnalysisLog from '../analysis-log/AnalysisLog';
+import { AnalysisSection } from './AnalysisSection';
+import { useStatusManager } from './StatusManager';
 import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
+import AnalysisLog from '../analysis-log/AnalysisLog';
+import { saveAnalysis, getStoredAnalyses, type StoredAnalysis } from '@/lib/storage';
 
+/**
+ * Main hero component that handles the contract analysis workflow
+ */
 export default function Hero() {
-  // Status message handling
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  // UI state
   const [processingStatus, setProcessingStatus] = useState<string>('');
+  const [showResults, setShowResults] = useState(true);
+  const [currentStoredAnalysis, setCurrentStoredAnalysis] = useState<StoredAnalysis | null>(null);
+  const [hasStoredAnalyses, setHasStoredAnalyses] = useState(false);
+
+  // Check for stored analyses on mount
+  useEffect(() => {
+    const analyses = getStoredAnalyses();
+    setHasStoredAnalyses(analyses.length > 0);
+  }, []);
+
+  // Status management
+  const { setStatusWithTimeout } = useStatusManager({
+    onStatusUpdate: setProcessingStatus
+  });
 
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
@@ -24,27 +38,8 @@ export default function Hero() {
     onVisibilityChange: handleVisibilityChange,
     show: showLogWithAutoHide
   } = useLogVisibility({
-    entries // Pass entries to track loading states
+    entries
   });
-
-  // Enhanced status handler that updates both the temporary and persistent logs
-  const setStatusWithTimeout = (status: string, duration = 2000) => {
-    // Update the temporary status (for upload area)
-    setProcessingStatus(status);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = undefined;
-    }
-    
-    timeoutRef.current = setTimeout(() => {
-      setProcessingStatus('');
-      timeoutRef.current = undefined;
-    }, duration);
-
-    // Show log and add entry
-    showLogWithAutoHide();
-    addEntry(status);
-  };
 
   // File handling
   const {
@@ -70,6 +65,15 @@ export default function Hero() {
     onEntryComplete: () => updateLastEntry('complete')
   });
 
+  // Store analysis when complete
+  useEffect(() => {
+    if (analysis && !isAnalyzing && stage === 'complete' && file) {
+      const stored = saveAnalysis(file.name, analysis);
+      setCurrentStoredAnalysis(stored);
+      setHasStoredAnalyses(true);
+    }
+  }, [analysis, isAnalyzing, stage, file]);
+
   // Combined error state (file error takes precedence)
   const error = fileError || analysisError;
 
@@ -81,59 +85,63 @@ export default function Hero() {
   }, [error, updateLastEntry]);
 
   // Clear logs and show log window when starting new analysis
-  const handleAnalyzeWithLogReset = async (file: File | null) => {
+  const handleAnalyzeWithLogReset = async () => {
     clearEntries();
     showLogWithAutoHide();
+    setShowResults(true);
+    setCurrentStoredAnalysis(null);
     await handleAnalyze(file);
   };
 
+  // Handle selecting a stored analysis
+  const handleSelectStoredAnalysis = (stored: StoredAnalysis) => {
+    setCurrentStoredAnalysis(stored);
+    setShowResults(true);
+  };
+
+  // Show Analysis button should only appear when:
+  // 1. We have an analysis (current or stored)
+  // 2. Results are currently hidden
+  // 3. Analysis is complete and not analyzing
+  // 4. Log panel is not visible
+  // 5. No errors are present
+  const shouldShowAnalysisButton = Boolean(
+    (analysis || currentStoredAnalysis) && 
+    !showResults && 
+    stage === 'complete' && 
+    !isAnalyzing && 
+    !showLog &&
+    !error
+  );
+
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-5xl font-bold mb-6 tracking-tight text-gray-900 dark:text-white text-center">
-          Don't Sign Until<br />You're Sure
-        </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 max-w-2xl mx-auto text-center">
-          Upload your contract, let AI highlight the risks and key terms.
-        </p>
+      <AnalysisSection
+        file={file}
+        error={error}
+        isProcessing={isProcessing}
+        isAnalyzing={isAnalyzing}
+        processingStatus={processingStatus}
+        progress={analysisProgress}
+        stage={stage}
+        analysis={analysis}
+        showResults={showResults}
+        currentStoredAnalysis={currentStoredAnalysis}
+        hasStoredAnalyses={hasStoredAnalyses}
+        showAnalysisButton={shouldShowAnalysisButton}
+        onFileSelect={handleFileSelect}
+        onAnalyze={handleAnalyzeWithLogReset}
+        onShowResults={setShowResults}
+        onSelectStoredAnalysis={handleSelectStoredAnalysis}
+      />
 
-        <FileUploadArea 
-          file={file}
-          error={error}
-          onFileSelect={handleFileSelect}
-          isUploading={isProcessing || (isAnalyzing && analysisProgress <= 2)}
-          processingStatus={processingStatus}
+      {entries.length > 0 && (
+        <AnalysisLog 
+          entries={entries}
+          isVisible={showLog}
+          onVisibilityChange={handleVisibilityChange}
         />
-
-        <div className="flex justify-center mt-6">
-          <AnalysisButton
-            isDisabled={!file || isAnalyzing || isProcessing}
-            isAnalyzing={isAnalyzing}
-            onClick={() => handleAnalyzeWithLogReset(file)}
-          />
-        </div>
-
-        {isAnalyzing && (
-          <AnalysisProgress 
-            currentChunk={analysis?.metadata?.currentChunk ?? 0}
-            totalChunks={analysis?.metadata?.totalChunks ?? 0}
-            isAnalyzing={isAnalyzing}
-            stage={stage}
-            progress={analysisProgress}
-          />
-        )}
-
-        {error && <ErrorDisplay error={error} />}
-        {analysis && <AnalysisResults analysis={analysis} />}
-
-        {entries.length > 0 && (
-          <AnalysisLog 
-            entries={entries}
-            isVisible={showLog}
-            onVisibilityChange={handleVisibilityChange}
-          />
-        )}
-      </div>
+      )}
     </section>
   );
 }
