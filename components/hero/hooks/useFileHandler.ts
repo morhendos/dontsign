@@ -7,8 +7,6 @@ interface UseFileHandlerProps {
   onStatusUpdate?: (status: string, duration?: number) => void;
   /** Callback function called when an entry is complete */
   onEntryComplete?: () => void;
-  /** Initial progress to start with */
-  initialProgress?: number;
 }
 
 interface FileHandlerResult {
@@ -18,8 +16,6 @@ interface FileHandlerResult {
   error: ErrorDisplay | null;
   /** Whether file is currently being processed */
   isProcessing: boolean;
-  /** Current processing progress */
-  progress: number;
   /** Function to handle file selection */
   handleFileSelect: (selectedFile: File | null) => Promise<void>;
   /** Function to reset file state */
@@ -34,7 +30,6 @@ interface FileHandlerResult {
  * - PDF/DOCX content extraction
  * - Error handling
  * - Processing status updates
- * - Progress tracking
  *
  * @param props - Configuration options for the hook
  * @returns Object containing file state and control functions
@@ -42,12 +37,10 @@ interface FileHandlerResult {
 export const useFileHandler = ({
   onStatusUpdate,
   onEntryComplete,
-  initialProgress = 0,
 }: UseFileHandlerProps = {}): FileHandlerResult => {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<ErrorDisplay | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(initialProgress);
 
   /**
    * Validates file type and size
@@ -92,30 +85,24 @@ export const useFileHandler = ({
     }
 
     setIsProcessing(true);
-    setProgress(10);
     onStatusUpdate?.('Checking file format', 2000);
 
     try {
       // Validate file
       if (!validateFile(selectedFile)) {
-        setProgress(0);
         return;
       }
 
-      setProgress(30);
       onStatusUpdate?.('File format verified', 1500);
 
       // For PDFs, verify we can extract text
       if (selectedFile.type === 'application/pdf') {
-        setProgress(50);
         onStatusUpdate?.('Parsing PDF content', 2000);
         await readPdfText(selectedFile);
-        setProgress(80);
         onStatusUpdate?.('PDF content extracted successfully', 1500);
       }
 
       // Update state
-      setProgress(100);
       setFile(selectedFile);
       setError(null);
       onStatusUpdate?.('File ready for analysis!', 2000);
@@ -129,7 +116,6 @@ export const useFileHandler = ({
         message: 'Error processing file. Please try again.',
         type: 'error',
       });
-      setProgress(0);
     } finally {
       setIsProcessing(false);
     }
@@ -142,14 +128,12 @@ export const useFileHandler = ({
     setFile(null);
     setError(null);
     setIsProcessing(false);
-    setProgress(0);
   };
 
   return {
     file,
     error,
     isProcessing,
-    progress,
     handleFileSelect,
     resetFile,
   };
