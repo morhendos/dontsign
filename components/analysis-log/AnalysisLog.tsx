@@ -83,13 +83,11 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({
     <div 
       ref={containerRef}
       className={cn(
-        'fixed right-4 top-28 z-50', // Adjusted top position and z-index
+        'fixed right-4 z-50',
         'transition-all duration-300 ease-in-out',
+        'top-1/2 -translate-y-1/2', // Center vertically
         isVisible ? 'translate-x-0 opacity-100' : 'translate-x-[120%] opacity-0'
       )}
-      style={{ 
-        marginTop: '1rem' // Added extra margin from header
-      }}
     >
       <Card 
         className={cn(
@@ -117,7 +115,12 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({
 
           {/* Log entries */}
           <div className="relative">
-            <ScrollArea className="max-h-[20vh] overflow-y-auto">
+            <ScrollArea 
+              className="overflow-y-auto"
+              style={{
+                maxHeight: 'min(60vh, 400px)' // Limit height while keeping it responsive
+              }}
+            >
               <div className="py-1 px-2 space-y-1" ref={scrollRef}>
                 {entries.map((entry, index) => (
                   <div
