@@ -1,16 +1,9 @@
 import Link from 'next/link';
-import { FileQuestion, ArrowLeft } from 'lucide-react';
 
 export default function NotFound() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center p-4">
       <div className="text-center max-w-2xl mx-auto">
-        {/* Icon */}
-        <div className="mb-8 relative">
-          <div className="absolute inset-0 bg-blue-100 dark:bg-blue-900/20 blur-2xl rounded-full opacity-20" />
-          <FileQuestion className="w-24 h-24 mx-auto text-blue-500 dark:text-blue-400" />
-        </div>
-
         {/* Text */}
         <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
           404
@@ -23,17 +16,16 @@ export default function NotFound() {
           Let's get you back on track.
         </p>
 
-        {/* Button */}
+        {/* Link */}
         <Link 
           href="/"
           className="
-            inline-flex items-center text-gray-600 hover:text-gray-900 
+            text-gray-600 hover:text-gray-900 
             dark:text-gray-400 dark:hover:text-gray-100
             transition-colors duration-200
           "
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Home
+          Go to main page
         </Link>
 
         {/* Decorative elements */}
