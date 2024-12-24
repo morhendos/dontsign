@@ -6,7 +6,7 @@ import { useFileHandler } from './hooks/useFileHandler';
 import { useLogVisibility } from './hooks/useLogVisibility';
 import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 import { useAnalysisHistory } from '../analysis-history/hooks/useAnalysisHistory';
-import { PageHeader } from '../layout/PageHeader';
+import { HeroTitle } from '../contract/HeroTitle';
 import { ContractSection } from '../contract/ContractSection';
 import AnalysisLog from '../analysis-log/AnalysisLog';
 
@@ -111,7 +111,7 @@ export default function Hero() {
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-5xl mx-auto">
-        <PageHeader 
+        <HeroTitle 
           hasHistory={hasStoredAnalyses}
           onSelectHistory={handleSelectHistory}
         />
