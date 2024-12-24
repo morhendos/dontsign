@@ -124,7 +124,14 @@ export default function Hero() {
         )}
 
         {error && <ErrorDisplay error={error} />}
-        {analysis && <AnalysisResults analysis={analysis} />}
+        
+        {analysis && (
+          <AnalysisResults 
+            analysis={analysis} 
+            isAnalyzing={isAnalyzing}
+            stage={stage}
+          />
+        )}
 
         {entries.length > 0 && (
           <AnalysisLog 
