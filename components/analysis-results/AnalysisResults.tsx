@@ -3,19 +3,31 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle, AlertTriangle, FileText, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { AnalysisResult } from '@/types/analysis';
 
 interface AnalysisResultsProps {
   analysis: AnalysisResult;
   onClose?: () => void;
+  isAnalyzing: boolean;
 }
 
-export function AnalysisResults({ analysis, onClose }: AnalysisResultsProps) {
+export function AnalysisResults({ analysis, onClose, isAnalyzing }: AnalysisResultsProps) {
   const [stage, setStage] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [isWidthExpanded, setIsWidthExpanded] = useState(false);
+  const [shouldStartAnimation, setShouldStartAnimation] = useState(false);
 
   useEffect(() => {
+    // Wait for analysis to complete before showing
+    if (!isAnalyzing) {
+      setShouldStartAnimation(true);
+    }
+  }, [isAnalyzing]);
+
+  useEffect(() => {
+    if (!shouldStartAnimation) return;
+
     // Start animation sequence
     const sequence = async () => {
       // Show container
@@ -31,7 +43,7 @@ export function AnalysisResults({ analysis, onClose }: AnalysisResultsProps) {
     };
 
     sequence();
-  }, []);
+  }, [shouldStartAnimation]);
 
   const startContentSequence = () => {
     const interval = setInterval(() => {
@@ -73,6 +85,8 @@ export function AnalysisResults({ analysis, onClose }: AnalysisResultsProps) {
     }
   ];
 
+  if (!shouldStartAnimation) return null;
+
   return (
     <div 
       className={cn(
@@ -84,18 +98,18 @@ export function AnalysisResults({ analysis, onClose }: AnalysisResultsProps) {
     >
       <div 
         className={cn(
-          'bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden',
+          'absolute inset-4 max-h-[90vh] flex flex-col',
+          'bg-white dark:bg-gray-800 rounded-xl shadow-2xl',
           'transition-all duration-500 ease-out',
-          'mx-4 min-h-[4rem]',
-          isWidthExpanded ? 'w-full max-w-3xl' : 'w-64',
+          isWidthExpanded ? 'w-full max-w-3xl mx-auto' : 'w-64 mx-auto',
           isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
         )}
       >
-        <div 
+        <ScrollArea
           className={cn(
-            'transition-all duration-500 ease-out',
+            'flex-1 transition-all duration-500 ease-out',
             'origin-top',
-            isWidthExpanded ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0'
+            isWidthExpanded ? 'opacity-100' : 'opacity-0'
           )}
         >
           <div className="p-8 space-y-6">
@@ -136,7 +150,7 @@ export function AnalysisResults({ analysis, onClose }: AnalysisResultsProps) {
               </div>
             ))}
           </div>
-        </div>
+        </ScrollArea>
       </div>
     </div>
   );
