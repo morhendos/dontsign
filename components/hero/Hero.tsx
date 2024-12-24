@@ -11,11 +11,13 @@ import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
 import AnalysisLog from '../analysis-log/AnalysisLog';
 import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
+import { FileText } from 'lucide-react';
 
 export default function Hero() {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
   const [processingStatus, setProcessingStatus] = useState<string>('');
+  const [showResults, setShowResults] = useState(true);
 
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
@@ -84,6 +86,7 @@ export default function Hero() {
   const handleAnalyzeWithLogReset = async (file: File | null) => {
     clearEntries();
     showLogWithAutoHide();
+    setShowResults(true); // Show results when starting new analysis
     await handleAnalyze(file);
   };
 
@@ -125,11 +128,32 @@ export default function Hero() {
 
         {error && <ErrorDisplay error={error} />}
         
-        {analysis && (
+        {/* Show floating button when analysis is ready but hidden */}
+        {analysis && !showResults && stage === 'complete' && !isAnalyzing && (
+          <button
+            onClick={() => setShowResults(true)}
+            className={`
+              fixed bottom-4 right-4 z-40
+              bg-white dark:bg-gray-800
+              shadow-lg rounded-full p-3
+              text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white
+              border border-gray-200 dark:border-gray-700
+              transition-all duration-200
+              flex items-center gap-2
+              hover:shadow-xl
+            `}
+          >
+            <FileText className="w-5 h-5" />
+            <span>Show Analysis</span>
+          </button>
+        )}
+        
+        {analysis && showResults && (
           <AnalysisResults 
             analysis={analysis} 
             isAnalyzing={isAnalyzing}
             stage={stage}
+            onClose={() => setShowResults(false)}
           />
         )}
 
