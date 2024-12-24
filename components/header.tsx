@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/logo/Logo";
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { useEffect, useState } from "react";
 
 export default function Header() {
@@ -16,21 +17,16 @@ export default function Header() {
       setIsScrolled(scrollPosition > 20);
     };
 
-    // Add scroll event listener
     window.addEventListener('scroll', handleScroll);
-
-    // Cleanup
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, anchor: string) => {
     e.preventDefault();
     
-    // If we're not on the main page, navigate there first
     if (pathname !== '/') {
       router.push(`/${anchor}`);
     } else {
-      // If we're already on main page, just scroll to the element
       const element = document.querySelector(anchor);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
@@ -67,29 +63,36 @@ export default function Header() {
             ${isScrolled ? 'h-6 md:h-7' : 'h-7 md:h-8'}
           `} />
         </Link>
-        <div className="space-x-6 flex items-center">
-          <a
-            href="#how-it-works"
-            onClick={(e) => handleAnchorClick(e, '#how-it-works')}
-            className="
-              transition-colors duration-200
-              text-gray-600 hover:text-gray-800 
-              dark:text-gray-300 dark:hover:text-gray-100
-            "
-          >
-            How it Works
-          </a>
-          <a
-            href="#key-features"
-            onClick={(e) => handleAnchorClick(e, '#key-features')}
-            className="
-              transition-colors duration-200
-              text-gray-600 hover:text-gray-800 
-              dark:text-gray-300 dark:hover:text-gray-100
-            "
-          >
-            Key Features
-          </a>
+
+        <div className="flex items-center space-x-8">
+          <div className="hidden md:flex space-x-6">
+            <a
+              href="#how-it-works"
+              onClick={(e) => handleAnchorClick(e, '#how-it-works')}
+              className="
+                transition-colors duration-200
+                text-gray-600 hover:text-gray-800 
+                dark:text-gray-300 dark:hover:text-gray-100
+              "
+            >
+              How it Works
+            </a>
+            <a
+              href="#key-features"
+              onClick={(e) => handleAnchorClick(e, '#key-features')}
+              className="
+                transition-colors duration-200
+                text-gray-600 hover:text-gray-800 
+                dark:text-gray-300 dark:hover:text-gray-100
+              "
+            >
+              Key Features
+            </a>
+          </div>
+          
+          <div className="border-l pl-6 border-gray-200 dark:border-gray-700">
+            <ThemeToggle />
+          </div>
         </div>
       </nav>
     </header>
