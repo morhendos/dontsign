@@ -5,25 +5,31 @@ import { CheckCircle, AlertTriangle, FileText, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { AnalysisResult } from '@/types/analysis';
+import type { AnalysisStage } from '@/components/hero/hooks/useContractAnalysis';
 
 interface AnalysisResultsProps {
   analysis: AnalysisResult;
   onClose?: () => void;
   isAnalyzing: boolean;
+  stage: AnalysisStage;
 }
 
-export function AnalysisResults({ analysis, onClose, isAnalyzing }: AnalysisResultsProps) {
-  const [stage, setStage] = useState(0);
+export function AnalysisResults({ analysis, onClose, isAnalyzing, stage }: AnalysisResultsProps) {
+  const [animationStage, setAnimationStage] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [isWidthExpanded, setIsWidthExpanded] = useState(false);
   const [shouldStartAnimation, setShouldStartAnimation] = useState(false);
 
   useEffect(() => {
-    // Wait for analysis to complete before showing
-    if (!isAnalyzing) {
-      setShouldStartAnimation(true);
+    // Wait for analysis to be completely finished
+    if (!isAnalyzing && stage === 'complete') {
+      // Add a small delay to ensure all data is ready
+      const timer = setTimeout(() => {
+        setShouldStartAnimation(true);
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [isAnalyzing]);
+  }, [isAnalyzing, stage]);
 
   useEffect(() => {
     if (!shouldStartAnimation) return;
@@ -47,7 +53,7 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing }: AnalysisResu
 
   const startContentSequence = () => {
     const interval = setInterval(() => {
-      setStage(prev => {
+      setAnimationStage(prev => {
         if (prev < 4) { // 4 sections total
           return prev + 1;
         }
@@ -85,6 +91,7 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing }: AnalysisResu
     }
   ];
 
+  // Don't render anything until we're ready to start animations
   if (!shouldStartAnimation) return null;
 
   return (
@@ -119,7 +126,7 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing }: AnalysisResu
                 className={cn(
                   'transition-all duration-300',
                   'origin-top',
-                  index <= stage 
+                  index <= animationStage 
                     ? 'scale-y-100 opacity-100' 
                     : 'scale-y-0 opacity-0 h-0'
                 )}
