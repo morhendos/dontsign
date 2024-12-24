@@ -106,6 +106,7 @@ export const useFileHandler = ({
       setFile(selectedFile);
       setError(null);
       onStatusUpdate?.('File ready for analysis!', 2000);
+      
       // Mark the last entry as complete
       requestAnimationFrame(() => {
         onEntryComplete?.();
