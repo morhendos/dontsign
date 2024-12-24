@@ -1,11 +1,14 @@
 'use client';
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/logo/Logo";
 import { useEffect, useState } from "react";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +22,21 @@ export default function Header() {
     // Cleanup
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, anchor: string) => {
+    e.preventDefault();
+    
+    // If we're not on the main page, navigate there first
+    if (pathname !== '/') {
+      router.push(`/${anchor}`);
+    } else {
+      // If we're already on main page, just scroll to the element
+      const element = document.querySelector(anchor);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   return (
     <header 
@@ -50,28 +68,28 @@ export default function Header() {
           `} />
         </Link>
         <div className="space-x-6 flex items-center">
-          <Link
+          <a
             href="#how-it-works"
-            className={`
+            onClick={(e) => handleAnchorClick(e, '#how-it-works')}
+            className="
               transition-colors duration-200
               text-gray-600 hover:text-gray-800 
               dark:text-gray-300 dark:hover:text-gray-100
-              ${isScrolled ? 'text-sm' : 'text-base'}
-            `}
+            "
           >
             How it Works
-          </Link>
-          <Link
+          </a>
+          <a
             href="#key-features"
-            className={`
+            onClick={(e) => handleAnchorClick(e, '#key-features')}
+            className="
               transition-colors duration-200
               text-gray-600 hover:text-gray-800 
               dark:text-gray-300 dark:hover:text-gray-100
-              ${isScrolled ? 'text-sm' : 'text-base'}
-            `}
+            "
           >
             Key Features
-          </Link>
+          </a>
         </div>
       </nav>
     </header>
