@@ -116,6 +116,20 @@ export default function Hero() {
     setShowResults(true);
   };
 
+  // Show Analysis button should only appear when:
+  // 1. We have an analysis (current or stored)
+  // 2. Results are currently hidden
+  // 3. Analysis is complete and not analyzing
+  // 4. Log panel is not visible
+  // 5. No errors are present
+  const shouldShowAnalysisButton = 
+    (analysis || currentStoredAnalysis) && 
+    !showResults && 
+    stage === 'complete' && 
+    !isAnalyzing && 
+    !showLog &&
+    !error;
+
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-5xl mx-auto">
@@ -163,8 +177,8 @@ export default function Hero() {
 
         {error && <ErrorDisplay error={error} />}
         
-        {/* Show floating button when analysis is ready but hidden */}
-        {(analysis || currentStoredAnalysis) && !showResults && stage === 'complete' && !isAnalyzing && (
+        {/* Show floating button only when log panel is not visible */}
+        {shouldShowAnalysisButton && (
           <button
             onClick={() => setShowResults(true)}
             className={`
