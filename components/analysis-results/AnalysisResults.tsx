@@ -4,130 +4,116 @@ import { useEffect, useState } from 'react';
 import { CheckCircle, AlertTriangle, FileText, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AnalysisResult } from '@/types/analysis';
-import { AnalysisSection } from './AnalysisSection';
 
 interface AnalysisResultsProps {
   analysis: AnalysisResult;
 }
 
+function DelayedText({ text, onComplete }: { text: string, onComplete?: () => void }) {
+  const [displayText, setDisplayText] = useState('');
+  
+  useEffect(() => {
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      if (currentIndex < text.length) {
+        setDisplayText(prev => prev + text[currentIndex]);
+        currentIndex++;
+      } else {
+        clearInterval(interval);
+        onComplete?.();
+      }
+    }, 20); // Speed of text appearing
+    
+    return () => clearInterval(interval);
+  }, [text, onComplete]);
+
+  return displayText;
+}
+
 export function AnalysisResults({ analysis }: AnalysisResultsProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [activeSection, setActiveSection] = useState(0);
+  const [stage, setStage] = useState(0);
+  const [showContainer, setShowContainer] = useState(false);
 
   useEffect(() => {
     // Start the entrance animation
-    const timer = setTimeout(() => setIsVisible(true), 100);
-    return () => clearTimeout(timer);
+    setTimeout(() => setShowContainer(true), 100);
   }, []);
 
-  useEffect(() => {
-    // Progressively reveal sections
-    if (isVisible && activeSection < 5) { // 5 sections total
-      const timer = setTimeout(() => setActiveSection(prev => prev + 1), 400);
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible, activeSection]);
-
-  const sections = [
+  // Mock stages for demonstration
+  const stages = [
     {
-      id: 'summary',
-      content: (
-        <div className="px-6 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
-          <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Analysis Summary</h2>
-          <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">{analysis.summary}</p>
-        </div>
-      )
+      title: 'Summary',
+      text: 'We have analyzed your contract and found several key points that require attention.'
     },
     {
-      id: 'keyTerms',
-      content: (
-        <AnalysisSection 
-          title="Key Terms"
-          items={analysis.keyTerms}
-          icon={<CheckCircle className="w-5 h-5 text-blue-500 dark:text-blue-400" />}
-        />
-      )
+      title: 'Key Terms',
+      items: ['Payment terms: Net 30', 'Contract duration: 12 months', 'Auto-renewal clause included']
     },
     {
-      id: 'risks',
-      content: (
-        <AnalysisSection 
-          title="Potential Risks"
-          items={analysis.potentialRisks}
-          icon={<AlertTriangle className="w-5 h-5 text-red-500 dark:text-red-400" />}
-        />
-      )
+      title: 'Potential Risks',
+      items: ['Late payment penalties', 'Early termination fees', 'Unlimited liability clause']
     },
     {
-      id: 'clauses',
-      content: (
-        <AnalysisSection 
-          title="Important Clauses"
-          items={analysis.importantClauses}
-          icon={<FileText className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
-        />
-      )
-    },
-    {
-      id: 'recommendations',
-      content: (
-        <AnalysisSection 
-          title="Recommendations"
-          items={analysis.recommendations}
-          icon={<Clock className="w-5 h-5 text-green-500 dark:text-green-400" />}
-        />
-      )
+      title: 'Recommendations',
+      items: ['Review payment terms', 'Consider liability limits', 'Check renewal conditions']
     }
   ];
 
+  const advanceStage = () => {
+    if (stage < stages.length - 1) {
+      setStage(prev => prev + 1);
+    }
+  };
+
   return (
-    <div 
-      className={cn(
-        'fixed inset-0 z-40 overflow-hidden bg-black/20 backdrop-blur-sm',
-        'transition-opacity duration-500',
-        isVisible ? 'opacity-100' : 'opacity-0',
-        !isVisible && 'pointer-events-none'
-      )}
-    >
-      <div className="absolute inset-0" onClick={() => setIsVisible(false)} />
-      <div
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-sm">
+      <div 
         className={cn(
-          'absolute right-0 h-full w-full max-w-3xl bg-gray-50 dark:bg-gray-900 shadow-2xl',
-          'transition-transform duration-500 ease-out',
-          'overflow-y-auto',
-          isVisible ? 'translate-x-0' : 'translate-x-full'
+          'bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden',
+          'transition-all duration-1000 ease-in-out',
+          showContainer ? 'opacity-100 scale-100' : 'opacity-0 scale-90',
+          'mx-4'
         )}
       >
-        <div className="p-8 space-y-6">
-          {sections.map((section, index) => (
-            <div
-              key={section.id}
+        <div className="p-6 space-y-4">
+          {stages.slice(0, stage + 1).map((s, index) => (
+            <div 
+              key={index}
               className={cn(
-                'transition-all duration-500 ease-out',
-                index <= activeSection
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 translate-y-4'
+                'transition-all duration-500',
+                index === stage ? 'animate-in fade-in slide-in-from-bottom-4' : ''
               )}
             >
-              {section.content}
+              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
+                {s.title}
+              </h3>
+              
+              {'text' in s ? (
+                <p className="text-gray-700 dark:text-gray-300">
+                  <DelayedText 
+                    text={s.text} 
+                    onComplete={advanceStage}
+                  />
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {s.items.map((item, itemIndex) => (
+                    <li 
+                      key={itemIndex}
+                      className={cn(
+                        'text-gray-700 dark:text-gray-300',
+                        'animate-in fade-in slide-in-from-right-4',
+                      )}
+                      style={{ animationDelay: `${itemIndex * 500}ms` }}
+                      onAnimationEnd={itemIndex === s.items.length - 1 ? advanceStage : undefined}
+                    >
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ))}
-
-          {/* Metadata - appears last */}
-          {activeSection >= sections.length && analysis.metadata && (
-            <div 
-              className={cn(
-                'px-6 py-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm text-gray-500 dark:text-gray-400 space-y-1',
-                'transition-all duration-500 ease-out',
-                'opacity-0 translate-y-4 animate-in fade-in slide-in-from-bottom-4'
-              )}
-            >
-              <p>Analysis completed on: {new Date(analysis.metadata.analyzedAt).toLocaleString()}</p>
-              {analysis.metadata.totalChunks && (
-                <p>Document sections analyzed: {analysis.metadata.totalChunks}</p>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
