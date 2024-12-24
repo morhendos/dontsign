@@ -83,9 +83,8 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({
     <div 
       ref={containerRef}
       className={cn(
-        'fixed right-4 z-50',
+        'fixed bottom-4 right-4 z-50', // Changed from top to bottom positioning
         'transition-all duration-300 ease-in-out',
-        'top-1/2 -translate-y-1/2', // Center vertically
         isVisible ? 'translate-x-0 opacity-100' : 'translate-x-[120%] opacity-0'
       )}
     >
@@ -118,7 +117,7 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({
             <ScrollArea 
               className="overflow-y-auto"
               style={{
-                maxHeight: 'min(60vh, 400px)' // Limit height while keeping it responsive
+                maxHeight: 'min(40vh, 300px)' // Reduced max height to work better with bottom positioning
               }}
             >
               <div className="py-1 px-2 space-y-1" ref={scrollRef}>
