@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/logo/Logo";
 import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { ClipboardList } from 'lucide-react';
 import { useEffect, useState } from "react";
 
 export default function Header() {
@@ -90,8 +91,22 @@ export default function Header() {
             </a>
           </div>
           
-          <div className="border-l border-gray-200 dark:border-gray-700 pl-6 -mr-2">
-            <ThemeToggle />
+          <div className="
+            flex items-center border-l border-gray-200 dark:border-gray-700 pl-6 space-x-6
+          ">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('toggleLog'))}
+              className="
+                text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100
+                transition-colors duration-200
+              "
+              aria-label="Toggle analysis log"
+            >
+              <ClipboardList className="h-5 w-5" />
+            </button>
+            <div className="-mr-2">
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </nav>
