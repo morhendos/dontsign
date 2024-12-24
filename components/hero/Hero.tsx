@@ -9,15 +9,25 @@ import { AnalysisButton } from '../contract-analysis/AnalysisButton';
 import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
+import { AnalysisHistory } from '../analysis-history/AnalysisHistory';
 import AnalysisLog from '../analysis-log/AnalysisLog';
 import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 import { FileText } from 'lucide-react';
+import { saveAnalysis, getStoredAnalyses, type StoredAnalysis } from '@/lib/storage';
 
 export default function Hero() {
   // Status message handling
   const timeoutRef = useRef<NodeJS.Timeout>();
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const [showResults, setShowResults] = useState(true);
+  const [currentStoredAnalysis, setCurrentStoredAnalysis] = useState<StoredAnalysis | null>(null);
+  const [hasStoredAnalyses, setHasStoredAnalyses] = useState(false);
+
+  // Check for stored analyses on mount
+  useEffect(() => {
+    const analyses = getStoredAnalyses();
+    setHasStoredAnalyses(analyses.length > 0);
+  }, []);
 
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
@@ -72,6 +82,15 @@ export default function Hero() {
     onEntryComplete: () => updateLastEntry('complete')
   });
 
+  // Store analysis when complete
+  useEffect(() => {
+    if (analysis && !isAnalyzing && stage === 'complete' && file) {
+      const stored = saveAnalysis(file.name, analysis);
+      setCurrentStoredAnalysis(stored);
+      setHasStoredAnalyses(true);
+    }
+  }, [analysis, isAnalyzing, stage, file]);
+
   // Combined error state (file error takes precedence)
   const error = fileError || analysisError;
 
@@ -86,19 +105,35 @@ export default function Hero() {
   const handleAnalyzeWithLogReset = async (file: File | null) => {
     clearEntries();
     showLogWithAutoHide();
-    setShowResults(true); // Show results when starting new analysis
+    setShowResults(true);
+    setCurrentStoredAnalysis(null);
     await handleAnalyze(file);
+  };
+
+  // Handle selecting a stored analysis
+  const handleSelectStoredAnalysis = (stored: StoredAnalysis) => {
+    setCurrentStoredAnalysis(stored);
+    setShowResults(true);
   };
 
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-5xl font-bold mb-6 tracking-tight text-gray-900 dark:text-white text-center">
-          Don't Sign Until<br />You're Sure
-        </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 max-w-2xl mx-auto text-center">
-          Upload your contract, let AI highlight the risks and key terms.
-        </p>
+        <div className="flex flex-col items-center mb-12 relative">
+          <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-white text-center mb-4">
+            Don't Sign Until<br />You're Sure
+          </h1>
+
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl text-center">
+            Upload your contract, let AI highlight the risks and key terms.
+          </p>
+
+          {hasStoredAnalyses && (
+            <div className="absolute right-0 top-0">
+              <AnalysisHistory onSelect={handleSelectStoredAnalysis} />
+            </div>
+          )}
+        </div>
 
         <FileUploadArea 
           file={file}
@@ -129,7 +164,7 @@ export default function Hero() {
         {error && <ErrorDisplay error={error} />}
         
         {/* Show floating button when analysis is ready but hidden */}
-        {analysis && !showResults && stage === 'complete' && !isAnalyzing && (
+        {(analysis || currentStoredAnalysis) && !showResults && stage === 'complete' && !isAnalyzing && (
           <button
             onClick={() => setShowResults(true)}
             className={`
@@ -148,9 +183,9 @@ export default function Hero() {
           </button>
         )}
         
-        {analysis && showResults && (
+        {((analysis && showResults) || (currentStoredAnalysis && showResults)) && (
           <AnalysisResults 
-            analysis={analysis} 
+            analysis={currentStoredAnalysis?.analysis || analysis!} 
             isAnalyzing={isAnalyzing}
             stage={stage}
             onClose={() => setShowResults(false)}
