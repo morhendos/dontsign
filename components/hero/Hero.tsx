@@ -26,13 +26,19 @@ export default function Hero() {
     setHasStoredAnalyses(analyses.length > 0);
   }, []);
 
-  // Status management
-  const { setStatusWithTimeout } = useStatusManager({
-    onStatusUpdate: setProcessingStatus
-  });
-
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
+
+  // Status management
+  const { setStatusWithTimeout } = useStatusManager({
+    onStatusUpdate: (status: string) => {
+      setProcessingStatus(status);
+      if (status) {
+        addEntry(status);
+      }
+    }
+  });
+
   const {
     isVisible: showLog,
     onVisibilityChange: handleVisibilityChange,
@@ -74,7 +80,7 @@ export default function Hero() {
     }
   }, [analysis, isAnalyzing, stage, file]);
 
-  // Combined error state (file error takes precedence)
+  // Combined error state
   const error = fileError || analysisError;
 
   // Update log entry status when error occurs

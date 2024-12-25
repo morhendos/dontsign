@@ -60,13 +60,19 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
       variant={variant}
       className={cn(
         "mt-4",
-        variant === 'default' && "border-yellow-200 bg-yellow-50 text-yellow-900 dark:border-yellow-900/50 dark:bg-yellow-900/20 dark:text-yellow-200",
-        variant === 'destructive' && "border-red-200 bg-red-50 text-red-900 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-200"
+        variant === 'default' && "border-yellow-200 bg-yellow-50 text-yellow-900 [&>svg]:text-yellow-900 dark:border-yellow-900/50 dark:bg-yellow-900/10 dark:text-yellow-100 dark:[&>svg]:text-yellow-100",
+        variant === 'destructive' && "border-red-200 bg-red-50 text-red-900 [&>svg]:text-red-900 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-100 dark:[&>svg]:text-red-100"
       )}
     >
       <Icon className="h-4 w-4" />
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription>{description}</AlertDescription>
+      <AlertTitle className={cn(
+        variant === 'default' && "text-yellow-900 dark:text-yellow-100",
+        variant === 'destructive' && "text-red-900 dark:text-red-100"
+      )}>{title}</AlertTitle>
+      <AlertDescription className={cn(
+        variant === 'default' && "text-yellow-800/90 dark:text-yellow-100/90",
+        variant === 'destructive' && "text-red-800/90 dark:text-red-100/90"
+      )}>{description}</AlertDescription>
     </Alert>
   );
 }

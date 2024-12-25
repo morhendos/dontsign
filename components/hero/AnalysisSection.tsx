@@ -96,6 +96,7 @@ export const AnalysisSection = ({
           isAnalyzing={isAnalyzing}
           stage={stage}
           progress={progress}
+          currentStatus={processingStatus}
         />
       )}
 
