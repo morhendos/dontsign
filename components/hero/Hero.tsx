@@ -28,7 +28,10 @@ export default function Hero() {
 
   // Status management
   const { setStatusWithTimeout } = useStatusManager({
-    onStatusUpdate: setProcessingStatus
+    onStatusUpdate: (status) => {
+      setProcessingStatus(status);
+      addEntry({ message: status, status: 'active' });
+    }
   });
 
   // Analysis log handling
@@ -74,7 +77,7 @@ export default function Hero() {
     }
   }, [analysis, isAnalyzing, stage, file]);
 
-  // Combined error state (file error takes precedence)
+  // Combined error state
   const error = fileError || analysisError;
 
   // Update log entry status when error occurs
@@ -99,12 +102,7 @@ export default function Hero() {
     setShowResults(true);
   };
 
-  // Show Analysis button should only appear when:
-  // 1. We have an analysis (current or stored)
-  // 2. Results are currently hidden
-  // 3. Analysis is complete and not analyzing
-  // 4. Log panel is not visible
-  // 5. No errors are present
+  // Show Analysis button conditions
   const shouldShowAnalysisButton = Boolean(
     (analysis || currentStoredAnalysis) && 
     !showResults && 
