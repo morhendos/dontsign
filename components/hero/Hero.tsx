@@ -105,13 +105,14 @@ export default function Hero() {
   // 3. Analysis is complete and not analyzing
   // 4. Log panel is not visible
   // 5. No errors are present
-  const shouldShowAnalysisButton = 
+  const shouldShowAnalysisButton = Boolean(
     (analysis || currentStoredAnalysis) && 
     !showResults && 
     stage === 'complete' && 
     !isAnalyzing && 
     !showLog &&
-    !error;
+    !error
+  );
 
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
