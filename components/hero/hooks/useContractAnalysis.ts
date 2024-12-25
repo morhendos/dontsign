@@ -30,32 +30,56 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<AnalysisStage>('preprocessing');
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
-
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log('[State] Progress:', progress);
-  }, [progress]);
+  const updateQueue = useRef<AnalysisStreamResponse[]>([]);
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
-    console.log('[State] Stage:', stage);
-  }, [stage]);
+    const processQueue = async () => {
+      if (isProcessingRef.current || updateQueue.current.length === 0) return;
+      isProcessingRef.current = true;
 
-  const processStreamUpdate = (data: AnalysisStreamResponse) => {
-    console.log('[Stream] Received update:', data);
+      try {
+        const update = updateQueue.current[0];
+        console.log('[Queue] Processing:', update);
 
-    if (data.progress !== undefined) {
-      console.log('[Stream] Setting progress:', data.progress);
-      setProgress(data.progress);
+        if (update.progress !== undefined) {
+          setProgress(update.progress);
+          console.log('[State] Progress set to:', update.progress);
+        }
+        if (update.stage) {
+          setStage(update.stage);
+          console.log('[State] Stage set to:', update.stage);
+        }
+        if (update.activity) {
+          onStatusUpdate?.(update.activity);
+          console.log('[State] Activity set to:', update.activity);
+        }
+
+        // Wait for state to update
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        updateQueue.current.shift();
+      } finally {
+        isProcessingRef.current = false;
+        if (updateQueue.current.length > 0) {
+          processQueue();
+        }
+      }
+    };
+
+    if (updateQueue.current.length > 0) {
+      processQueue();
     }
+  }, [onStatusUpdate]);
 
-    if (data.stage) {
-      console.log('[Stream] Setting stage:', data.stage);
-      setStage(data.stage);
-    }
-
-    if (data.activity) {
-      console.log('[Stream] Setting activity:', data.activity);
-      onStatusUpdate?.(data.activity);
+  const queueUpdate = (data: AnalysisStreamResponse) => {
+    console.log('[Queue] Adding:', data);
+    updateQueue.current.push(data);
+    if (!isProcessingRef.current) {
+      requestAnimationFrame(() => {
+        if (updateQueue.current.length > 0) {
+          processQueue();
+        }
+      });
     }
   };
 
@@ -65,7 +89,6 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       return;
     }
 
-    console.log('[Analysis] Starting analysis...');
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
@@ -73,14 +96,10 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
     setStage('preprocessing');
     onStatusUpdate?.('Starting document processing...');
 
-    const startTime = Date.now();
-    trackAnalysisStart(file.type);
-
     try {
       let text: string;
       if (file.type === 'application/pdf') {
         text = await readPdfText(file, (progress) => {
-          console.log('[PDF] Setting progress:', progress);
           setProgress(progress);
           if (progress <= 2) onStatusUpdate?.('Reading document...');
           else if (progress <= 3) onStatusUpdate?.('Preparing document...');
@@ -93,12 +112,11 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
 
       onStatusUpdate?.('Initializing AI analysis...');
       setProgress(10);
-      
+
       const formData = new FormData();
       formData.append('text', text);
       formData.append('filename', file.name);
 
-      console.log('[Analysis] Making API request...');
       const response = await fetch('/api/analyze', { method: 'POST', body: formData });
       if (!response.body) throw new Error('No response body');
 
@@ -107,56 +125,48 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       const decoder = new TextDecoder();
       let buffer = '';
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
+        console.log('[Stream] Processing lines:', lines);
+        
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
+            console.log('[Stream] Parsed data:', data);
             
-            try {
-              const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
-              console.log('[Stream] Parsed data:', data);
-
-              if (data.type === 'complete' && data.result) {
-                processStreamUpdate({ 
-                  type: 'progress', 
-                  progress: 100, 
-                  stage: 'complete',
-                  activity: 'Analysis complete!' 
-                });
-                onEntryComplete?.();
-                setAnalysis(data.result);
-                trackAnalysisComplete(file.type, (Date.now() - startTime) / 1000);
-                break;
-              } else if (data.type === 'error') {
-                throw new Error(data.error);
-              } else {
-                processStreamUpdate(data);
-              }
-
-              // Force React state updates
-              await new Promise(resolve => requestAnimationFrame(resolve));
-            } catch (e) {
-              console.error('[Stream] Error processing update:', e);
-              throw e;
+            if (data.type === 'complete' && data.result) {
+              queueUpdate({ 
+                type: 'progress', 
+                progress: 100, 
+                stage: 'complete',
+                activity: 'Analysis complete!' 
+              });
+              setAnalysis(data.result);
+              break;
+            } else if (data.type === 'error') {
+              throw new Error(data.error);
+            } else {
+              queueUpdate(data);
             }
+          } catch (e) {
+            console.error('[Stream] Parse error:', e);
+            throw e;
           }
         }
-      } finally {
-        readerRef.current = null;
       }
     } catch (error) {
       console.error('[Analysis] Error:', error);
       handleAnalysisError(error);
     } finally {
+      readerRef.current = null;
       setIsAnalyzing(false);
-      console.log('[Analysis] Complete');
     }
   };
 
