@@ -5,13 +5,6 @@ import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors';
 import { trackAnalysisStart, trackAnalysisComplete, trackError } from '@/lib/analytics-events';
 import type { AnalysisResult, ErrorDisplay } from '@/types/analysis';
 
-export type AnalysisStage = 'preprocessing' | 'analyzing' | 'complete';
-
-interface UseContractAnalysisProps {
-  onStatusUpdate?: (status: string, duration?: number) => void;
-  onEntryComplete?: () => void;
-}
-
 interface AnalysisStreamResponse {
   type: 'update' | 'complete' | 'error';
   progress?: number;
@@ -20,6 +13,14 @@ interface AnalysisStreamResponse {
   totalChunks?: number;
   result?: AnalysisResult;
   error?: string;
+  activity?: string;
+}
+
+export type AnalysisStage = 'preprocessing' | 'analyzing' | 'complete';
+
+interface UseContractAnalysisProps {
+  onStatusUpdate?: (status: string, duration?: number) => void;
+  onEntryComplete?: () => void;
 }
 
 export const useContractAnalysis = ({ 
@@ -32,7 +33,7 @@ export const useContractAnalysis = ({
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<AnalysisStage>('preprocessing');
   const lastStatus = useRef<string>('');
-  
+
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
 
   useEffect(() => {
@@ -127,12 +128,6 @@ export const useContractAnalysis = ({
         }
       });
 
-      const requestSpan = transaction.startChild({
-        op: 'api_request',
-        description: 'Make request to analysis service'
-      });
-
-      updateStatus('Starting document analysis...');
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData
@@ -141,12 +136,6 @@ export const useContractAnalysis = ({
       if (!response.body) {
         throw new Error('No response body received from server');
       }
-
-      requestSpan.finish();
-      const streamSpan = transaction.startChild({
-        op: 'stream_processing',
-        description: 'Process analysis stream'
-      });
 
       const reader = response.body.getReader();
       readerRef.current = reader;
@@ -172,30 +161,13 @@ export const useContractAnalysis = ({
                 if (data.progress) setProgress(data.progress);
                 if (data.stage) setStage(data.stage);
 
-                Sentry.addBreadcrumb({
-                  category: 'analysis',
-                  message: `Analysis update received`,
-                  level: 'info',
-                  data: {
-                    type: data.type,
-                    stage: data.stage,
-                    progress: data.progress,
-                    currentChunk: data.currentChunk,
-                    totalChunks: data.totalChunks
-                  }
-                });
-
-                if (data.stage === 'analyzing' && data.currentChunk && data.totalChunks) {
-                  if (data.progress >= 90) {
-                    updateStatus('Merging analysis results...');
-                  } else {
-                    updateStatus(
-                      `Analyzing section ${data.currentChunk} of ${data.totalChunks}`,
-                      data.currentChunk === data.totalChunks ? undefined : 5000
-                    );
-                  }
-                } else if (data.stage === 'complete') {
-                  updateStatus('Analysis complete!');
+                if (data.activity) {
+                  updateStatus(data.activity);
+                } else if (data.stage === 'analyzing' && data.currentChunk && data.totalChunks) {
+                  updateStatus(
+                    `Analyzing section ${data.currentChunk} of ${data.totalChunks}`,
+                    data.currentChunk === data.totalChunks ? undefined : 5000
+                  );
                 }
 
                 if (data.currentChunk && data.totalChunks) {
@@ -243,7 +215,6 @@ export const useContractAnalysis = ({
         }
       } finally {
         readerRef.current = null;
-        streamSpan.finish();
       }
 
     } catch (error) {
