@@ -1,20 +1,64 @@
-import { AlertTriangle, Clock } from 'lucide-react';
-import type { ErrorDisplay as ErrorDisplayType } from '@/types/analysis';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, Clock, Ban, AlertTriangle, ServerCrash } from 'lucide-react';
 
 interface ErrorDisplayProps {
-  error: ErrorDisplayType;
+  error: any;
 }
 
 export function ErrorDisplay({ error }: ErrorDisplayProps) {
+  // Default error state
+  let title = 'Error';
+  let description = 'An unexpected error occurred. Please try again.';
+  let icon = AlertCircle;
+  let variant: 'default' | 'destructive' | 'warning' = 'destructive';
+
+  // Customize based on error type
+  switch (error?.code) {
+    case 'CIRCUIT_BREAKER_OPEN':
+      title = 'Service Temporarily Unavailable';
+      description = error.clientMessage || 'Service is recovering. Please try again later.';
+      icon = Clock;
+      variant = 'warning';
+      break;
+
+    case 'RATE_LIMIT_EXCEEDED':
+      title = 'Too Many Requests';
+      description = error.clientMessage || 'Please wait a moment before trying again.';
+      icon = Ban;
+      variant = 'warning';
+      break;
+
+    case 'AI_SERVICE_ERROR':
+      title = 'AI Service Error';
+      description = error.clientMessage || 'Our AI service is currently unavailable. Please try again later.';
+      icon = ServerCrash;
+      variant = 'destructive';
+      break;
+
+    case 'ANALYSIS_TIMEOUT':
+      title = 'Analysis Timeout';
+      description = error.clientMessage || 'The analysis took too long. Please try with a shorter document.';
+      icon = Clock;
+      variant = 'warning';
+      break;
+
+    case 'INVALID_INPUT':
+      title = 'Invalid Input';
+      description = error.message || 'Please check your input and try again.';
+      icon = AlertTriangle;
+      variant = 'warning';
+      break;
+
+    // Add more error types as needed
+  }
+
+  const Icon = icon;
+
   return (
-    <div className={`mt-4 p-4 rounded-lg text-center flex items-center justify-center gap-2
-      ${error.type === 'error' ? 
-        'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' : 
-        'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400'}`}>
-      {error.type === 'error' ? 
-        <AlertTriangle className="w-5 h-5" /> : 
-        <Clock className="w-5 h-5" />}
-      {error.message}
-    </div>
+    <Alert variant={variant} className="mt-4">
+      <Icon className="h-4 w-4" />
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription>{description}</AlertDescription>
+    </Alert>
   );
 }
