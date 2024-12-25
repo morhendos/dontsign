@@ -104,6 +104,10 @@ export async function analyzeContract(formData: FormData): Promise<{
       currentChunk: 0
     };
 
+    // Distribute progress from 15% to 90% across chunks
+    const progressPerBatch = 75 / Math.ceil(chunks.length / BATCH_SIZE);
+    let currentProgress = 15;
+
     // Process chunks in batches
     for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
       const batchChunks = chunks.slice(i, i + BATCH_SIZE);
@@ -112,17 +116,25 @@ export async function analyzeContract(formData: FormData): Promise<{
       results.push(...batchResults);
       metadata.currentChunk = Math.min(i + BATCH_SIZE, chunks.length);
 
-      // This will make the progress updates available to the client
-      // through the streaming response
+      // Update progress
+      currentProgress += progressPerBatch;
       console.log(JSON.stringify({ 
         type: 'progress',
         current: metadata.currentChunk,
-        total: metadata.totalChunks
+        total: metadata.totalChunks,
+        progress: Math.min(Math.round(currentProgress), 90)
       }));
     }
 
-    // Merge all results
+    // Final merge counts as last 10%
     const aiSummaries = results.map(r => r.summary).join('\n');
+    console.log(JSON.stringify({ 
+      type: 'progress',
+      current: metadata.totalChunks,
+      total: metadata.totalChunks,
+      progress: 95
+    }));
+
     const finalAnalysis = {
       summary: `Analysis complete. Found ${results.length} key sections.\n\n\nDetailed Analysis:\n${aiSummaries}`,
       keyTerms: [...new Set(results.flatMap(r => r.keyTerms))],
@@ -131,6 +143,11 @@ export async function analyzeContract(formData: FormData): Promise<{
       recommendations: [...new Set(results.flatMap(r => r.recommendations || []))],
       metadata
     };
+
+    console.log(JSON.stringify({ 
+      type: 'progress',
+      progress: 100
+    }));
 
     return finalAnalysis;
 
