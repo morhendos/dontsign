@@ -13,7 +13,7 @@ interface UseContractAnalysisProps {
 }
 
 interface AnalysisStreamResponse {
-  type: 'update' | 'complete' | 'error';
+  type: 'progress' | 'complete' | 'error';
   progress?: number;
   stage?: AnalysisStage;
   currentChunk?: number;
@@ -29,7 +29,6 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
   const [error, setError] = useState<ErrorDisplay | null>(null);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<AnalysisStage>('preprocessing');
-
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
 
   useEffect(() => {
@@ -38,34 +37,13 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
     };
   }, []);
 
-  const processServerUpdate = (data: AnalysisStreamResponse) => {
-    // First update state
-    if (data.progress !== undefined) setProgress(prev => {
-      // Only update if new progress is higher
-      return data.progress! > prev ? data.progress! : prev;
-    });
+  const processStreamUpdate = async (data: AnalysisStreamResponse) => {
+    if (data.progress !== undefined) setProgress(data.progress);
     if (data.stage) setStage(data.stage);
+    if (data.activity) onStatusUpdate?.(data.activity);
 
-    // Then update status message
-    if (data.activity) {
-      requestAnimationFrame(() => {
-        onStatusUpdate?.(data.activity);
-      });
-    }
-
-    // Finally update metadata if available
-    if (data.currentChunk && data.totalChunks) {
-      setAnalysis(prev => prev && ({
-        ...prev,
-        metadata: {
-          ...prev.metadata,
-          currentChunk: data.currentChunk,
-          totalChunks: data.totalChunks,
-          stage: data.stage || 'analyzing',
-          progress: data.progress || 0
-        }
-      }));
-    }
+    // Wait for state updates to propagate
+    await new Promise(resolve => setTimeout(resolve, 0));
   };
 
   const handleAnalyze = async (file: File | null) => {
@@ -113,47 +91,49 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       const decoder = new TextDecoder();
       let buffer = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
 
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          
-          try {
-            const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
-
-            if (data.type === 'complete' && data.result) {
-              processServerUpdate({
-                type: 'update',
-                progress: 100,
-                stage: 'complete',
-                activity: 'Analysis complete!'
-              });
-              onEntryComplete?.();
-              setAnalysis(data.result);
-              trackAnalysisComplete(file.type, (Date.now() - startTime) / 1000);
-              break;
-            } else if (data.type === 'error') {
-              throw new Error(data.error);
-            } else {
-              processServerUpdate(data);
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            
+            try {
+              const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
+              if (data.type === 'complete' && data.result) {
+                await processStreamUpdate({ 
+                  type: 'progress', 
+                  progress: 100, 
+                  stage: 'complete',
+                  activity: 'Analysis complete!' 
+                });
+                onEntryComplete?.();
+                setAnalysis(data.result);
+                trackAnalysisComplete(file.type, (Date.now() - startTime) / 1000);
+                break;
+              } else if (data.type === 'error') {
+                throw new Error(data.error);
+              } else {
+                await processStreamUpdate(data);
+              }
+            } catch (e) {
+              console.error('Error processing stream update:', e);
+              throw e;
             }
-          } catch (e) {
-            console.error('Error processing server update:', e);
-            throw e;
           }
         }
+      } finally {
+        readerRef.current = null;
       }
     } catch (error) {
       console.error('Analysis error:', error);
       handleAnalysisError(error);
     } finally {
-      readerRef.current = null;
       setIsAnalyzing(false);
     }
   };
