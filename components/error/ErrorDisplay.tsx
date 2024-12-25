@@ -1,5 +1,6 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Clock, Ban, AlertTriangle, ServerCrash } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ErrorDisplayProps {
   error: any;
@@ -59,8 +60,8 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
       variant={variant}
       className={cn(
         "mt-4",
-        variant === 'default' && "border-yellow-200 bg-yellow-50 text-yellow-900",
-        variant === 'destructive' && "border-red-200 bg-red-50 text-red-900"
+        variant === 'default' && "border-yellow-200 bg-yellow-50 text-yellow-900 dark:border-yellow-900/50 dark:bg-yellow-900/20 dark:text-yellow-200",
+        variant === 'destructive' && "border-red-200 bg-red-50 text-red-900 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-200"
       )}
     >
       <Icon className="h-4 w-4" />
