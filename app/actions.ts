@@ -5,22 +5,10 @@ import { ContractAnalysisError } from "@/lib/errors";
 import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
 
-interface ProgressUpdate {
-  type: 'progress';
-  progress: number;
-  currentChunk?: number;
-  totalChunks?: number;
-  stage?: string;
-  activity?: string;
-}
-
-function sendProgress(update: Partial<ProgressUpdate>) {
-  console.log(JSON.stringify({
-    type: 'progress',
-    ...update,
-    stage: update.progress && update.progress >= 100 ? 'complete' : 
-          update.progress && update.progress <= 15 ? 'preprocessing' : 'analyzing'
-  }));
+function sendProgress(data: any) {
+  const message = `data: ${JSON.stringify(data)}\n\n`;
+  console.log('Sending progress:', message);
+  console.log(message);
 }
 
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
@@ -53,7 +41,7 @@ export async function analyzeContract(formData: FormData) {
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    sendProgress({ progress: 15, activity: "Starting AI analysis" });
+    sendProgress({ type: 'progress', progress: 15, stage: 'preprocessing', activity: "Starting AI analysis" });
 
     const results = [];
     const metadata = {
@@ -74,26 +62,32 @@ export async function analyzeContract(formData: FormData) {
       currentProgress += progressPerChunk;
 
       sendProgress({
+        type: 'progress',
         progress: Math.min(Math.round(currentProgress), 80),
         currentChunk: metadata.currentChunk,
         totalChunks: metadata.totalChunks,
+        stage: 'analyzing'
       });
     }
 
     // Merging phase (80-100%)
     const mergeSteps = [
-      { progress: 82, activity: "Merging sections" },
-      { progress: 85, activity: "Processing summaries" },
-      { progress: 88, activity: "Analyzing key terms" },
-      { progress: 91, activity: "Processing risks" },
-      { progress: 94, activity: "Reviewing clauses" },
-      { progress: 97, activity: "Finalizing recommendations" }
+      { progress: 82, activity: "Processing summaries" },
+      { progress: 85, activity: "Consolidating key terms" },
+      { progress: 88, activity: "Merging risk analysis" },
+      { progress: 91, activity: "Reviewing clauses" },
+      { progress: 94, activity: "Combining recommendations" },
+      { progress: 97, activity: "Finalizing output" }
     ];
 
     for (const step of mergeSteps) {
-      sendProgress(step);
-      // Small delay to ensure messages are processed in order
-      await new Promise(resolve => setTimeout(resolve, 100));
+      sendProgress({ 
+        type: 'progress', 
+        ...step,
+        stage: 'analyzing'
+      });
+      // Ensure messages are processed
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
 
     const finalAnalysis = {
@@ -105,7 +99,7 @@ export async function analyzeContract(formData: FormData) {
       metadata
     };
 
-    sendProgress({ progress: 100, activity: "Analysis complete" });
+    sendProgress({ type: 'progress', progress: 100, stage: 'complete', activity: "Analysis complete" });
     return finalAnalysis;
 
   } catch (error) {
