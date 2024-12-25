@@ -5,17 +5,6 @@ import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors';
 import { trackAnalysisStart, trackAnalysisComplete, trackError } from '@/lib/analytics-events';
 import type { AnalysisResult, ErrorDisplay } from '@/types/analysis';
 
-interface AnalysisStreamResponse {
-  type: 'update' | 'complete' | 'error';
-  progress?: number;
-  stage?: AnalysisStage;
-  currentChunk?: number;
-  totalChunks?: number;
-  result?: AnalysisResult;
-  error?: string;
-  activity?: string;
-}
-
 export type AnalysisStage = 'preprocessing' | 'analyzing' | 'complete';
 
 interface UseContractAnalysisProps {
@@ -23,10 +12,18 @@ interface UseContractAnalysisProps {
   onEntryComplete?: () => void;
 }
 
-export const useContractAnalysis = ({ 
-  onStatusUpdate,
-  onEntryComplete
-}: UseContractAnalysisProps = {}) => {
+interface AnalysisStreamResponse {
+  type: 'update' | 'complete' | 'error';
+  progress?: number;
+  stage?: AnalysisStage;
+  currentChunk?: number;
+  totalChunks?: number;
+  activity?: string;
+  result?: AnalysisResult;
+  error?: string;
+}
+
+export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseContractAnalysisProps = {}) => {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<ErrorDisplay | null>(null);
@@ -38,9 +35,7 @@ export const useContractAnalysis = ({
 
   useEffect(() => {
     return () => {
-      if (readerRef.current) {
-        readerRef.current.cancel();
-      }
+      if (readerRef.current) readerRef.current.cancel();
     };
   }, []);
 
@@ -53,26 +48,14 @@ export const useContractAnalysis = ({
 
   const handleAnalyze = async (file: File | null) => {
     if (!file) {
-      setError({
-        message: 'Please upload a file before analyzing.',
-        type: 'warning'
-      });
+      setError({ message: 'Please upload a file before analyzing.', type: 'warning' });
       return;
     }
-
-    const transaction = Sentry.startTransaction({
-      name: 'analyze_contract',
-      op: 'analyze'
-    });
-
-    Sentry.configureScope(scope => {
-      scope.setSpan(transaction);
-    });
 
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
-    setProgress(0);
+    setProgress(1);
     setStage('preprocessing');
     updateStatus('Starting document processing...');
 
@@ -80,17 +63,7 @@ export const useContractAnalysis = ({
     trackAnalysisStart(file.type);
 
     try {
-      Sentry.setContext("file", {
-        type: file.type,
-        size: file.size,
-        name: file.name
-      });
-
-      const readSpan = transaction.startChild({
-        op: 'read_document',
-        description: 'Read document content'
-      });
-
+      // Process PDF
       let text: string;
       if (file.type === 'application/pdf') {
         text = await readPdfText(file, (progress) => {
@@ -103,39 +76,17 @@ export const useContractAnalysis = ({
         text = await file.text();
         setProgress(5);
       }
-      readSpan.finish();
 
+      updateStatus('Initializing AI analysis...');
+      setProgress(10);
+      
+      // Start analysis
       const formData = new FormData();
       formData.append('text', text);
       formData.append('filename', file.name);
 
-      updateStatus('Initializing AI analysis...');
-      setProgress(10);
-      setAnalysis({
-        summary: "Starting analysis...",
-        keyTerms: [],
-        potentialRisks: [],
-        importantClauses: [],
-        recommendations: [],
-        metadata: {
-          analyzedAt: new Date().toISOString(),
-          documentName: file.name,
-          modelVersion: "gpt-3.5-turbo-1106",
-          totalChunks: 0,
-          currentChunk: 0,
-          stage: 'preprocessing' as const,
-          progress: 10
-        }
-      });
-
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.body) {
-        throw new Error('No response body received from server');
-      }
+      const response = await fetch('/api/analyze', { method: 'POST', body: formData });
+      if (!response.body) throw new Error('No response body');
 
       const reader = response.body.getReader();
       readerRef.current = reader;
@@ -145,117 +96,74 @@ export const useContractAnalysis = ({
       try {
         while (true) {
           const { done, value } = await reader.read();
-          
           if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
-          buffer += chunk;
+          buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
-                
-                if (data.progress) setProgress(data.progress);
-                if (data.stage) setStage(data.stage);
+            if (!line.startsWith('data: ')) continue;
+            
+            try {
+              const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
+              if (data.progress) setProgress(data.progress);
+              if (data.stage) setStage(data.stage);
+              if (data.activity) updateStatus(data.activity);
 
-                if (data.activity) {
-                  updateStatus(data.activity);
-                } else if (data.stage === 'analyzing' && data.currentChunk && data.totalChunks) {
-                  updateStatus(
-                    `Analyzing section ${data.currentChunk} of ${data.totalChunks}`,
-                    data.currentChunk === data.totalChunks ? undefined : 5000
-                  );
-                }
-
-                if (data.currentChunk && data.totalChunks) {
-                  setAnalysis(prev => {
-                    if (!prev) return null;
-                    return {
-                      ...prev,
-                      metadata: {
-                        analyzedAt: prev.metadata?.analyzedAt || new Date().toISOString(),
-                        documentName: prev.metadata?.documentName || '',
-                        modelVersion: prev.metadata?.modelVersion || "gpt-3.5-turbo-1106",
-                        currentChunk: data.currentChunk,
-                        totalChunks: data.totalChunks,
-                        stage: data.stage || 'analyzing',
-                        progress: data.progress || 0
-                      }
-                    };
-                  });
-                }
-
-                if (data.type === 'complete' && data.result) {
-                  updateStatus('Analysis complete!');
-                  requestAnimationFrame(() => {
-                    onEntryComplete?.();
-                  });
-                  setAnalysis(data.result);
-                  const analysisTime = (Date.now() - startTime) / 1000;
-                  trackAnalysisComplete(file.type, analysisTime);
-                  break;
-                } else if (data.type === 'error') {
-                  throw new Error(data.error);
-                }
-              } catch (e) {
-                console.error('[Client] Error parsing server update:', e);
-                Sentry.captureException(e, {
-                  extra: {
-                    rawLine: line,
-                    stage: 'parsing_update'
-                  }
-                });
-                throw e;
+              if (data.type === 'complete' && data.result) {
+                updateStatus('Analysis complete!');
+                onEntryComplete?.();
+                setAnalysis(data.result);
+                trackAnalysisComplete(file.type, (Date.now() - startTime) / 1000);
+                break;
+              } else if (data.type === 'error') {
+                throw new Error(data.error);
               }
+
+              // Update analysis metadata
+              if (data.currentChunk && data.totalChunks) {
+                setAnalysis(prev => prev && ({
+                  ...prev,
+                  metadata: {
+                    ...prev.metadata,
+                    currentChunk: data.currentChunk,
+                    totalChunks: data.totalChunks,
+                    stage: data.stage || 'analyzing',
+                    progress: data.progress || 0
+                  }
+                }));
+              }
+            } catch (e) {
+              console.error('Error parsing update:', e);
+              Sentry.captureException(e);
+              throw e;
             }
           }
         }
       } finally {
         readerRef.current = null;
       }
-
     } catch (error) {
-      console.error('[Client] Error analyzing contract:', error);
-      Sentry.captureException(error, {
-        extra: {
-          fileType: file.type,
-          fileName: file.name,
-          analysisStage: stage,
-          progress: progress
-        }
-      });
+      console.error('Analysis error:', error);
+      Sentry.captureException(error);
       handleAnalysisError(error);
     } finally {
       setIsAnalyzing(false);
-      transaction.finish();
     }
   };
 
   const handleAnalysisError = (error: unknown) => {
-    let errorMessage = 'An unexpected error occurred. Please try again.';
-    let errorType: ErrorDisplay['type'] = 'error';
-
-    if (error instanceof PDFProcessingError || error instanceof ContractAnalysisError) {
-      errorMessage = error.message;
-      trackError(error.code, error.message);
-    } else {
-      trackError('UNKNOWN_ERROR', error instanceof Error ? error.message : 'Unknown error');
-    }
-
-    setError({ message: errorMessage, type: errorType });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    setError({ message, type: 'error' });
     setProgress(0);
     setStage('preprocessing');
+    if (error instanceof ContractAnalysisError || error instanceof PDFProcessingError) {
+      trackError(error.code, error.message);
+    } else {
+      trackError('UNKNOWN_ERROR', message);
+    }
   };
 
-  return {
-    analysis,
-    isAnalyzing,
-    error,
-    progress,
-    stage,
-    handleAnalyze,
-  };
+  return { analysis, isAnalyzing, error, progress, stage, handleAnalyze };
 };
