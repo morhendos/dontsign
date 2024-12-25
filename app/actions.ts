@@ -21,7 +21,7 @@ interface AnalysisMetadata {
   currentChunk: number;
 }
 
-const BATCH_SIZE = 3; // Process 3 chunks at a time for optimal performance/progress balance
+const BATCH_SIZE = 3; // Process 3 chunks at a time
 
 async function analyzeChunk(
   chunk: string,
@@ -29,12 +29,8 @@ async function analyzeChunk(
   totalChunks: number
 ): Promise<AnalysisResult> {
   try {
-    console.log(`Starting analysis of chunk ${chunkIndex + 1}/${totalChunks}`);
-    
     const systemPrompt = "You are a legal expert. Analyze this contract section concisely.";
     const userPrompt = `Section ${chunkIndex + 1}/${totalChunks}:\n${chunk}\n\nProvide JSON with: summary (brief), keyTerms, potentialRisks, importantClauses, recommendations.`;
-
-    console.log(`Making API call for chunk ${chunkIndex + 1}`);
     
     const response = await openAIService.createChatCompletion({
       model: "gpt-3.5-turbo-1106",
@@ -74,6 +70,16 @@ async function processBatch(
   );
 }
 
+async function emitProgress(progress: number, currentChunk?: number, totalChunks?: number) {
+  console.log(JSON.stringify({ 
+    type: 'progress',
+    progress,
+    currentChunk,
+    totalChunks,
+    stage: progress >= 100 ? 'complete' : progress <= 15 ? 'preprocessing' : 'analyzing'
+  }));
+}
+
 export async function analyzeContract(formData: FormData): Promise<{
   summary: string;
   keyTerms: string[];
@@ -95,6 +101,8 @@ export async function analyzeContract(formData: FormData): Promise<{
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
+    await emitProgress(15); // Initial AI setup
+
     const results: AnalysisResult[] = [];
     const metadata: AnalysisMetadata = {
       analyzedAt: new Date().toISOString(),
@@ -104,37 +112,29 @@ export async function analyzeContract(formData: FormData): Promise<{
       currentChunk: 0
     };
 
-    // Distribute progress from 15% to 90% across chunks
-    const progressPerBatch = 75 / Math.ceil(chunks.length / BATCH_SIZE);
+    // Distribute progress evenly between chunks
+    const progressPerChunk = 65 / chunks.length; // 15% to 80%
     let currentProgress = 15;
 
-    // Process chunks in batches
+    // Process chunks
     for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
       const batchChunks = chunks.slice(i, i + BATCH_SIZE);
       const batchResults = await processBatch(batchChunks, i, chunks.length);
       
       results.push(...batchResults);
       metadata.currentChunk = Math.min(i + BATCH_SIZE, chunks.length);
-
-      // Update progress
-      currentProgress += progressPerBatch;
-      console.log(JSON.stringify({ 
-        type: 'progress',
-        current: metadata.currentChunk,
-        total: metadata.totalChunks,
-        progress: Math.min(Math.round(currentProgress), 90)
-      }));
+      currentProgress += progressPerChunk * batchChunks.length;
+      
+      await emitProgress(
+        Math.min(Math.round(currentProgress), 80),
+        metadata.currentChunk,
+        metadata.totalChunks
+      );
     }
 
-    // Final merge counts as last 10%
-    const aiSummaries = results.map(r => r.summary).join('\n');
-    console.log(JSON.stringify({ 
-      type: 'progress',
-      current: metadata.totalChunks,
-      total: metadata.totalChunks,
-      progress: 95
-    }));
+    await emitProgress(90); // Start merging
 
+    const aiSummaries = results.map(r => r.summary).join('\n');
     const finalAnalysis = {
       summary: `Analysis complete. Found ${results.length} key sections.\n\n\nDetailed Analysis:\n${aiSummaries}`,
       keyTerms: [...new Set(results.flatMap(r => r.keyTerms))],
@@ -144,10 +144,7 @@ export async function analyzeContract(formData: FormData): Promise<{
       metadata
     };
 
-    console.log(JSON.stringify({ 
-      type: 'progress',
-      progress: 100
-    }));
+    await emitProgress(100);
 
     return finalAnalysis;
 
