@@ -29,7 +29,6 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
   const [error, setError] = useState<ErrorDisplay | null>(null);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<AnalysisStage>('preprocessing');
-  const lastStatus = useRef<string>('');
 
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
 
@@ -39,10 +38,24 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
     };
   }, []);
 
-  const updateStatus = (status: string, duration?: number) => {
-    if (status !== lastStatus.current) {
-      lastStatus.current = status;
-      onStatusUpdate?.(status, duration);
+  const processServerUpdate = async (data: AnalysisStreamResponse) => {
+    console.log('Processing server update:', data); // Debug log
+
+    if (data.progress !== undefined) setProgress(data.progress);
+    if (data.stage) setStage(data.stage);
+    if (data.activity) onStatusUpdate?.(data.activity);
+
+    if (data.currentChunk && data.totalChunks) {
+      setAnalysis(prev => prev && ({
+        ...prev,
+        metadata: {
+          ...prev.metadata,
+          currentChunk: data.currentChunk,
+          totalChunks: data.totalChunks,
+          stage: data.stage || 'analyzing',
+          progress: data.progress || 0
+        }
+      }));
     }
   };
 
@@ -57,30 +70,27 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
     setAnalysis(null);
     setProgress(1);
     setStage('preprocessing');
-    updateStatus('Starting document processing...');
+    onStatusUpdate?.('Starting document processing...');
 
     const startTime = Date.now();
     trackAnalysisStart(file.type);
 
     try {
-      // Process PDF
       let text: string;
       if (file.type === 'application/pdf') {
         text = await readPdfText(file, (progress) => {
           setProgress(progress);
-          if (progress <= 2) updateStatus('Reading document...');
-          else if (progress <= 3) updateStatus('Preparing document...');
-          else if (progress < 5) updateStatus('Extracting text...');
+          if (progress <= 2) onStatusUpdate?.('Reading document...');
+          else if (progress <= 3) onStatusUpdate?.('Preparing document...');
+          else if (progress < 5) onStatusUpdate?.('Extracting text...');
         });
       } else {
         text = await file.text();
         setProgress(5);
       }
 
-      updateStatus('Initializing AI analysis...');
-      setProgress(10);
+      onStatusUpdate?.('Initializing AI analysis...');
       
-      // Start analysis
       const formData = new FormData();
       formData.append('text', text);
       formData.append('filename', file.name);
@@ -93,62 +103,43 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       const decoder = new TextDecoder();
       let buffer = '';
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n\n');
-          buffer = lines.pop() || '';
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
 
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            
-            try {
-              const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
-              if (data.progress) setProgress(data.progress);
-              if (data.stage) setStage(data.stage);
-              if (data.activity) updateStatus(data.activity);
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          
+          try {
+            const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
+            console.log('Received update:', data); // Debug log
 
-              if (data.type === 'complete' && data.result) {
-                updateStatus('Analysis complete!');
-                onEntryComplete?.();
-                setAnalysis(data.result);
-                trackAnalysisComplete(file.type, (Date.now() - startTime) / 1000);
-                break;
-              } else if (data.type === 'error') {
-                throw new Error(data.error);
-              }
-
-              // Update analysis metadata
-              if (data.currentChunk && data.totalChunks) {
-                setAnalysis(prev => prev && ({
-                  ...prev,
-                  metadata: {
-                    ...prev.metadata,
-                    currentChunk: data.currentChunk,
-                    totalChunks: data.totalChunks,
-                    stage: data.stage || 'analyzing',
-                    progress: data.progress || 0
-                  }
-                }));
-              }
-            } catch (e) {
-              console.error('Error parsing update:', e);
-              Sentry.captureException(e);
-              throw e;
+            if (data.type === 'complete' && data.result) {
+              onStatusUpdate?.('Analysis complete!');
+              onEntryComplete?.();
+              setAnalysis(data.result);
+              trackAnalysisComplete(file.type, (Date.now() - startTime) / 1000);
+              break;
+            } else if (data.type === 'error') {
+              throw new Error(data.error);
+            } else {
+              await processServerUpdate(data);
             }
+          } catch (e) {
+            console.error('Error processing update:', e);
+            throw e;
           }
         }
-      } finally {
-        readerRef.current = null;
       }
     } catch (error) {
       console.error('Analysis error:', error);
-      Sentry.captureException(error);
       handleAnalysisError(error);
     } finally {
+      readerRef.current = null;
       setIsAnalyzing(false);
     }
   };
