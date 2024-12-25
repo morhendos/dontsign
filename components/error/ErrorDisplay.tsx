@@ -5,12 +5,14 @@ interface ErrorDisplayProps {
   error: any;
 }
 
+type AlertVariant = 'default' | 'destructive';
+
 export function ErrorDisplay({ error }: ErrorDisplayProps) {
   // Default error state
   let title = 'Error';
   let description = 'An unexpected error occurred. Please try again.';
   let icon = AlertCircle;
-  let variant: 'default' | 'destructive' | 'warning' = 'destructive';
+  let variant: AlertVariant = 'destructive';
 
   // Customize based on error type
   switch (error?.code) {
@@ -18,14 +20,14 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
       title = 'Service Temporarily Unavailable';
       description = error.clientMessage || 'Service is recovering. Please try again later.';
       icon = Clock;
-      variant = 'warning';
+      variant = 'default';
       break;
 
     case 'RATE_LIMIT_EXCEEDED':
       title = 'Too Many Requests';
       description = error.clientMessage || 'Please wait a moment before trying again.';
       icon = Ban;
-      variant = 'warning';
+      variant = 'default';
       break;
 
     case 'AI_SERVICE_ERROR':
@@ -39,23 +41,28 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
       title = 'Analysis Timeout';
       description = error.clientMessage || 'The analysis took too long. Please try with a shorter document.';
       icon = Clock;
-      variant = 'warning';
+      variant = 'default';
       break;
 
     case 'INVALID_INPUT':
       title = 'Invalid Input';
       description = error.message || 'Please check your input and try again.';
       icon = AlertTriangle;
-      variant = 'warning';
+      variant = 'default';
       break;
-
-    // Add more error types as needed
   }
 
   const Icon = icon;
 
   return (
-    <Alert variant={variant} className="mt-4">
+    <Alert 
+      variant={variant}
+      className={cn(
+        "mt-4",
+        variant === 'default' && "border-yellow-200 bg-yellow-50 text-yellow-900",
+        variant === 'destructive' && "border-red-200 bg-red-50 text-red-900"
+      )}
+    >
       <Icon className="h-4 w-4" />
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>{description}</AlertDescription>
