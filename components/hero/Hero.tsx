@@ -28,9 +28,16 @@ export default function Hero() {
 
   // Status management
   const { setStatusWithTimeout } = useStatusManager({
-    onStatusUpdate: (status) => {
+    onStatusUpdate: (status: string) => {
       setProcessingStatus(status);
-      addEntry({ message: status, status: 'active' });
+      if (status) {
+        addEntry({
+          id: String(Date.now()),
+          message: status,
+          status: 'active',
+          timestamp: new Date()
+        });
+      }
     }
   });
 
