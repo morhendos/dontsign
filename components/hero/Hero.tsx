@@ -105,7 +105,12 @@ export default function Hero() {
     setShowResults(true);
   };
 
-  // Show Analysis button conditions
+  // Show Analysis button should only appear when:
+  // 1. We have an analysis (current or stored)
+  // 2. Results are currently hidden
+  // 3. Analysis is complete and not analyzing
+  // 4. Log panel is not visible
+  // 5. No errors are present
   const shouldShowAnalysisButton = Boolean(
     (analysis || currentStoredAnalysis) && 
     !showResults && 
