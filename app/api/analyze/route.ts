@@ -1,37 +1,33 @@
 import { analyzeContract } from '@/app/actions';
-import { Readable } from 'stream';
-
-function streamResponse(writer: WritableStreamDefaultWriter<Uint8Array>) {
-  return (message: string) => {
-    writer.write(new TextEncoder().encode(`data: ${message}\n\n`));
-  };
-}
 
 export async function POST(request: Request) {
   const formData = await request.formData();
   const encoder = new TextEncoder();
-
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
-  const originalLog = console.log;
 
   try {
-    // Override console.log to intercept progress messages
-    console.log = function(data) {
-      if (typeof data === 'string' && data.startsWith('{')) {
-        writer.write(encoder.encode(`data: ${data}\n\n`));
+    // Intercept console.log to stream progress updates
+    const originalLog = console.log;
+    console.log = (message) => {
+      if (typeof message === 'string' && message.startsWith('{')) {
+        writer.write(encoder.encode(`data: ${message}\n\n`));
       }
-      originalLog.apply(console, arguments);
+      // Ensure server logs are flushed immediately
+      originalLog(message);
     };
 
     const result = await analyzeContract(formData);
     writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'complete', result })}\n\n`));
+    console.log = originalLog;
 
   } catch (error) {
-    writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: error instanceof Error ? error.message : 'Unknown error' })}\n\n`));
+    writer.write(encoder.encode(`data: ${JSON.stringify({ 
+      type: 'error', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    })}\n\n`));
   } finally {
-    console.log = originalLog;
-    writer.close();
+    await writer.close();
   }
 
   return new Response(stream.readable, {
