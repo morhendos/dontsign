@@ -1,21 +1,40 @@
-import { NextRequest } from 'next/server';
-import { validateInput } from './input-validator';
-import { createAnalysisStream } from './stream-handler';
-import { createErrorStream } from './progress-handler';
+import { analyzeContract } from '@/app/actions';
 
-const RESPONSE_HEADERS = {
-  'Content-Type': 'text/event-stream',
-  'Cache-Control': 'no-cache',
-  'Connection': 'keep-alive',
-} as const;
+export async function POST(request: Request) {
+  const formData = await request.formData();
+  const encoder = new TextEncoder();
+  const stream = new TransformStream();
+  const writer = stream.writable.getWriter();
 
-export async function POST(request: NextRequest) {
   try {
-    const { text, filename } = await validateInput(request);
-    const stream = createAnalysisStream(text, filename);
-    return new Response(stream, { headers: RESPONSE_HEADERS });
+    // Intercept console.log to stream progress updates
+    const originalLog = console.log;
+    console.log = (message) => {
+      if (typeof message === 'string' && message.startsWith('{')) {
+        writer.write(encoder.encode(`data: ${message}\n\n`));
+      }
+      // Ensure server logs are flushed immediately
+      originalLog(message);
+    };
+
+    const result = await analyzeContract(formData);
+    writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'complete', result })}\n\n`));
+    console.log = originalLog;
+
   } catch (error) {
-    console.error('[Server] Error in analyze endpoint:', error);
-    return new Response(createErrorStream(error), { headers: RESPONSE_HEADERS });
+    writer.write(encoder.encode(`data: ${JSON.stringify({ 
+      type: 'error', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    })}\n\n`));
+  } finally {
+    await writer.close();
   }
+
+  return new Response(stream.readable, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
 }
