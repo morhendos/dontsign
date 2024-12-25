@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle, AlertTriangle, FileText, Clock, X } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Clock, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { AnalysisResult } from '@/types/analysis';
@@ -12,6 +12,13 @@ interface AnalysisResultsProps {
   onClose?: () => void;
   isAnalyzing: boolean;
   stage: AnalysisStage;
+}
+
+interface ContentSection {
+  title: string;
+  icon?: JSX.Element;
+  items?: string[];
+  content?: React.ReactNode;
 }
 
 export function AnalysisResults({ analysis, onClose, isAnalyzing, stage }: AnalysisResultsProps) {
@@ -79,7 +86,7 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing, stage }: Analy
     }
   };
 
-  const sections = [
+  const sections: ContentSection[] = [
     // Summary Section
     {
       title: 'Analysis Summary',
@@ -89,19 +96,19 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing, stage }: Analy
     {
       title: 'Key Terms',
       icon: <CheckCircle className="w-5 h-5 text-blue-500" />,
-      items: analysis.keyTerms
+      items: analysis.keyTerms || []
     },
     // Risks Section
     {
       title: 'Potential Risks',
       icon: <AlertTriangle className="w-5 h-5 text-red-500" />,
-      items: analysis.potentialRisks
+      items: analysis.potentialRisks || []
     },
     // Recommendations Section
     {
       title: 'Recommendations',
       icon: <Clock className="w-5 h-5 text-green-500" />,
-      items: analysis.recommendations
+      items: analysis.recommendations || []
     }
   ];
 
@@ -170,7 +177,7 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing, stage }: Analy
                     </h3>
                   </div>
                   
-                  {'items' in section ? (
+                  {section.items && section.items.length > 0 ? (
                     <ul className="space-y-2">
                       {section.items.map((item, itemIndex) => (
                         <li 
