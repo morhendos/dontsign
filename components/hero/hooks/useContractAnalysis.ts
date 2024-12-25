@@ -31,6 +31,7 @@ export const useContractAnalysis = ({
   const [error, setError] = useState<ErrorDisplay | null>(null);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<AnalysisStage>('preprocessing');
+  const lastStatus = useRef<string>('');
   
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
 
@@ -41,6 +42,13 @@ export const useContractAnalysis = ({
       }
     };
   }, []);
+
+  const updateStatus = (status: string, duration?: number) => {
+    if (status !== lastStatus.current) {
+      lastStatus.current = status;
+      onStatusUpdate?.(status, duration);
+    }
+  };
 
   const handleAnalyze = async (file: File | null) => {
     if (!file) {
@@ -63,9 +71,9 @@ export const useContractAnalysis = ({
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
-    setProgress(1);
+    setProgress(0);
     setStage('preprocessing');
-    onStatusUpdate?.('Starting contract analysis...');
+    updateStatus('Starting document processing...');
 
     const startTime = Date.now();
     trackAnalysisStart(file.type);
@@ -86,6 +94,9 @@ export const useContractAnalysis = ({
       if (file.type === 'application/pdf') {
         text = await readPdfText(file, (progress) => {
           setProgress(progress);
+          if (progress <= 2) updateStatus('Reading document...');
+          else if (progress <= 3) updateStatus('Preparing document...');
+          else if (progress < 5) updateStatus('Extracting text...');
         });
       } else {
         text = await file.text();
@@ -97,8 +108,8 @@ export const useContractAnalysis = ({
       formData.append('text', text);
       formData.append('filename', file.name);
 
-      onStatusUpdate?.('Initializing AI analysis...');
-      setProgress(15);
+      updateStatus('Initializing AI analysis...');
+      setProgress(10);
       setAnalysis({
         summary: "Starting analysis...",
         keyTerms: [],
@@ -112,7 +123,7 @@ export const useContractAnalysis = ({
           totalChunks: 0,
           currentChunk: 0,
           stage: 'preprocessing' as const,
-          progress: 15
+          progress: 10
         }
       });
 
@@ -121,7 +132,7 @@ export const useContractAnalysis = ({
         description: 'Make request to analysis service'
       });
 
-      onStatusUpdate?.('Connecting to analysis service...');
+      updateStatus('Starting document analysis...');
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData
@@ -146,9 +157,7 @@ export const useContractAnalysis = ({
         while (true) {
           const { done, value } = await reader.read();
           
-          if (done) {
-            break;
-          }
+          if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
           buffer += chunk;
@@ -176,13 +185,17 @@ export const useContractAnalysis = ({
                   }
                 });
 
-                if (data.stage === 'preprocessing') {
-                  onStatusUpdate?.('Preparing document for analysis...');
-                } else if (data.stage === 'analyzing' && data.currentChunk && data.totalChunks) {
-                  onStatusUpdate?.(
-                    `Analyzing section ${data.currentChunk} of ${data.totalChunks}`,
-                    5000
-                  );
+                if (data.stage === 'analyzing' && data.currentChunk && data.totalChunks) {
+                  if (data.progress >= 90) {
+                    updateStatus('Merging analysis results...');
+                  } else {
+                    updateStatus(
+                      `Analyzing section ${data.currentChunk} of ${data.totalChunks}`,
+                      data.currentChunk === data.totalChunks ? undefined : 5000
+                    );
+                  }
+                } else if (data.stage === 'complete') {
+                  updateStatus('Analysis complete!');
                 }
 
                 if (data.currentChunk && data.totalChunks) {
@@ -204,7 +217,7 @@ export const useContractAnalysis = ({
                 }
 
                 if (data.type === 'complete' && data.result) {
-                  onStatusUpdate?.('Analysis complete!');
+                  updateStatus('Analysis complete!');
                   requestAnimationFrame(() => {
                     onEntryComplete?.();
                   });
