@@ -31,19 +31,32 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
   const [stage, setStage] = useState<AnalysisStage>('preprocessing');
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
 
+  // Debug logging for state changes
   useEffect(() => {
-    return () => {
-      if (readerRef.current) readerRef.current.cancel();
-    };
-  }, []);
+    console.log('[State] Progress:', progress);
+  }, [progress]);
 
-  const processStreamUpdate = async (data: AnalysisStreamResponse) => {
-    if (data.progress !== undefined) setProgress(data.progress);
-    if (data.stage) setStage(data.stage);
-    if (data.activity) onStatusUpdate?.(data.activity);
+  useEffect(() => {
+    console.log('[State] Stage:', stage);
+  }, [stage]);
 
-    // Wait for state updates to propagate
-    await new Promise(resolve => setTimeout(resolve, 0));
+  const processStreamUpdate = (data: AnalysisStreamResponse) => {
+    console.log('[Stream] Received update:', data);
+
+    if (data.progress !== undefined) {
+      console.log('[Stream] Setting progress:', data.progress);
+      setProgress(data.progress);
+    }
+
+    if (data.stage) {
+      console.log('[Stream] Setting stage:', data.stage);
+      setStage(data.stage);
+    }
+
+    if (data.activity) {
+      console.log('[Stream] Setting activity:', data.activity);
+      onStatusUpdate?.(data.activity);
+    }
   };
 
   const handleAnalyze = async (file: File | null) => {
@@ -52,6 +65,7 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       return;
     }
 
+    console.log('[Analysis] Starting analysis...');
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
@@ -66,6 +80,7 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       let text: string;
       if (file.type === 'application/pdf') {
         text = await readPdfText(file, (progress) => {
+          console.log('[PDF] Setting progress:', progress);
           setProgress(progress);
           if (progress <= 2) onStatusUpdate?.('Reading document...');
           else if (progress <= 3) onStatusUpdate?.('Preparing document...');
@@ -83,6 +98,7 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       formData.append('text', text);
       formData.append('filename', file.name);
 
+      console.log('[Analysis] Making API request...');
       const response = await fetch('/api/analyze', { method: 'POST', body: formData });
       if (!response.body) throw new Error('No response body');
 
@@ -105,8 +121,10 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
             
             try {
               const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
+              console.log('[Stream] Parsed data:', data);
+
               if (data.type === 'complete' && data.result) {
-                await processStreamUpdate({ 
+                processStreamUpdate({ 
                   type: 'progress', 
                   progress: 100, 
                   stage: 'complete',
@@ -119,10 +137,13 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
               } else if (data.type === 'error') {
                 throw new Error(data.error);
               } else {
-                await processStreamUpdate(data);
+                processStreamUpdate(data);
               }
+
+              // Force React state updates
+              await new Promise(resolve => requestAnimationFrame(resolve));
             } catch (e) {
-              console.error('Error processing stream update:', e);
+              console.error('[Stream] Error processing update:', e);
               throw e;
             }
           }
@@ -131,10 +152,11 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
         readerRef.current = null;
       }
     } catch (error) {
-      console.error('Analysis error:', error);
+      console.error('[Analysis] Error:', error);
       handleAnalysisError(error);
     } finally {
       setIsAnalyzing(false);
+      console.log('[Analysis] Complete');
     }
   };
 
