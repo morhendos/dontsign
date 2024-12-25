@@ -1,13 +1,9 @@
 "use server";
 
-import OpenAI from "openai";
 import * as Sentry from "@sentry/nextjs";
 import { ContractAnalysisError } from "@/lib/errors";
 import { splitIntoChunks } from "@/lib/text-utils";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { openAIService } from "@/lib/services/openai/openai-service";
 
 interface AnalysisResult {
   summary: string;
@@ -39,17 +35,16 @@ async function analyzeChunk(
     const userPrompt = `Section ${chunkIndex + 1}/${totalChunks}:\n${chunk}\n\nProvide JSON with: summary (brief), keyTerms, potentialRisks, importantClauses, recommendations.`;
 
     console.log(`Making API call for chunk ${chunkIndex + 1}`);
-    const response = await withRetry(async () => {
-      return await openai.chat.completions.create({
-        model: "gpt-3.5-turbo-1106",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 1000,
-        response_format: { type: "json_object" },
-      });
+    
+    const response = await openAIService.createChatCompletion({
+      model: "gpt-3.5-turbo-1106",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 1000,
+      response_format: { type: "json_object" },
     });
 
     const content = response.choices[0]?.message?.content;
@@ -65,20 +60,6 @@ async function analyzeChunk(
     console.error(`Error in analyzeChunk ${chunkIndex + 1}:`, error);
     throw error;
   }
-}
-
-async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      if (attempt === maxAttempts) break;
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
-    }
-  }
-  throw lastError;
 }
 
 async function processBatch(
