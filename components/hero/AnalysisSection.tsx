@@ -23,7 +23,7 @@ interface AnalysisSectionProps {
   currentStoredAnalysis: StoredAnalysis | null;
   hasStoredAnalyses: boolean;
   showAnalysisButton: boolean;
-  onFileSelect: (file: File) => void;
+  onFileSelect: (file: File | null) => void;
   onAnalyze: () => void;
   onShowResults: (show: boolean) => void;
   onSelectStoredAnalysis: (analysis: StoredAnalysis) => void;
