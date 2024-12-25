@@ -26,23 +26,19 @@ export default function Hero() {
     setHasStoredAnalyses(analyses.length > 0);
   }, []);
 
+  // Analysis log handling
+  const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
+
   // Status management
   const { setStatusWithTimeout } = useStatusManager({
     onStatusUpdate: (status: string) => {
       setProcessingStatus(status);
       if (status) {
-        addEntry({
-          id: String(Date.now()),
-          message: status,
-          status: 'active',
-          timestamp: new Date()
-        });
+        addEntry(status);
       }
     }
   });
 
-  // Analysis log handling
-  const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
   const {
     isVisible: showLog,
     onVisibilityChange: handleVisibilityChange,
