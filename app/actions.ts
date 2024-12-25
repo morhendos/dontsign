@@ -5,10 +5,22 @@ import { ContractAnalysisError } from "@/lib/errors";
 import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
 
-function sendProgress(data: any) {
-  const message = `data: ${JSON.stringify(data)}\n\n`;
-  console.log('Sending progress:', message);
-  console.log(message);
+interface ProgressUpdate {
+  type: 'progress';
+  progress: number;
+  currentChunk?: number;
+  totalChunks?: number;
+  stage?: string;
+  activity?: string;
+}
+
+function sendProgress(data: Partial<ProgressUpdate>) {
+  console.log(JSON.stringify({
+    type: 'progress',
+    stage: data.progress && data.progress >= 100 ? 'complete' : 
+           data.progress && data.progress <= 15 ? 'preprocessing' : 'analyzing',
+    ...data
+  }));
 }
 
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
@@ -41,7 +53,9 @@ export async function analyzeContract(formData: FormData) {
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    sendProgress({ type: 'progress', progress: 15, stage: 'preprocessing', activity: "Starting AI analysis" });
+    // Initial phase
+    sendProgress({ progress: 15, activity: "Starting AI analysis" });
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     const results = [];
     const metadata = {
@@ -62,12 +76,12 @@ export async function analyzeContract(formData: FormData) {
       currentProgress += progressPerChunk;
 
       sendProgress({
-        type: 'progress',
         progress: Math.min(Math.round(currentProgress), 80),
         currentChunk: metadata.currentChunk,
         totalChunks: metadata.totalChunks,
-        stage: 'analyzing'
+        activity: `Processing section ${metadata.currentChunk} of ${metadata.totalChunks}`
       });
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     // Merging phase (80-100%)
@@ -81,15 +95,11 @@ export async function analyzeContract(formData: FormData) {
     ];
 
     for (const step of mergeSteps) {
-      sendProgress({ 
-        type: 'progress', 
-        ...step,
-        stage: 'analyzing'
-      });
-      // Ensure messages are processed
-      await new Promise(resolve => setTimeout(resolve, 200));
+      sendProgress(step);
+      await new Promise(resolve => setTimeout(resolve, 300)); // Longer delay for visibility
     }
 
+    // Prepare final analysis
     const finalAnalysis = {
       summary: `Analysis complete. Found ${results.length} key sections.\n\n\nDetailed Analysis:\n${results.map(r => r.summary).join('\n')}`,
       keyTerms: [...new Set(results.flatMap(r => r.keyTerms))],
@@ -99,7 +109,7 @@ export async function analyzeContract(formData: FormData) {
       metadata
     };
 
-    sendProgress({ type: 'progress', progress: 100, stage: 'complete', activity: "Analysis complete" });
+    sendProgress({ progress: 100, activity: "Analysis complete" });
     return finalAnalysis;
 
   } catch (error) {
