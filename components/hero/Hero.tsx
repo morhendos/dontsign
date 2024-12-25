@@ -1,23 +1,20 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useContractAnalysis } from './hooks/useContractAnalysis';
 import { useFileHandler } from './hooks/useFileHandler';
 import { useLogVisibility } from './hooks/useLogVisibility';
-import { FileUploadArea } from '../contract-upload/FileUploadArea';
-import { AnalysisButton } from '../contract-analysis/AnalysisButton';
-import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
-import { ErrorDisplay } from '../error/ErrorDisplay';
-import { AnalysisResults } from '../analysis-results/AnalysisResults';
-import { AnalysisHistory } from '../analysis-history/AnalysisHistory';
-import AnalysisLog from '../analysis-log/AnalysisLog';
+import { AnalysisSection } from './AnalysisSection';
+import { useStatusManager } from './StatusManager';
 import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
-import { FileText } from 'lucide-react';
+import AnalysisLog from '../analysis-log/AnalysisLog';
 import { saveAnalysis, getStoredAnalyses, type StoredAnalysis } from '@/lib/storage';
 
+/**
+ * Main hero component that handles the contract analysis workflow
+ */
 export default function Hero() {
-  // Status message handling
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  // UI state
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const [showResults, setShowResults] = useState(true);
   const [currentStoredAnalysis, setCurrentStoredAnalysis] = useState<StoredAnalysis | null>(null);
@@ -29,6 +26,11 @@ export default function Hero() {
     setHasStoredAnalyses(analyses.length > 0);
   }, []);
 
+  // Status management
+  const { setStatusWithTimeout } = useStatusManager({
+    onStatusUpdate: setProcessingStatus
+  });
+
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
   const {
@@ -36,27 +38,8 @@ export default function Hero() {
     onVisibilityChange: handleVisibilityChange,
     show: showLogWithAutoHide
   } = useLogVisibility({
-    entries // Pass entries to track loading states
+    entries
   });
-
-  // Enhanced status handler that updates both the temporary and persistent logs
-  const setStatusWithTimeout = (status: string, duration = 2000) => {
-    // Update the temporary status (for upload area)
-    setProcessingStatus(status);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = undefined;
-    }
-    
-    timeoutRef.current = setTimeout(() => {
-      setProcessingStatus('');
-      timeoutRef.current = undefined;
-    }, duration);
-
-    // Show log and add entry
-    showLogWithAutoHide();
-    addEntry(status);
-  };
 
   // File handling
   const {
@@ -102,7 +85,7 @@ export default function Hero() {
   }, [error, updateLastEntry]);
 
   // Clear logs and show log window when starting new analysis
-  const handleAnalyzeWithLogReset = async (file: File | null) => {
+  const handleAnalyzeWithLogReset = async () => {
     clearEntries();
     showLogWithAutoHide();
     setShowResults(true);
@@ -132,88 +115,32 @@ export default function Hero() {
 
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col items-center mb-12 relative">
-          <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-white text-center mb-4">
-            Don't Sign Until<br />You're Sure
-          </h1>
+      <AnalysisSection
+        file={file}
+        error={error}
+        isProcessing={isProcessing}
+        isAnalyzing={isAnalyzing}
+        processingStatus={processingStatus}
+        progress={analysisProgress}
+        stage={stage}
+        analysis={analysis}
+        showResults={showResults}
+        currentStoredAnalysis={currentStoredAnalysis}
+        hasStoredAnalyses={hasStoredAnalyses}
+        showAnalysisButton={shouldShowAnalysisButton}
+        onFileSelect={handleFileSelect}
+        onAnalyze={handleAnalyzeWithLogReset}
+        onShowResults={setShowResults}
+        onSelectStoredAnalysis={handleSelectStoredAnalysis}
+      />
 
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl text-center">
-            Upload your contract, let AI highlight the risks and key terms.
-          </p>
-
-          {hasStoredAnalyses && (
-            <div className="absolute right-0 top-0">
-              <AnalysisHistory onSelect={handleSelectStoredAnalysis} />
-            </div>
-          )}
-        </div>
-
-        <FileUploadArea 
-          file={file}
-          error={error}
-          onFileSelect={handleFileSelect}
-          isUploading={isProcessing || (isAnalyzing && analysisProgress <= 2)}
-          processingStatus={processingStatus}
+      {entries.length > 0 && (
+        <AnalysisLog 
+          entries={entries}
+          isVisible={showLog}
+          onVisibilityChange={handleVisibilityChange}
         />
-
-        <div className="flex justify-center mt-6">
-          <AnalysisButton
-            isDisabled={!file || isAnalyzing || isProcessing}
-            isAnalyzing={isAnalyzing}
-            onClick={() => handleAnalyzeWithLogReset(file)}
-          />
-        </div>
-
-        {isAnalyzing && (
-          <AnalysisProgress 
-            currentChunk={analysis?.metadata?.currentChunk ?? 0}
-            totalChunks={analysis?.metadata?.totalChunks ?? 0}
-            isAnalyzing={isAnalyzing}
-            stage={stage}
-            progress={analysisProgress}
-          />
-        )}
-
-        {error && <ErrorDisplay error={error} />}
-        
-        {/* Show floating button only when log panel is not visible */}
-        {shouldShowAnalysisButton && (
-          <button
-            onClick={() => setShowResults(true)}
-            className={`
-              fixed bottom-4 right-4 z-40
-              bg-white dark:bg-gray-800
-              shadow-lg rounded-full p-3
-              text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white
-              border border-gray-200 dark:border-gray-700
-              transition-all duration-200
-              flex items-center gap-2
-              hover:shadow-xl
-            `}
-          >
-            <FileText className="w-5 h-5" />
-            <span>Show Analysis</span>
-          </button>
-        )}
-        
-        {((analysis && showResults) || (currentStoredAnalysis && showResults)) && (
-          <AnalysisResults 
-            analysis={currentStoredAnalysis?.analysis || analysis!} 
-            isAnalyzing={isAnalyzing}
-            stage={stage}
-            onClose={() => setShowResults(false)}
-          />
-        )}
-
-        {entries.length > 0 && (
-          <AnalysisLog 
-            entries={entries}
-            isVisible={showLog}
-            onVisibilityChange={handleVisibilityChange}
-          />
-        )}
-      </div>
+      )}
     </section>
   );
 }
