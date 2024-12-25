@@ -83,7 +83,9 @@ export function FileUploadArea({
 
         {isUploading ? (
           <div className="flex flex-col items-center space-y-3">
-            <LoadingSpinner className="w-8 h-8 text-blue-500" />
+            <div className="w-8 h-8 text-blue-500">
+              <LoadingSpinner />
+            </div>
             {processingStatus && (
               <p className="text-sm text-blue-600 dark:text-blue-400">
                 {processingStatus}
