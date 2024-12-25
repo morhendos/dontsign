@@ -38,13 +38,22 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
     };
   }, []);
 
-  const processServerUpdate = async (data: AnalysisStreamResponse) => {
-    console.log('Processing server update:', data); // Debug log
-
-    if (data.progress !== undefined) setProgress(data.progress);
+  const processServerUpdate = (data: AnalysisStreamResponse) => {
+    // First update state
+    if (data.progress !== undefined) setProgress(prev => {
+      // Only update if new progress is higher
+      return data.progress! > prev ? data.progress! : prev;
+    });
     if (data.stage) setStage(data.stage);
-    if (data.activity) onStatusUpdate?.(data.activity);
 
+    // Then update status message
+    if (data.activity) {
+      requestAnimationFrame(() => {
+        onStatusUpdate?.(data.activity);
+      });
+    }
+
+    // Finally update metadata if available
     if (data.currentChunk && data.totalChunks) {
       setAnalysis(prev => prev && ({
         ...prev,
@@ -90,6 +99,7 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       }
 
       onStatusUpdate?.('Initializing AI analysis...');
+      setProgress(10);
       
       const formData = new FormData();
       formData.append('text', text);
@@ -116,10 +126,14 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
           
           try {
             const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
-            console.log('Received update:', data); // Debug log
 
             if (data.type === 'complete' && data.result) {
-              onStatusUpdate?.('Analysis complete!');
+              processServerUpdate({
+                type: 'update',
+                progress: 100,
+                stage: 'complete',
+                activity: 'Analysis complete!'
+              });
               onEntryComplete?.();
               setAnalysis(data.result);
               trackAnalysisComplete(file.type, (Date.now() - startTime) / 1000);
@@ -127,10 +141,10 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
             } else if (data.type === 'error') {
               throw new Error(data.error);
             } else {
-              await processServerUpdate(data);
+              processServerUpdate(data);
             }
           } catch (e) {
-            console.error('Error processing update:', e);
+            console.error('Error processing server update:', e);
             throw e;
           }
         }
