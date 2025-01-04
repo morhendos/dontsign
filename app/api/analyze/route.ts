@@ -1,7 +1,5 @@
 import { analyzeContract } from '@/app/actions';
 
-export const runtime = 'edge'; // Enable streaming by using the Edge Runtime
-
 export async function POST(request: Request) {
   const encoder = new TextEncoder();
   const stream = new TransformStream();
@@ -40,8 +38,7 @@ export async function POST(request: Request) {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'X-Accel-Buffering': 'no', // Disable buffering
+      'Connection': 'keep-alive'
     },
   });
 }
