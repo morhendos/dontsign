@@ -19,7 +19,8 @@ export function AnalysisButton({
       onClick={onClick}
       disabled={isDisabled}
       size="lg"
-      className="relative min-w-[200px] font-semibold"
+      variant="default"
+      className="relative min-w-[200px] font-semibold bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
     >
       {isAnalyzing ? (
         <div className="flex items-center gap-2">
