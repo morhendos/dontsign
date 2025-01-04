@@ -46,7 +46,7 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
   const [stage, setStage] = useState<AnalysisStage>('preprocessing');
   const [currentChunk, setCurrentChunk] = useState(0);
   const [totalChunks, setTotalChunks] = useState(0);
-  const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
+  const abortControllerRef = useRef<AbortController>();
   
   const updateStatus = (message: string) => {
     console.log('[Status Update]', message);
@@ -122,6 +122,14 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       return;
     }
 
+    // Clean up any existing abort controller
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
@@ -155,68 +163,84 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       formData.append('filename', file.name);
 
       console.log('[Sending Request]');
-      const response = await fetch('/api/analyze', { method: 'POST', body: formData });
-      if (!response.body) throw new Error('No response body');
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData,
+        signal: abortControllerRef.current.signal,
+        headers: {
+          'Accept': 'text/event-stream',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      if (!response.body) {
+        throw new Error('No response body');
+      }
 
       const reader = response.body.getReader();
-      readerRef.current = reader;
       const decoder = new TextDecoder();
       let buffer = '';
 
       console.log('[Starting Stream Reading]');
-      while (true) {
-        const { done, value } = await reader.read();
-        console.log('[Stream Read]', { done, hasValue: !!value });
-        
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        console.log('[Buffer]', buffer);
-        
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
-        
-        console.log('[Processing Lines]', lines.length);
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) {
-            console.log('[Skipping Line]', line);
-            continue;
-          }
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          console.log('[Stream Read]', { done, hasValue: !!value });
           
-          try {
-            console.log('[Parsing Line]', line);
-            const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
-            console.log('[Parsed Data]', data);
-            
-            if (data.type === 'complete' && data.result) {
-              processUpdate({ 
-                type: 'progress', 
-                progress: 100, 
-                stage: 'complete',
-                activity: STATUS_MESSAGES.COMPLETE,
-                currentChunk: data.result.metadata?.totalChunks || 1,
-                totalChunks: data.result.metadata?.totalChunks || 1
-              });
-              
-              setAnalysis(data.result);
-              onEntryComplete?.();
-              break;
-            } else if (data.type === 'error') {
-              throw new Error(data.error);
-            } else {
-              processUpdate(data);
+          if (done) break;
+          
+          buffer += decoder.decode(value, { stream: true });
+          console.log('[Buffer]', buffer);
+          
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+          
+          console.log('[Processing Lines]', lines.length);
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) {
+              console.log('[Skipping Line]', line);
+              continue;
             }
-          } catch (e) {
-            console.error('[Stream Parse Error]', e);
-            throw e;
+            
+            try {
+              console.log('[Parsing Line]', line);
+              const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
+              console.log('[Parsed Data]', data);
+              
+              if (data.type === 'complete' && data.result) {
+                processUpdate({ 
+                  type: 'progress', 
+                  progress: 100, 
+                  stage: 'complete',
+                  activity: STATUS_MESSAGES.COMPLETE,
+                  currentChunk: data.result.metadata?.totalChunks || 1,
+                  totalChunks: data.result.metadata?.totalChunks || 1
+                });
+                
+                setAnalysis(data.result);
+                onEntryComplete?.();
+                return; // Exit the loop on completion
+              } else if (data.type === 'error') {
+                throw new Error(data.error);
+              } else {
+                processUpdate(data);
+              }
+            } catch (e) {
+              console.error('[Stream Parse Error]', e);
+              throw e;
+            }
           }
         }
+      } finally {
+        reader.releaseLock();
       }
     } catch (error) {
       console.error('[Analysis Error]', error);
       handleAnalysisError(error);
     } finally {
-      readerRef.current = null;
+      abortControllerRef.current = undefined;
       setIsAnalyzing(false);
     }
   };
