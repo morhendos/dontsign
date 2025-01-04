@@ -14,33 +14,9 @@ interface ProgressUpdate {
   activity?: string;
 }
 
-function sendProgress(data: Partial<ProgressUpdate>) {
-  console.log(JSON.stringify({
-    type: 'progress',
-    stage: data.progress && data.progress >= 100 ? 'complete' : 
-           data.progress && data.progress <= 15 ? 'preprocessing' : 'analyzing',
-    ...data
-  }));
-}
+type ProgressCallback = (data: Partial<ProgressUpdate>) => void;
 
-async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
-  const response = await openAIService.createChatCompletion({
-    model: "gpt-3.5-turbo-1106",
-    messages: [
-      { role: "system", content: "You are a legal expert. Analyze this contract section concisely." },
-      { role: "user", content: `Section ${chunkIndex + 1}/${totalChunks}:\n${chunk}\n\nProvide JSON with: summary (brief), keyTerms, potentialRisks, importantClauses, recommendations.` },
-    ],
-    temperature: 0.3,
-    max_tokens: 1000,
-    response_format: { type: "json_object" },
-  });
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new ContractAnalysisError('No analysis generated', 'API_ERROR');
-  return JSON.parse(content);
-}
-
-export async function analyzeContract(formData: FormData) {
+export async function analyzeContract(formData: FormData, onProgress: ProgressCallback = console.log) {
   try {
     const text = formData.get("text");
     const filename = formData.get("filename");
@@ -54,7 +30,12 @@ export async function analyzeContract(formData: FormData) {
     }
 
     // Initial phase
-    sendProgress({ progress: 15, activity: "Starting AI analysis" });
+    onProgress({
+      type: 'progress',
+      progress: 15,
+      stage: 'preprocessing',
+      activity: "Starting AI analysis"
+    });
     await new Promise(resolve => setTimeout(resolve, 200));
 
     const results = [];
@@ -75,8 +56,10 @@ export async function analyzeContract(formData: FormData) {
       metadata.currentChunk = i + 1;
       currentProgress += progressPerChunk;
 
-      sendProgress({
+      onProgress({
+        type: 'progress',
         progress: Math.min(Math.round(currentProgress), 80),
+        stage: 'analyzing',
         currentChunk: metadata.currentChunk,
         totalChunks: metadata.totalChunks,
         activity: `Processing section ${metadata.currentChunk} of ${metadata.totalChunks}`
@@ -95,8 +78,13 @@ export async function analyzeContract(formData: FormData) {
     ];
 
     for (const step of mergeSteps) {
-      sendProgress(step);
-      await new Promise(resolve => setTimeout(resolve, 300)); // Longer delay for visibility
+      onProgress({
+        type: 'progress',
+        progress: step.progress,
+        stage: 'analyzing',
+        activity: step.activity
+      });
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
     // Prepare final analysis
@@ -109,7 +97,13 @@ export async function analyzeContract(formData: FormData) {
       metadata
     };
 
-    sendProgress({ progress: 100, activity: "Analysis complete" });
+    onProgress({
+      type: 'progress',
+      progress: 100,
+      stage: 'complete',
+      activity: "Analysis complete"
+    });
+
     return finalAnalysis;
 
   } catch (error) {
