@@ -25,9 +25,35 @@ export const ANALYSIS_PROGRESS = {
   COMPLETE: 100
 } as const;
 
+export const progressMessages = {
+  // Initialize phase
+  STARTED: "Initializing document analysis system...",
+  FILE_READ: "Preparing document for processing...",
+  INPUT_VALIDATION: "Validating document format and content...",
+  PREPROCESSING_START: "Setting up document analysis pipeline...",
+
+  // Model initialization
+  MODEL_INIT: "Loading AI analysis model...",
+  MODEL_READY: "AI analysis system ready...",
+
+  // Analysis phase
+  ANALYSIS_START: "Beginning detailed contract analysis...",
+  ANALYSIS_PROCESSING: "Analyzing contract structure and language...",
+  ANALYSIS_MIDPOINT: "Identifying key contract elements...",
+  ANALYSIS_FINALIZING: "Processing contract clauses and terms...",
+  CHUNK_ANALYSIS: "Analyzing critical contract sections...",
+
+  // Summary phase
+  SUMMARY_START: "Generating comprehensive summary...",
+  RISKS: "Evaluating potential risks and concerns...",
+  RECOMMENDATIONS: "Preparing actionable recommendations...",
+  RESULT_PREPARATION: "Finalizing analysis results...",
+
+  COMPLETE: "Analysis complete! Preparing final report..."
+} as const;
+
 export const calculateChunkProgress = (currentChunk: number, totalChunks: number): number => {
   if (totalChunks <= 1) {
-    // For single chunk, use predefined steps
     return currentChunk === 0 ? 
       ANALYSIS_PROGRESS.ANALYSIS_START : 
       currentChunk === 1 ? 
@@ -35,10 +61,8 @@ export const calculateChunkProgress = (currentChunk: number, totalChunks: number
         ANALYSIS_PROGRESS.ANALYSIS_START;
   }
 
-  // For multiple chunks, calculate smooth progress
   const ANALYSIS_RANGE = ANALYSIS_PROGRESS.CHUNK_ANALYSIS - ANALYSIS_PROGRESS.ANALYSIS_START;
   const BASE_PROGRESS = ANALYSIS_PROGRESS.ANALYSIS_START;
   
-  // Calculate exact progress within the range
   return Math.floor(BASE_PROGRESS + (currentChunk / totalChunks) * ANALYSIS_RANGE);
 };
