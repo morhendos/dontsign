@@ -1,5 +1,4 @@
 import { Progress } from '@/components/ui/progress';
-import { useEffect, useState } from 'react';
 
 interface AnalysisProgressProps {
   currentChunk: number;
@@ -23,9 +22,18 @@ export function AnalysisProgress({
   
   return (
     <div className="w-full max-w-md mx-auto mt-4 space-y-2">
+      {currentStatus && (
+        <div className="text-center mb-2">
+          <span className="text-sm text-gray-600 dark:text-gray-300">
+            {currentStatus}
+          </span>
+        </div>
+      )}
       <div className="flex justify-between text-sm">
         <span className="text-gray-600 dark:text-gray-300">
-          {currentStatus}
+          {stage === 'preprocessing' ? 'Preparing' : 
+           stage === 'analyzing' ? `Analyzing section ${currentChunk} of ${totalChunks}` :
+           'Complete'}
         </span>
         <span className="text-gray-600 dark:text-gray-300">
           {progress}%
