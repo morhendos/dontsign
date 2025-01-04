@@ -18,6 +18,8 @@ interface AnalysisSectionProps {
   processingStatus: string;
   progress: number;
   stage: AnalysisStage;
+  currentChunk: number;
+  totalChunks: number;
   analysis: AnalysisResult | null;
   showResults: boolean;
   currentStoredAnalysis: StoredAnalysis | null;
@@ -40,6 +42,8 @@ export const AnalysisSection = ({
   processingStatus,
   progress,
   stage,
+  currentChunk,
+  totalChunks,
   analysis,
   showResults,
   currentStoredAnalysis,
@@ -91,8 +95,8 @@ export const AnalysisSection = ({
 
       {isAnalyzing && (
         <AnalysisProgress 
-          currentChunk={analysis?.metadata?.currentChunk ?? 0}
-          totalChunks={analysis?.metadata?.totalChunks ?? 0}
+          currentChunk={currentChunk}
+          totalChunks={totalChunks}
           isAnalyzing={isAnalyzing}
           stage={stage}
           progress={progress}
