@@ -18,26 +18,14 @@ export function AnalysisProgress({
   progress,
   currentStatus 
 }: AnalysisProgressProps) {
-  const [statusText, setStatusText] = useState<string>('');
-
   // Show progress bar while analyzing or if we have any progress
-  if (!isAnalyzing && currentChunk === 0) return null;
-
-  const isComplete = currentChunk === totalChunks && totalChunks > 0;
+  if (!isAnalyzing && progress === 0) return null;
   
   return (
     <div className="w-full max-w-md mx-auto mt-4 space-y-2">
       <div className="flex justify-between text-sm">
         <span className="text-gray-600 dark:text-gray-300">
-          {currentStatus || (
-            stage === 'complete' 
-              ? 'Analysis complete!' 
-              : stage === 'preprocessing'
-                ? 'Preparing document...'
-                : currentChunk === 0 
-                  ? 'Starting analysis...'
-                  : `Analyzing section ${currentChunk} of ${totalChunks}`
-          )}
+          {currentStatus}
         </span>
         <span className="text-gray-600 dark:text-gray-300">
           {progress}%
