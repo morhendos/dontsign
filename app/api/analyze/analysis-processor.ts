@@ -4,8 +4,8 @@ import { ANALYSIS_PROGRESS, progressMessages } from '@/lib/constants';
 import { analyzeChunk, generateFinalSummary } from './chunk-analyzer';
 import type { ProgressHandler, AnalysisResult } from './types';
 
-// Increase delay to see messages clearly
-const MIN_STEP_TIME = 800; // Back to 800ms for clear visibility
+// Reduced delay to improve responsiveness while keeping steps visible
+const MIN_STEP_TIME = 300; // Reduced from 800ms to 300ms for better UX
 
 async function wait(ms: number = MIN_STEP_TIME) {
   await new Promise(resolve => setTimeout(resolve, ms));
@@ -97,7 +97,7 @@ export async function processDocument(
       allRecommendations = [...allRecommendations, ...(chunkAnalysis.recommendations || [])];
       chunkSummaries.push(chunkAnalysis.summary);
       
-      await wait(400); // Increase chunk wait time too
+      await wait(150); // Shorter wait between chunks
     }
 
     // Summary phase
