@@ -25,6 +25,7 @@ interface AnalysisStreamResponse {
   totalChunks?: number;
   result?: AnalysisResult;
   error?: string;
+  activity?: string; // Activity field for status messages
 }
 
 /**
@@ -59,13 +60,11 @@ export const useContractAnalysis = ({
       return;
     }
 
-    // Start a new Sentry transaction for the entire analysis process
     const transaction = Sentry.startTransaction({
       name: 'analyze_contract',
       op: 'analyze'
     });
 
-    // Set the transaction as the current span for child operations
     Sentry.configureScope(scope => {
       scope.setSpan(transaction);
     });
@@ -82,14 +81,12 @@ export const useContractAnalysis = ({
     console.log('[Client] Analysis started');
 
     try {
-      // Add file info to Sentry scope for better error context
       Sentry.setContext("file", {
         type: file.type,
         size: file.size,
         name: file.name
       });
 
-      // Track document reading as a separate operation
       const readSpan = transaction.startChild({
         op: 'read_document',
         description: 'Read document content'
@@ -129,7 +126,6 @@ export const useContractAnalysis = ({
         }
       });
 
-      // Track API request as a separate operation
       const requestSpan = transaction.startChild({
         op: 'api_request',
         description: 'Make request to analysis service'
@@ -149,7 +145,6 @@ export const useContractAnalysis = ({
 
       requestSpan.finish();
 
-      // Track stream processing as a separate operation
       const streamSpan = transaction.startChild({
         op: 'stream_processing',
         description: 'Process analysis stream'
@@ -185,8 +180,8 @@ export const useContractAnalysis = ({
                 
                 if (data.progress) setProgress(data.progress);
                 if (data.stage) setStage(data.stage);
+                if (data.activity) onStatusUpdate?.(data.activity); // Use activity field for status updates
 
-                // Add breadcrumb for each analysis update
                 Sentry.addBreadcrumb({
                   category: 'analysis',
                   message: `Analysis update received`,
@@ -196,17 +191,15 @@ export const useContractAnalysis = ({
                     stage: data.stage,
                     progress: data.progress,
                     currentChunk: data.currentChunk,
-                    totalChunks: data.totalChunks
+                    totalChunks: data.totalChunks,
+                    activity: data.activity
                   }
                 });
 
                 if (data.stage === 'preprocessing') {
                   onStatusUpdate?.('Preparing document for analysis...');
                 } else if (data.stage === 'analyzing' && data.currentChunk && data.totalChunks) {
-                  onStatusUpdate?.(
-                    `Analyzing section ${data.currentChunk} of ${data.totalChunks}`,
-                    5000
-                  );
+                  onStatusUpdate?.(\`Processing section \${data.currentChunk} of \${data.totalChunks}\`, 5000);
                 }
 
                 if (data.currentChunk && data.totalChunks) {
@@ -230,7 +223,6 @@ export const useContractAnalysis = ({
                 if (data.type === 'complete' && data.result) {
                   console.log('[Client] Analysis complete, got result:', data.result);
                   onStatusUpdate?.('Analysis complete!');
-                  // Mark the last entry as complete
                   requestAnimationFrame(() => {
                     onEntryComplete?.();
                   });
