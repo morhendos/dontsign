@@ -90,6 +90,7 @@ export const AnalysisSection = ({
           isDisabled={!file || isAnalyzing || isProcessing}
           isAnalyzing={isAnalyzing}
           onClick={handleAnalyze}
+          currentStatus={isAnalyzing ? processingStatus : undefined}
         />
       </div>
 
@@ -100,7 +101,6 @@ export const AnalysisSection = ({
           isAnalyzing={isAnalyzing}
           stage={stage}
           progress={progress}
-          currentStatus={processingStatus}
         />
       )}
 
