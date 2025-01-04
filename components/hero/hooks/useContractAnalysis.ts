@@ -40,6 +40,8 @@ export const useContractAnalysis = ({
   const [error, setError] = useState<ErrorDisplay | null>(null);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<AnalysisStage>('preprocessing');
+  const [currentChunk, setCurrentChunk] = useState(0);
+  const [totalChunks, setTotalChunks] = useState(0);
   
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
   const lastActivityRef = useRef<string>('');
@@ -72,7 +74,15 @@ export const useContractAnalysis = ({
       return;
     }
 
-    // Start tracking the transaction
+    // Reset state
+    setIsAnalyzing(true);
+    setError(null);
+    setAnalysis(null);
+    setProgress(2);
+    setStage('preprocessing');
+    setCurrentChunk(0);
+    setTotalChunks(0);
+
     const transaction = Sentry.startTransaction({
       name: 'analyze_contract',
       op: 'analyze'
@@ -81,13 +91,6 @@ export const useContractAnalysis = ({
     Sentry.configureScope(scope => {
       scope.setSpan(transaction);
     });
-
-    // Reset state and start analysis
-    setIsAnalyzing(true);
-    setError(null);
-    setAnalysis(null);
-    setProgress(2);
-    setStage('preprocessing');
 
     const startTime = Date.now();
     trackAnalysisStart(file.type);
@@ -160,6 +163,8 @@ export const useContractAnalysis = ({
               // Update progress and stage
               if (data.progress) setProgress(data.progress);
               if (data.stage) setStage(data.stage);
+              if (data.currentChunk) setCurrentChunk(data.currentChunk);
+              if (data.totalChunks) setTotalChunks(data.totalChunks);
               
               // Update activity only from server messages
               if (data.activity && data.activity !== lastActivityRef.current) {
@@ -235,6 +240,8 @@ export const useContractAnalysis = ({
     setError({ message: errorMessage, type: errorType });
     setProgress(0);
     setStage('preprocessing');
+    setCurrentChunk(0);
+    setTotalChunks(0);
   };
 
   return {
@@ -243,6 +250,8 @@ export const useContractAnalysis = ({
     error,
     progress,
     stage,
+    currentChunk,
+    totalChunks,
     handleAnalyze,
   };
 };
