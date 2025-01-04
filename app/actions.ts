@@ -12,24 +12,22 @@ interface ProgressUpdate {
   totalChunks?: number;
   stage?: string;
   activity?: string;
+  description?: string;
 }
 
 type ProgressCallback = (data: ProgressUpdate) => void;
 
-// Progress stages with descriptions
-const PROGRESS_STAGES = [
-  { progress: 5, stage: 'preprocessing', activity: "Starting document analysis..." },
-  { progress: 10, stage: 'preprocessing', activity: "Validating document content..." },
-  { progress: 15, stage: 'preprocessing', activity: "Splitting document into sections..." },
-  { progress: 20, stage: 'analyzing', activity: "Initializing AI analysis..." },
-  { progress: 70, stage: 'analyzing', activity: "Analyzing document sections..." },
-  { progress: 75, stage: 'analyzing', activity: "Generating summary..." },
-  { progress: 80, stage: 'analyzing', activity: "Processing key terms..." },
-  { progress: 85, stage: 'analyzing', activity: "Identifying potential risks..." },
-  { progress: 90, stage: 'analyzing', activity: "Reviewing important clauses..." },
-  { progress: 95, stage: 'analyzing', activity: "Preparing final recommendations..." },
-  { progress: 100, stage: 'complete', activity: "Analysis complete!" },
-] as const;
+// Ensure minimum visual feedback time for small files
+const MIN_PROGRESS_TIME = 800; // Minimum time in ms for each progress step
+
+async function updateProgress(onProgress: ProgressCallback, data: Partial<ProgressUpdate>) {
+  onProgress({
+    type: 'update',
+    ...data
+  });
+  // Add small delay for UI feedback
+  await new Promise(resolve => setTimeout(resolve, MIN_PROGRESS_TIME));
+}
 
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
   const response = await openAIService.createChatCompletion({
@@ -50,38 +48,45 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
 
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
   try {
-    // Initial validation
-    onProgress({
-      type: 'update',
-      progress: 5,
+    // Document Validation Phase (0-25%)
+    await updateProgress(onProgress, {
+      progress: 2,
       stage: 'preprocessing',
-      activity: "Starting document validation..."
+      activity: "Starting document validation",
+      description: "Initializing document processing"
     });
 
+    // Validate input
     const text = formData.get("text");
     const filename = formData.get("filename");
     if (!text || typeof text !== 'string' || !filename || typeof filename !== 'string') {
       throw new ContractAnalysisError("Invalid input", "INVALID_INPUT");
     }
 
-    // Content validation
-    onProgress({
-      type: 'update',
-      progress: 10,
+    await updateProgress(onProgress, {
+      progress: 5,
       stage: 'preprocessing',
-      activity: "Checking document content..."
+      activity: "Reading document content",
+      description: "Validating document format"
     });
 
     if (!text.trim()) {
       throw new ContractAnalysisError("Document appears to be empty", "INVALID_INPUT");
     }
 
-    // Text chunking
-    onProgress({
-      type: 'update',
-      progress: 15,
+    await updateProgress(onProgress, {
+      progress: 10,
       stage: 'preprocessing',
-      activity: "Processing document structure..."
+      activity: "Processing document structure",
+      description: "Analyzing document format"
+    });
+
+    // Text Processing Phase (25-50%)
+    await updateProgress(onProgress, {
+      progress: 25,
+      stage: 'preprocessing',
+      activity: "Preparing for analysis",
+      description: "Splitting document into sections"
     });
 
     const chunks = splitIntoChunks(text);
@@ -89,55 +94,52 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    // Initialize analysis
-    onProgress({
-      type: 'update',
-      progress: 20,
+    await updateProgress(onProgress, {
+      progress: 35,
       stage: 'analyzing',
-      activity: "Starting AI analysis...",
+      activity: "Document preparation complete",
+      description: "Starting AI analysis",
       currentChunk: 0,
       totalChunks: chunks.length
     });
 
-    // Process chunks
+    // AI Analysis Phase (50-75%)
     const results = [];
-    const progressPerChunk = (70 - 20) / chunks.length;
-    let currentProgress = 20;
+    const progressPerChunk = 25 / chunks.length; // 25% total for chunks
+    let currentProgress = 50;
 
     for (let i = 0; i < chunks.length; i++) {
       const chunkNumber = i + 1;
-      onProgress({
-        type: 'update',
-        progress: Math.min(Math.round(currentProgress), 70),
+      await updateProgress(onProgress, {
+        progress: Math.round(currentProgress),
         stage: 'analyzing',
         currentChunk: chunkNumber,
         totalChunks: chunks.length,
-        activity: `Analyzing section ${chunkNumber} of ${chunks.length}`
+        activity: `Processing section ${chunkNumber}`,
+        description: `Analyzing section ${chunkNumber} of ${chunks.length}`
       });
 
       results.push(await analyzeChunk(chunks[i], i, chunks.length));
       currentProgress += progressPerChunk;
     }
 
-    // Final processing steps
+    // Final Processing Phase (75-100%)
     const finalSteps = [
-      { progress: 75, activity: "Processing section summaries..." },
-      { progress: 80, activity: "Consolidating key terms..." },
-      { progress: 85, activity: "Analyzing potential risks..." },
-      { progress: 90, activity: "Reviewing important clauses..." },
-      { progress: 95, activity: "Preparing final recommendations..." }
+      { progress: 80, activity: "Processing summaries", description: "Consolidating section analyses" },
+      { progress: 85, activity: "Analyzing terms", description: "Processing important terms and definitions" },
+      { progress: 90, activity: "Checking risks", description: "Evaluating potential risks and concerns" },
+      { progress: 95, activity: "Finalizing", description: "Preparing final recommendations" }
     ];
 
     for (const step of finalSteps) {
-      onProgress({
-        type: 'update',
+      await updateProgress(onProgress, {
         progress: step.progress,
         stage: 'analyzing',
         activity: step.activity,
+        description: step.description,
         currentChunk: chunks.length,
         totalChunks: chunks.length
       });
-      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
     // Prepare final analysis
@@ -157,11 +159,11 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
     };
 
     // Complete
-    onProgress({
-      type: 'update',
+    await updateProgress(onProgress, {
       progress: 100,
       stage: 'complete',
-      activity: "Analysis complete! Preparing results...",
+      activity: "Analysis complete",
+      description: "Preparing final results",
       currentChunk: chunks.length,
       totalChunks: chunks.length
     });
