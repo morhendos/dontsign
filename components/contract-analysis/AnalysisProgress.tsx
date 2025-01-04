@@ -23,7 +23,9 @@ export function AnalysisProgress({
       <div className="flex justify-between text-sm">
         <span className="text-gray-600 dark:text-gray-300">
           {stage === 'preprocessing' ? 'Preparing' : 
-           stage === 'analyzing' ? `Analyzing section ${currentChunk} of ${totalChunks}` :
+           stage === 'analyzing' && currentChunk > 0 && totalChunks > 0 ? 
+             `Analyzing section ${currentChunk} of ${totalChunks}` :
+           stage === 'analyzing' ? 'Analyzing' :
            'Complete'}
         </span>
         <span className="text-gray-600 dark:text-gray-300">
