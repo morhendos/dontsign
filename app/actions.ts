@@ -16,24 +16,20 @@ interface ProgressUpdate {
 
 type ProgressCallback = (data: ProgressUpdate) => void;
 
-// Progress stages - more granular now
-const PROGRESS = {
-  START: 5,
-  FILE_READ: 10,
-  PREPROCESSING: 15,
-  TEXT_EXTRACTION: 18,
-  ANALYSIS_START: 20,
-  // 20-70% for chunk processing (50% total)
-  CHUNK_PROCESSING: 70,
-  // 70-95% for merging and final steps
-  PROCESSING_SUMMARIES: 75,
-  CONSOLIDATING_TERMS: 80,
-  MERGING_RISKS: 85,
-  REVIEWING_CLAUSES: 88,
-  COMBINING_RECOMMENDATIONS: 91,
-  FINALIZING: 95,
-  COMPLETE: 100
-} as const;
+// Progress stages with descriptions
+const PROGRESS_STAGES = [
+  { progress: 5, stage: 'preprocessing', activity: "Starting document analysis..." },
+  { progress: 10, stage: 'preprocessing', activity: "Validating document content..." },
+  { progress: 15, stage: 'preprocessing', activity: "Splitting document into sections..." },
+  { progress: 20, stage: 'analyzing', activity: "Initializing AI analysis..." },
+  { progress: 70, stage: 'analyzing', activity: "Analyzing document sections..." },
+  { progress: 75, stage: 'analyzing', activity: "Generating summary..." },
+  { progress: 80, stage: 'analyzing', activity: "Processing key terms..." },
+  { progress: 85, stage: 'analyzing', activity: "Identifying potential risks..." },
+  { progress: 90, stage: 'analyzing', activity: "Reviewing important clauses..." },
+  { progress: 95, stage: 'analyzing', activity: "Preparing final recommendations..." },
+  { progress: 100, stage: 'complete', activity: "Analysis complete!" },
+] as const;
 
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
   const response = await openAIService.createChatCompletion({
@@ -54,10 +50,10 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
 
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
   try {
-    // Validate input
+    // Initial validation
     onProgress({
       type: 'update',
-      progress: PROGRESS.START,
+      progress: 5,
       stage: 'preprocessing',
       activity: "Starting document validation..."
     });
@@ -68,12 +64,12 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       throw new ContractAnalysisError("Invalid input", "INVALID_INPUT");
     }
 
-    // Text content verification
+    // Content validation
     onProgress({
       type: 'update',
-      progress: PROGRESS.FILE_READ,
+      progress: 10,
       stage: 'preprocessing',
-      activity: "Verifying document content..."
+      activity: "Checking document content..."
     });
 
     if (!text.trim()) {
@@ -83,9 +79,9 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
     // Text chunking
     onProgress({
       type: 'update',
-      progress: PROGRESS.TEXT_EXTRACTION,
+      progress: 15,
       stage: 'preprocessing',
-      activity: "Extracting document content..."
+      activity: "Processing document structure..."
     });
 
     const chunks = splitIntoChunks(text);
@@ -93,49 +89,46 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    // Initialize metadata
-    const metadata = {
-      analyzedAt: new Date().toISOString(),
-      documentName: filename,
-      modelVersion: "gpt-3.5-turbo-1106",
-      totalChunks: chunks.length,
-      currentChunk: 0
-    };
+    // Initialize analysis
+    onProgress({
+      type: 'update',
+      progress: 20,
+      stage: 'analyzing',
+      activity: "Starting AI analysis...",
+      currentChunk: 0,
+      totalChunks: chunks.length
+    });
 
-    // Analysis initialization
+    // Process chunks
     const results = [];
-    const progressPerChunk = (PROGRESS.CHUNK_PROCESSING - PROGRESS.ANALYSIS_START) / chunks.length;
-    let currentProgress = PROGRESS.ANALYSIS_START;
+    const progressPerChunk = (70 - 20) / chunks.length;
+    let currentProgress = 20;
 
-    // Process chunks with detailed updates
     for (let i = 0; i < chunks.length; i++) {
       const chunkNumber = i + 1;
       onProgress({
         type: 'update',
-        progress: Math.min(Math.round(currentProgress), PROGRESS.CHUNK_PROCESSING),
+        progress: Math.min(Math.round(currentProgress), 70),
         stage: 'analyzing',
         currentChunk: chunkNumber,
         totalChunks: chunks.length,
-        activity: `Analyzing section ${chunkNumber} of ${chunks.length} (${Math.round((chunkNumber / chunks.length) * 100)}% complete)`
+        activity: `Analyzing section ${chunkNumber} of ${chunks.length}`
       });
 
       results.push(await analyzeChunk(chunks[i], i, chunks.length));
-      metadata.currentChunk = chunkNumber;
       currentProgress += progressPerChunk;
-
-      // Small delay for UI feedback
-      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Final processing steps with status updates
-    for (const step of [
-      { progress: PROGRESS.PROCESSING_SUMMARIES, activity: "Processing section summaries..." },
-      { progress: PROGRESS.CONSOLIDATING_TERMS, activity: "Consolidating key terms..." },
-      { progress: PROGRESS.MERGING_RISKS, activity: "Analyzing potential risks..." },
-      { progress: PROGRESS.REVIEWING_CLAUSES, activity: "Reviewing important clauses..." },
-      { progress: PROGRESS.COMBINING_RECOMMENDATIONS, activity: "Preparing recommendations..." },
-      { progress: PROGRESS.FINALIZING, activity: "Finalizing analysis..." }
-    ]) {
+    // Final processing steps
+    const finalSteps = [
+      { progress: 75, activity: "Processing section summaries..." },
+      { progress: 80, activity: "Consolidating key terms..." },
+      { progress: 85, activity: "Analyzing potential risks..." },
+      { progress: 90, activity: "Reviewing important clauses..." },
+      { progress: 95, activity: "Preparing final recommendations..." }
+    ];
+
+    for (const step of finalSteps) {
       onProgress({
         type: 'update',
         progress: step.progress,
@@ -154,13 +147,19 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))],
       importantClauses: [...new Set(results.flatMap(r => r.importantClauses))],
       recommendations: [...new Set(results.flatMap(r => r.recommendations || []))],
-      metadata
+      metadata: {
+        analyzedAt: new Date().toISOString(),
+        documentName: filename,
+        modelVersion: "gpt-3.5-turbo-1106",
+        totalChunks: chunks.length,
+        currentChunk: chunks.length
+      }
     };
 
-    // Send completion
+    // Complete
     onProgress({
       type: 'update',
-      progress: PROGRESS.COMPLETE,
+      progress: 100,
       stage: 'complete',
       activity: "Analysis complete! Preparing results...",
       currentChunk: chunks.length,
