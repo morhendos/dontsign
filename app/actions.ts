@@ -16,6 +16,23 @@ interface ProgressUpdate {
 
 type ProgressCallback = (data: Partial<ProgressUpdate>) => void;
 
+async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
+  const response = await openAIService.createChatCompletion({
+    model: "gpt-3.5-turbo-1106",
+    messages: [
+      { role: "system", content: "You are a legal expert. Analyze this contract section concisely." },
+      { role: "user", content: `Section ${chunkIndex + 1}/${totalChunks}:\n${chunk}\n\nProvide JSON with: summary (brief), keyTerms, potentialRisks, importantClauses, recommendations.` },
+    ],
+    temperature: 0.3,
+    max_tokens: 1000,
+    response_format: { type: "json_object" },
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new ContractAnalysisError('No analysis generated', 'API_ERROR');
+  return JSON.parse(content);
+}
+
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback = console.log) {
   try {
     const text = formData.get("text");
