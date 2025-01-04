@@ -29,6 +29,8 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
   const [error, setError] = useState<ErrorDisplay | null>(null);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<AnalysisStage>('preprocessing');
+  const [currentChunk, setCurrentChunk] = useState(0);
+  const [totalChunks, setTotalChunks] = useState(0);
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
 
   // Process updates synchronously to ensure state consistency
@@ -40,6 +42,14 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
     if (update.stage) {
       setStage(update.stage);
       console.log('[State] Stage set to:', update.stage);
+    }
+    if (update.currentChunk !== undefined) {
+      setCurrentChunk(update.currentChunk);
+      console.log('[State] Current chunk set to:', update.currentChunk);
+    }
+    if (update.totalChunks !== undefined) {
+      setTotalChunks(update.totalChunks);
+      console.log('[State] Total chunks set to:', update.totalChunks);
     }
     if (update.activity) {
       onStatusUpdate?.(update.activity);
@@ -58,6 +68,8 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
     setAnalysis(null);
     setProgress(1);
     setStage('preprocessing');
+    setCurrentChunk(0);
+    setTotalChunks(0);
     onStatusUpdate?.('Starting document processing...');
 
     try {
@@ -110,7 +122,9 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
                 type: 'progress', 
                 progress: 100, 
                 stage: 'complete',
-                activity: 'Analysis complete!' 
+                activity: 'Analysis complete!',
+                currentChunk: data.result.metadata?.totalChunks || 1,
+                totalChunks: data.result.metadata?.totalChunks || 1
               });
               
               // Set the final analysis result
@@ -143,6 +157,8 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
     setError({ message, type: 'error' });
     setProgress(0);
     setStage('preprocessing');
+    setCurrentChunk(0);
+    setTotalChunks(0);
     if (error instanceof ContractAnalysisError || error instanceof PDFProcessingError) {
       trackError(error.code, error.message);
     } else {
@@ -150,5 +166,14 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
     }
   };
 
-  return { analysis, isAnalyzing, error, progress, stage, handleAnalyze };
+  return { 
+    analysis, 
+    isAnalyzing, 
+    error, 
+    progress, 
+    stage, 
+    currentChunk,
+    totalChunks,
+    handleAnalyze 
+  };
 };
