@@ -1,4 +1,4 @@
-## DontSign - Contract Analysis Application
+# DontSign - Contract Analysis Application
 
 ## Project Overview
 DontSign is a web application that helps users analyze contracts using AI. It processes PDF and DOCX files, extracting text and using OpenAI's GPT API to provide detailed analysis including key terms, potential risks, and recommendations.
@@ -11,6 +11,7 @@ DontSign is a web application that helps users analyze contracts using AI. It pr
 - OpenAI API (GPT-3.5-turbo-1106)
 - PDF.js for PDF parsing
 - Sentry for error tracking
+- Local storage for analysis history
 
 ## Core Components Structure
 
@@ -20,7 +21,7 @@ The main interface container that orchestrates all sub-components:
 - Handles main analysis flow
 - Integrates with OpenAI API
 - Manages real-time progress updates and streaming
-- Provides user feedback during analysis
+- Handles analysis history and stored results
 
 ### `components/contract-upload/`
 Handles file upload functionality:
@@ -35,7 +36,6 @@ Manages the analysis process:
 - Integration with server-side analysis
 - Progress tracking visualization
 - Real-time status updates
-- Error handling for analysis process
 
 ### `components/error/`
 Error display components:
@@ -45,9 +45,10 @@ Error display components:
 
 ### `components/analysis-results/`
 Displays analysis results:
-- Modular sections for different result types
-- Metadata display
+- Modal presentation
 - Responsive layout
+- Animation transitions
+- Previous analyses history
 
 ## Key Files and Their Purposes
 
@@ -69,20 +70,22 @@ interface AnalysisResult {
 }
 ```
 
+### `lib/storage.ts`
+Handles analysis persistence:
+```typescript
+interface StoredAnalysis {
+  id: string;
+  fileName: string;
+  analysis: AnalysisResult;
+  analyzedAt: string;
+}
+```
+
 ### `app/api/analyze/route.ts`
 API endpoint for contract analysis:
 - Implements streaming response with progress updates
 - Handles OpenAI API integration
 - Processes text in chunks with real-time feedback
-- Aggregates analysis results
-- Provides structured error handling
-
-### `app/actions.ts`
-Server-side actions:
-- Contract analysis using OpenAI
-- Text chunking
-- Error handling
-- Analytics integration
 
 ### `lib/pdf-utils.ts`
 PDF processing utilities:
@@ -90,60 +93,37 @@ PDF processing utilities:
 - Error handling for corrupt files
 - Worker configuration
 
-## OpenAI Integration
+## Features
 
-### Prompt Structure
-The system uses structured prompts for consistent analysis:
+### Real-time Analysis
+- Progress tracking
+- Status updates
+- Streaming response handling
 
-```typescript
-const prompt = `Analyze the following contract text and provide a structured analysis in JSON format.
-This is chunk ${chunkIndex + 1} of ${totalChunks}.
+### Analysis History
+- Local storage persistence
+- View previous analyses
+- Delete old analyses
+- Quick access to recent results
 
-Contract text:
-${chunk}
-
-Provide your analysis as a JSON object with the following structure:
-{
-  "keyTerms": [list of important terms and definitions],
-  "potentialRisks": [list of concerning clauses or potential risks],
-  "importantClauses": [list of significant clauses and their implications],
-  "recommendations": [list of points for review or negotiation]
-}`;
-```
-
-System message emphasizes legal expertise:
-```typescript
-role: "system",
-content: "You are a legal analysis assistant specialized in contract review. Analyze the contract and return results in JSON format. Focus on identifying key terms, potential risks, and important clauses. Be concise and precise."
-```
-
-## Error Handling
-The application uses a comprehensive error handling system:
-1. Custom error types:
-   - `PDFProcessingError`
-   - `ContractAnalysisError`
-2. Sentry integration for tracking
+### Error Handling
+Comprehensive error handling system:
+1. Custom error types
+2. Sentry integration
 3. User-friendly error messages
-4. Analytics tracking for errors
-
-## Analytics
-Events tracked:
-- File uploads
-- Analysis starts/completions
-- Errors
-- User interactions
-- Analysis progress transitions
+4. Analytics tracking
 
 ## State Management
 Component state management using React hooks:
 ```typescript
-const [file, setFile] = useState<File | null>(null);
+// Analysis States
 const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-const [isAnalyzing, setIsAnalyzing] = useState(false);
-const [error, setError] = useState<ErrorDisplay | null>(null);
-const [progress, setProgress] = useState(0);
-const [stage, setStage] = useState<'preprocessing' | 'analyzing' | 'complete'>('preprocessing');
-const [processingStatus, setProcessingStatus] = useState<string>('');
+const [currentStoredAnalysis, setCurrentStoredAnalysis] = 
+  useState<StoredAnalysis | null>(null);
+
+// UI States
+const [showResults, setShowResults] = useState(false);
+const [hasStoredAnalyses, setHasStoredAnalyses] = useState(false);
 ```
 
 ## Development Guidelines
@@ -160,7 +140,7 @@ const [processingStatus, setProcessingStatus] = useState<string>('');
 - Follow existing component structure
 - Use shadcn/ui components where possible
 - Implement proper error handling
-- Add analytics tracking for new features
+- Add analytics tracking
 
 ### Testing
 Important areas to test:
@@ -168,7 +148,7 @@ Important areas to test:
 - Error scenarios
 - Analysis process
 - UI responsiveness
-- Progress feedback accuracy
+- History functionality
 
 ### Deployment
 The project uses automatic deployment:
@@ -180,51 +160,15 @@ The project uses automatic deployment:
 
 ### Adding New Analysis Types
 1. Update `AnalysisResult` interface
-2. Modify OpenAI prompt in `actions.ts`
+2. Modify OpenAI prompt
 3. Add new section component
 4. Update result display
 
-### Modifying Error Handling
-1. Add new error type if needed
-2. Update error handling in relevant components
-3. Add Sentry tracking
-4. Update error display component
-
-### Adding UI Components
-1. Follow existing component structure
-2. Use Tailwind for styling
-3. Implement proper TypeScript interfaces
-4. Add error handling where needed
-
-## Future Improvements
-Potential areas for enhancement:
-1. Support for more file types
-2. Batch processing
-3. Enhanced analysis features
-4. Improved error recovery
-5. Offline capabilities
-6. User accounts and history
-7. Enhanced progress visualization
-8. More granular progress updates
-
-## Troubleshooting
-Common issues and solutions:
-1. PDF Processing Issues
-   - Check file corruption
-   - Verify PDF.js worker
-   - Check file size limits
-2. Analysis Errors
-   - Verify OpenAI API key
-   - Check text chunking
-   - Monitor rate limits
-3. UI Issues
-   - Clear browser cache
-   - Check console errors
-   - Verify component props
-4. Progress Bar Issues
-   - Check stream connection
-   - Verify progress updates
-   - Monitor analysis stages
+### Modifying History Features
+1. Update storage interface
+2. Modify UI components
+3. Update state management
+4. Test persistence
 
 ## Environment Setup
 Required environment variables:
