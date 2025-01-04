@@ -4,13 +4,6 @@ import { ANALYSIS_PROGRESS, progressMessages } from '@/lib/constants';
 import { analyzeChunk, generateFinalSummary } from './chunk-analyzer';
 import type { ProgressHandler, AnalysisResult } from './types';
 
-// Reduced delay to improve responsiveness while keeping steps visible
-const MIN_STEP_TIME = 300; // Reduced from 800ms to 300ms for better UX
-
-async function wait(ms: number = MIN_STEP_TIME) {
-  await new Promise(resolve => setTimeout(resolve, ms));
-}
-
 export async function processDocument(
   text: string,
   filename: string,
@@ -20,19 +13,15 @@ export async function processDocument(
     // Initialize phase
     progress.sendProgress('preprocessing', ANALYSIS_PROGRESS.STARTED, 0, 0, 
       progressMessages.STARTED);
-    await wait();
     
     progress.sendProgress('preprocessing', ANALYSIS_PROGRESS.FILE_READ, 0, 0,
       progressMessages.FILE_READ);
-    await wait();
 
     progress.sendProgress('preprocessing', ANALYSIS_PROGRESS.INPUT_VALIDATION, 0, 0,
       progressMessages.INPUT_VALIDATION);
-    await wait();
 
     progress.sendProgress('preprocessing', ANALYSIS_PROGRESS.PREPROCESSING_START, 0, 0,
       progressMessages.PREPROCESSING_START);
-    await wait();
 
     const chunks = splitIntoChunks(text);
     if (chunks.length === 0) {
@@ -42,16 +31,13 @@ export async function processDocument(
     // Model initialization
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.MODEL_INIT, 0, chunks.length,
       progressMessages.MODEL_INIT);
-    await wait();
     
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.MODEL_READY, 0, chunks.length,
       progressMessages.MODEL_READY);
-    await wait();
 
     // Start analysis phase
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.ANALYSIS_START, 0, chunks.length,
       progressMessages.ANALYSIS_START);
-    await wait();
 
     // Initialize result arrays
     let allKeyTerms: string[] = [];
@@ -64,15 +50,12 @@ export async function processDocument(
     if (chunks.length === 1) {
       progress.sendProgress('analyzing', ANALYSIS_PROGRESS.ANALYSIS_PROCESSING, 0, 1,
         progressMessages.ANALYSIS_PROCESSING);
-      await wait();
       
       progress.sendProgress('analyzing', ANALYSIS_PROGRESS.ANALYSIS_MIDPOINT, 0, 1,
         progressMessages.ANALYSIS_MIDPOINT);
-      await wait();
       
       progress.sendProgress('analyzing', ANALYSIS_PROGRESS.ANALYSIS_FINALIZING, 0, 1,
         progressMessages.ANALYSIS_FINALIZING);
-      await wait();
     }
 
     // Process each chunk
@@ -96,22 +79,17 @@ export async function processDocument(
       allImportantClauses = [...allImportantClauses, ...chunkAnalysis.importantClauses];
       allRecommendations = [...allRecommendations, ...(chunkAnalysis.recommendations || [])];
       chunkSummaries.push(chunkAnalysis.summary);
-      
-      await wait(150); // Shorter wait between chunks
     }
 
     // Summary phase
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.SUMMARY_START, chunks.length, chunks.length,
       progressMessages.SUMMARY_START);
-    await wait();
 
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.RISKS, chunks.length, chunks.length,
       progressMessages.RISKS);
-    await wait();
 
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.RECOMMENDATIONS, chunks.length, chunks.length,
       progressMessages.RECOMMENDATIONS);
-    await wait();
 
     // Generate final summary
     const summaryContent = await generateFinalSummary(
@@ -125,7 +103,6 @@ export async function processDocument(
     // Final steps
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.RESULT_PREPARATION, chunks.length, chunks.length,
       progressMessages.RESULT_PREPARATION);
-    await wait();
     
     // Prepare final result
     const result = {
