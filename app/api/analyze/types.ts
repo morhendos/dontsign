@@ -23,12 +23,13 @@ export interface ProgressUpdate {
   totalChunks?: number;
   result?: AnalysisResult;
   error?: string;
+  description?: string;  // Added for detailed progress messages
 }
 
 export type StreamController = ReadableStreamDefaultController<any>;
 
 export interface ProgressHandler {
-  sendProgress: (stage: string, progress: number, currentChunk?: number, totalChunks?: number) => void;
+  sendProgress: (stage: string, progress: number, currentChunk?: number, totalChunks?: number, description?: string) => void;
   sendComplete: (result: AnalysisResult) => void;
   sendError: (error: Error | unknown) => void;
 }
