@@ -33,6 +33,16 @@ interface AnalysisSectionProps {
 }
 
 /**
+ * HistoryButtonContent component to match styling with other button
+ */
+const HistoryButtonContent = () => (
+  <>
+    <History className="w-5 h-5" />
+    Previous Analyses
+  </>
+);
+
+/**
  * Handles the main analysis section including file upload, analysis controls, and results display
  */
 export const AnalysisSection = ({
@@ -87,15 +97,14 @@ export const AnalysisSection = ({
             </Button>
           )}
           {hasStoredAnalyses && (
-            <Button
+            <AnalysisHistory 
+              onSelect={onSelectStoredAnalysis}
               variant="outline"
               size="lg"
               className="gap-2 border-gray-300 dark:border-gray-700"
-              onClick={() => setIsOpen(true)}
             >
-              <History className="w-5 h-5" />
-              Previous Analyses
-            </Button>
+              <HistoryButtonContent />
+            </AnalysisHistory>
           )}
         </div>
       )}
