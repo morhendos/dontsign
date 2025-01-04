@@ -17,20 +17,43 @@ interface ProgressUpdate {
 
 type ProgressCallback = (data: ProgressUpdate) => void;
 
-// Force minimum time for phases to prevent jumps
-const PHASE_MIN_TIME = 2000; // 2 seconds minimum per phase
+// Progress stages with smaller, more evenly distributed increments
+const PROGRESS = {
+  INIT: 5,               // Starting analysis
+  VALIDATION: 10,        // Document validation
+  EXTRACTION: 15,        // Content extraction
+  PREPROCESSING: 20,     // Text preprocessing
+  CHUNKING: 25,         // Splitting into chunks
+  MODEL_INIT: 30,       // Initializing AI model
+  ANALYSIS_START: 35,    // Starting analysis
+  // 35-75% for chunk processing (40% total, evenly distributed)
+  CHUNK_PROCESSING: 75,  
+  SUMMARY: 80,          // Processing summaries
+  TERMS: 85,            // Processing terms
+  RISKS: 90,            // Processing risks
+  RECOMMENDATIONS: 95,   // Processing recommendations
+  COMPLETE: 100
+} as const;
 
-// Add small random delay to make progress feel more natural
-const addNaturalDelay = () => new Promise(resolve => 
-  setTimeout(resolve, Math.random() * 500 + 500)
-);
+// Force minimum time for each step
+const STEP_MIN_TIME = 800; // 800ms minimum per step
 
-async function updateProgress(onProgress: ProgressCallback, data: Partial<ProgressUpdate>, minDelay = PHASE_MIN_TIME) {
+async function updateProgress(onProgress: ProgressCallback, data: Partial<ProgressUpdate>) {
+  console.log('[Server Progress]', {
+    stage: data.stage,
+    progress: data.progress,
+    currentChunk: data.currentChunk,
+    totalChunks: data.totalChunks,
+    description: data.description
+  });
+
   onProgress({
     type: 'update',
     ...data
   });
-  await new Promise(resolve => setTimeout(resolve, minDelay));
+
+  // Add minimum delay for UI feedback
+  await new Promise(resolve => setTimeout(resolve, STEP_MIN_TIME));
 }
 
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
@@ -52,12 +75,12 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
 
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
   try {
-    // Phase 1: Document Loading (0-15%)
+    // Initial validation
     await updateProgress(onProgress, {
-      progress: 5,
+      progress: PROGRESS.INIT,
       stage: 'preprocessing',
-      activity: "Loading document...",
-      description: "Starting analysis process"
+      activity: "Starting analysis...",
+      description: "Initializing document processing"
     });
 
     const text = formData.get("text");
@@ -66,88 +89,105 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       throw new ContractAnalysisError("Invalid input", "INVALID_INPUT");
     }
 
+    // Document validation
+    await updateProgress(onProgress, {
+      progress: PROGRESS.VALIDATION,
+      stage: 'preprocessing',
+      activity: "Validating document...",
+      description: "Checking document content"
+    });
+
     if (!text.trim()) {
       throw new ContractAnalysisError("Document appears to be empty", "INVALID_INPUT");
     }
 
-    await addNaturalDelay();
-    
-    // Phase 2: Document Preprocessing (15-35%)
+    // Content extraction
     await updateProgress(onProgress, {
-      progress: 15,
+      progress: PROGRESS.EXTRACTION,
       stage: 'preprocessing',
-      activity: "Processing document...",
-      description: "Analyzing document structure"
+      activity: "Extracting content...",
+      description: "Reading document content"
     });
 
+    // Text preprocessing
+    await updateProgress(onProgress, {
+      progress: PROGRESS.PREPROCESSING,
+      stage: 'preprocessing',
+      activity: "Processing text...",
+      description: "Preparing content for analysis"
+    });
+
+    // Text chunking
     const chunks = splitIntoChunks(text);
     if (chunks.length === 0) {
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    await addNaturalDelay();
-    
     await updateProgress(onProgress, {
-      progress: 25,
+      progress: PROGRESS.CHUNKING,
       stage: 'preprocessing',
-      activity: "Preparing document...",
-      description: "Organizing content for analysis"
+      activity: "Organizing content...",
+      description: "Splitting into sections"
     });
 
-    await addNaturalDelay();
-
-    // Phase 3: AI Model Initialization (35-50%)
+    // Model initialization
     await updateProgress(onProgress, {
-      progress: 35,
+      progress: PROGRESS.MODEL_INIT,
       stage: 'analyzing',
-      activity: "Initializing AI analysis...",
-      description: "Setting up analysis engine",
+      activity: "Preparing AI model...",
+      description: "Initializing analysis engine",
       currentChunk: 0,
       totalChunks: chunks.length
     });
 
-    await addNaturalDelay();
+    // Start analysis
+    await updateProgress(onProgress, {
+      progress: PROGRESS.ANALYSIS_START,
+      stage: 'analyzing',
+      activity: "Starting analysis...",
+      description: "Beginning document analysis",
+      currentChunk: 0,
+      totalChunks: chunks.length
+    });
 
-    // Phase 4: Content Analysis (50-80%)
+    // Process chunks with evenly distributed progress
     const results = [];
-    const progressPerChunk = 30 / chunks.length; // 30% total for chunks
-    let currentProgress = 50;
+    const progressPerChunk = (PROGRESS.CHUNK_PROCESSING - PROGRESS.ANALYSIS_START) / chunks.length;
+    let currentProgress = PROGRESS.ANALYSIS_START;
 
     for (let i = 0; i < chunks.length; i++) {
       const chunkNumber = i + 1;
-      
       await updateProgress(onProgress, {
         progress: Math.round(currentProgress),
         stage: 'analyzing',
         currentChunk: chunkNumber,
         totalChunks: chunks.length,
         activity: `Analyzing section ${chunkNumber} of ${chunks.length}`,
-        description: `Processing document section ${chunkNumber}`
-      }, 1000);
+        description: `Processing section ${chunkNumber}/${chunks.length}`
+      });
 
       results.push(await analyzeChunk(chunks[i], i, chunks.length));
       currentProgress += progressPerChunk;
-      
-      await addNaturalDelay();
     }
 
-    // Phase 5: Final Processing (80-100%)
-    const finalSteps = [
-      { progress: 85, activity: "Processing summaries...", description: "Combining section analyses" },
-      { progress: 90, activity: "Analyzing terms...", description: "Consolidating key terms" },
-      { progress: 95, activity: "Finalizing...", description: "Preparing recommendations" }
-    ];
-
-    for (const step of finalSteps) {
+    // Final processing steps
+    for (const step of [
+      { progress: PROGRESS.SUMMARY, activity: "Processing summaries...", description: "Combining analysis results" },
+      { progress: PROGRESS.TERMS, activity: "Processing terms...", description: "Consolidating key terms" },
+      { progress: PROGRESS.RISKS, activity: "Analyzing risks...", description: "Evaluating potential risks" },
+      { progress: PROGRESS.RECOMMENDATIONS, activity: "Preparing recommendations...", description: "Generating final recommendations" }
+    ]) {
       await updateProgress(onProgress, {
-        ...step,
+        progress: step.progress,
         stage: 'analyzing',
+        activity: step.activity,
+        description: step.description,
         currentChunk: chunks.length,
         totalChunks: chunks.length
       });
-      await addNaturalDelay();
     }
 
+    // Prepare final analysis
     const finalAnalysis = {
       summary: `Analysis complete. Found ${results.length} key sections.\n\n${results.map(r => r.summary).join('\n')}`,
       keyTerms: [...new Set(results.flatMap(r => r.keyTerms))],
@@ -165,13 +205,13 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
 
     // Complete
     await updateProgress(onProgress, {
-      progress: 100,
+      progress: PROGRESS.COMPLETE,
       stage: 'complete',
       activity: "Analysis complete!",
       description: "Preparing final results",
       currentChunk: chunks.length,
       totalChunks: chunks.length
-    }, 1000);
+    });
 
     return finalAnalysis;
 
