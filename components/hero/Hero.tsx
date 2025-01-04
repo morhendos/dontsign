@@ -65,6 +65,8 @@ export default function Hero() {
     error: analysisError,
     progress: analysisProgress,
     stage,
+    currentChunk,
+    totalChunks,
     handleAnalyze
   } = useContractAnalysis({
     onStatusUpdate: setStatusWithTimeout,
@@ -130,6 +132,8 @@ export default function Hero() {
         processingStatus={processingStatus}
         progress={analysisProgress}
         stage={stage}
+        currentChunk={currentChunk}
+        totalChunks={totalChunks}
         analysis={analysis}
         showResults={showResults}
         currentStoredAnalysis={currentStoredAnalysis}
