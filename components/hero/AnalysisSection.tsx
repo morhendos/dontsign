@@ -90,10 +90,19 @@ export const AnalysisSection = ({
           isDisabled={!file || isAnalyzing || isProcessing}
           isAnalyzing={isAnalyzing}
           onClick={handleAnalyze}
-          currentStatus={isAnalyzing ? processingStatus : undefined}
         />
       </div>
 
+      {/* Activity message above progress bar */}
+      {isAnalyzing && processingStatus && (
+        <div className="w-full max-w-md mx-auto mt-4 text-center">
+          <span className="text-sm text-gray-600 dark:text-gray-300">
+            {processingStatus}
+          </span>
+        </div>
+      )}
+
+      {/* Progress bar */}
       {isAnalyzing && (
         <AnalysisProgress 
           currentChunk={currentChunk}
