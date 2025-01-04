@@ -7,9 +7,9 @@ export const ANALYSIS_PROGRESS = {
 
   // Model initialization (15-30%)
   MODEL_INIT: 20,
-  MODEL_READY: 30,
+  MODEL_READY: 25,  // Changed from 30 to 25
   
-  // Analysis phase (30-80%, better distribution)
+  // Analysis phase (30-80%)
   ANALYSIS_START: 30,
   ANALYSIS_PROCESSING: 40,
   ANALYSIS_MIDPOINT: 50,
