@@ -16,14 +16,18 @@ import { saveAnalysis, getStoredAnalyses, type StoredAnalysis } from '@/lib/stor
 export default function Hero() {
   // UI state
   const [processingStatus, setProcessingStatus] = useState<string>('');
-  const [showResults, setShowResults] = useState(true);
+  const [showResults, setShowResults] = useState(false);
   const [currentStoredAnalysis, setCurrentStoredAnalysis] = useState<StoredAnalysis | null>(null);
   const [hasStoredAnalyses, setHasStoredAnalyses] = useState(false);
 
-  // Check for stored analyses on mount
+  // Check for stored analyses and initialize state on mount
   useEffect(() => {
     const analyses = getStoredAnalyses();
     setHasStoredAnalyses(analyses.length > 0);
+    // If there are stored analyses, set the most recent one as current
+    if (analyses.length > 0) {
+      setCurrentStoredAnalysis(analyses[0]);
+    }
   }, []);
 
   // Analysis log handling
@@ -56,7 +60,8 @@ export default function Hero() {
     file,
     error: fileError,
     isProcessing,
-    handleFileSelect
+    handleFileSelect,
+    resetFile
   } = useFileHandler({
     onStatusUpdate: setStatusWithTimeout,
     onEntryComplete: () => updateLastEntry('complete')
@@ -104,9 +109,7 @@ export default function Hero() {
   const handleAnalyzeWithLogReset = async () => {
     clearEntries();
     showLogWithAutoHide();
-    setShowResults(true);
-    setCurrentStoredAnalysis(null);
-    setProcessingStatus(''); // Clear any existing status
+    setShowResults(false);
     await handleAnalyze(file);
   };
 
@@ -114,53 +117,38 @@ export default function Hero() {
   const handleSelectStoredAnalysis = (stored: StoredAnalysis) => {
     setCurrentStoredAnalysis(stored);
     setShowResults(true);
+    // Reset current file and analysis state since we're viewing a stored analysis
+    resetFile();
   };
 
-  // Show Analysis button should only appear when:
-  // 1. We have an analysis (current or stored)
-  // 2. Results are currently hidden
-  // 3. Analysis is complete and not analyzing
-  // 4. Log panel is not visible
-  // 5. No errors are present
-  const shouldShowAnalysisButton = Boolean(
-    (analysis || currentStoredAnalysis) && 
-    !showResults && 
-    stage === 'complete' && 
-    !isAnalyzing && 
-    !showLog &&
-    !error
-  );
-
   return (
-    <section className="py-20 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <AnalysisSection
-        file={file}
-        error={error}
-        isProcessing={isProcessing}
-        isAnalyzing={isAnalyzing}
-        processingStatus={processingStatus}
-        progress={analysisProgress}
-        stage={stage}
-        currentChunk={currentChunk}
-        totalChunks={totalChunks}
-        analysis={analysis}
-        showResults={showResults}
-        currentStoredAnalysis={currentStoredAnalysis}
-        hasStoredAnalyses={hasStoredAnalyses}
-        showAnalysisButton={shouldShowAnalysisButton}
-        onFileSelect={handleFileSelect}
-        onAnalyze={handleAnalyzeWithLogReset}
-        onShowResults={setShowResults}
-        onSelectStoredAnalysis={handleSelectStoredAnalysis}
-      />
+    <AnalysisSection
+      file={file}
+      error={error}
+      isProcessing={isProcessing}
+      isAnalyzing={isAnalyzing}
+      processingStatus={processingStatus}
+      progress={analysisProgress}
+      stage={stage}
+      currentChunk={currentChunk}
+      totalChunks={totalChunks}
+      analysis={analysis}
+      showResults={showResults}
+      currentStoredAnalysis={currentStoredAnalysis}
+      hasStoredAnalyses={hasStoredAnalyses}
+      showAnalysisButton={Boolean(analysis || currentStoredAnalysis)}
+      onFileSelect={handleFileSelect}
+      onAnalyze={handleAnalyzeWithLogReset}
+      onShowResults={setShowResults}
+      onSelectStoredAnalysis={handleSelectStoredAnalysis}
+    />
 
-      {entries.length > 0 && (
-        <AnalysisLog 
-          entries={entries}
-          isVisible={showLog}
-          onVisibilityChange={handleVisibilityChange}
-        />
-      )}
-    </section>
+    {entries.length > 0 && (
+      <AnalysisLog 
+        entries={entries}
+        isVisible={showLog}
+        onVisibilityChange={handleVisibilityChange}
+      />
+    )}
   );
 }
