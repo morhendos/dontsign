@@ -122,33 +122,35 @@ export default function Hero() {
   };
 
   return (
-    <AnalysisSection
-      file={file}
-      error={error}
-      isProcessing={isProcessing}
-      isAnalyzing={isAnalyzing}
-      processingStatus={processingStatus}
-      progress={analysisProgress}
-      stage={stage}
-      currentChunk={currentChunk}
-      totalChunks={totalChunks}
-      analysis={analysis}
-      showResults={showResults}
-      currentStoredAnalysis={currentStoredAnalysis}
-      hasStoredAnalyses={hasStoredAnalyses}
-      showAnalysisButton={Boolean(analysis || currentStoredAnalysis)}
-      onFileSelect={handleFileSelect}
-      onAnalyze={handleAnalyzeWithLogReset}
-      onShowResults={setShowResults}
-      onSelectStoredAnalysis={handleSelectStoredAnalysis}
-    />
-
-    {entries.length > 0 && (
-      <AnalysisLog 
-        entries={entries}
-        isVisible={showLog}
-        onVisibilityChange={handleVisibilityChange}
+    <>
+      <AnalysisSection
+        file={file}
+        error={error}
+        isProcessing={isProcessing}
+        isAnalyzing={isAnalyzing}
+        processingStatus={processingStatus}
+        progress={analysisProgress}
+        stage={stage}
+        currentChunk={currentChunk}
+        totalChunks={totalChunks}
+        analysis={analysis}
+        showResults={showResults}
+        currentStoredAnalysis={currentStoredAnalysis}
+        hasStoredAnalyses={hasStoredAnalyses}
+        showAnalysisButton={Boolean(analysis || currentStoredAnalysis)}
+        onFileSelect={handleFileSelect}
+        onAnalyze={handleAnalyzeWithLogReset}
+        onShowResults={setShowResults}
+        onSelectStoredAnalysis={handleSelectStoredAnalysis}
       />
-    )}
+
+      {entries.length > 0 && (
+        <AnalysisLog 
+          entries={entries}
+          isVisible={showLog}
+          onVisibilityChange={handleVisibilityChange}
+        />
+      )}
+    </>
   );
 }
