@@ -62,34 +62,43 @@ export const AnalysisSection = ({
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="flex flex-col items-center mb-12 relative">
-        <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-white text-center mb-4">
+      {/* Hero section */}
+      <div className="text-center mb-6">
+        <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
           Don't Sign Until<br />You're Sure
         </h1>
-
-        <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl text-center">
+        <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
           Upload your contract, let AI highlight the risks and key terms.
         </p>
-
-        {(hasStoredAnalyses || showAnalysisButton) && (
-          <div className="absolute right-0 top-0 flex gap-2">
-            {showAnalysisButton && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => onShowResults(true)}
-              >
-                <FileText className="w-4 h-4" />
-                View Latest Analysis
-              </Button>
-            )}
-            {hasStoredAnalyses && (
-              <AnalysisHistory onSelect={onSelectStoredAnalysis} />
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Analysis Controls */}
+      {(hasStoredAnalyses || showAnalysisButton) && (
+        <div className="mb-8 flex justify-center gap-3">
+          {showAnalysisButton && (
+            <Button
+              variant="default"
+              size="lg"
+              className="gap-2 bg-gray-900 hover:bg-gray-800 text-white dark:bg-gray-800 dark:hover:bg-gray-700"
+              onClick={() => onShowResults(true)}
+            >
+              <FileText className="w-5 h-5" />
+              View Latest Analysis
+            </Button>
+          )}
+          {hasStoredAnalyses && (
+            <Button
+              variant="outline"
+              size="lg"
+              className="gap-2 border-gray-300 dark:border-gray-700"
+              onClick={() => setIsOpen(true)}
+            >
+              <History className="w-5 h-5" />
+              Previous Analyses
+            </Button>
+          )}
+        </div>
+      )}
 
       <FileUploadArea 
         file={file}
