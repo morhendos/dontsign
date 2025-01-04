@@ -21,6 +21,7 @@ const PROGRESS = {
   START: 5,
   FILE_READ: 10,
   PREPROCESSING: 15,
+  TEXT_EXTRACTION: 18,
   ANALYSIS_START: 20,
   // 20-70% for chunk processing (50% total)
   CHUNK_PROCESSING: 70,
@@ -54,27 +55,37 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
   try {
     // Validate input
+    onProgress({
+      type: 'update',
+      progress: PROGRESS.START,
+      stage: 'preprocessing',
+      activity: "Starting document validation..."
+    });
+
     const text = formData.get("text");
     const filename = formData.get("filename");
     if (!text || typeof text !== 'string' || !filename || typeof filename !== 'string') {
       throw new ContractAnalysisError("Invalid input", "INVALID_INPUT");
     }
 
-    // Start preprocessing
-    onProgress({
-      type: 'update',
-      progress: PROGRESS.START,
-      stage: 'preprocessing',
-      activity: "Starting document analysis..."
-    });
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    // Text chunking
+    // Text content verification
     onProgress({
       type: 'update',
       progress: PROGRESS.FILE_READ,
       stage: 'preprocessing',
-      activity: "Splitting document into sections..."
+      activity: "Verifying document content..."
+    });
+
+    if (!text.trim()) {
+      throw new ContractAnalysisError("Document appears to be empty", "INVALID_INPUT");
+    }
+
+    // Text chunking
+    onProgress({
+      type: 'update',
+      progress: PROGRESS.TEXT_EXTRACTION,
+      stage: 'preprocessing',
+      activity: "Extracting document content..."
     });
 
     const chunks = splitIntoChunks(text);
@@ -82,15 +93,7 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    onProgress({
-      type: 'update',
-      progress: PROGRESS.PREPROCESSING,
-      stage: 'preprocessing',
-      activity: "Preparing for AI analysis..."
-    });
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const results = [];
+    // Initialize metadata
     const metadata = {
       analyzedAt: new Date().toISOString(),
       documentName: filename,
@@ -99,61 +102,54 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       currentChunk: 0
     };
 
-    // Start analysis phase
-    onProgress({
-      type: 'update',
-      progress: PROGRESS.ANALYSIS_START,
-      stage: 'analyzing',
-      activity: "Starting AI analysis..."
-    });
-
-    // Process chunks (20-70%)
+    // Analysis initialization
+    const results = [];
     const progressPerChunk = (PROGRESS.CHUNK_PROCESSING - PROGRESS.ANALYSIS_START) / chunks.length;
     let currentProgress = PROGRESS.ANALYSIS_START;
 
-    for (let i = 0; i < chunks.length; i += 1) {
-      results.push(await analyzeChunk(chunks[i], i, chunks.length));
-      metadata.currentChunk = i + 1;
-      currentProgress += progressPerChunk;
-
+    // Process chunks with detailed updates
+    for (let i = 0; i < chunks.length; i++) {
+      const chunkNumber = i + 1;
       onProgress({
         type: 'update',
         progress: Math.min(Math.round(currentProgress), PROGRESS.CHUNK_PROCESSING),
         stage: 'analyzing',
-        currentChunk: metadata.currentChunk,
-        totalChunks: metadata.totalChunks,
-        activity: metadata.currentChunk === metadata.totalChunks
-          ? "All sections processed, starting final analysis..."
-          : `Analyzing section ${metadata.currentChunk} of ${metadata.totalChunks} - ${Math.round((metadata.currentChunk / metadata.totalChunks) * 100)}% complete`
+        currentChunk: chunkNumber,
+        totalChunks: chunks.length,
+        activity: `Analyzing section ${chunkNumber} of ${chunks.length} (${Math.round((chunkNumber / chunks.length) * 100)}% complete)`
       });
 
-      // Small delay to make progress visible
+      results.push(await analyzeChunk(chunks[i], i, chunks.length));
+      metadata.currentChunk = chunkNumber;
+      currentProgress += progressPerChunk;
+
+      // Small delay for UI feedback
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Merging phase (70-95%) with clearer messages
-    const mergeSteps = [
-      { progress: PROGRESS.PROCESSING_SUMMARIES, activity: "Processing summaries and key findings..." },
-      { progress: PROGRESS.CONSOLIDATING_TERMS, activity: "Consolidating important terms and definitions..." },
-      { progress: PROGRESS.MERGING_RISKS, activity: "Analyzing potential risks and concerns..." },
-      { progress: PROGRESS.REVIEWING_CLAUSES, activity: "Reviewing important clauses and implications..." },
-      { progress: PROGRESS.COMBINING_RECOMMENDATIONS, activity: "Preparing recommendations and suggestions..." },
-      { progress: PROGRESS.FINALIZING, activity: "Finalizing comprehensive analysis..." }
-    ];
-
-    for (const step of mergeSteps) {
+    // Final processing steps with status updates
+    for (const step of [
+      { progress: PROGRESS.PROCESSING_SUMMARIES, activity: "Processing section summaries..." },
+      { progress: PROGRESS.CONSOLIDATING_TERMS, activity: "Consolidating key terms..." },
+      { progress: PROGRESS.MERGING_RISKS, activity: "Analyzing potential risks..." },
+      { progress: PROGRESS.REVIEWING_CLAUSES, activity: "Reviewing important clauses..." },
+      { progress: PROGRESS.COMBINING_RECOMMENDATIONS, activity: "Preparing recommendations..." },
+      { progress: PROGRESS.FINALIZING, activity: "Finalizing analysis..." }
+    ]) {
       onProgress({
         type: 'update',
         progress: step.progress,
         stage: 'analyzing',
-        activity: step.activity
+        activity: step.activity,
+        currentChunk: chunks.length,
+        totalChunks: chunks.length
       });
       await new Promise(resolve => setTimeout(resolve, 300));
     }
 
     // Prepare final analysis
     const finalAnalysis = {
-      summary: `Analysis complete. Found ${results.length} key sections.\n\n\nDetailed Analysis:\n${results.map(r => r.summary).join('\n')}`,
+      summary: `Analysis complete. Found ${results.length} key sections.\n\n${results.map(r => r.summary).join('\n')}`,
       keyTerms: [...new Set(results.flatMap(r => r.keyTerms))],
       potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))],
       importantClauses: [...new Set(results.flatMap(r => r.importantClauses))],
@@ -166,7 +162,9 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       type: 'update',
       progress: PROGRESS.COMPLETE,
       stage: 'complete',
-      activity: "Analysis complete! Showing results..."
+      activity: "Analysis complete! Preparing results...",
+      currentChunk: chunks.length,
+      totalChunks: chunks.length
     });
 
     return finalAnalysis;
