@@ -95,18 +95,9 @@ export const AnalysisSection = ({
         {/* Analysis Progress Section */}
         {isAnalyzing && (
           <div className="w-full max-w-md space-y-4">
-            {/* Status Message */}
+            {/* Status Message - Only show detailed message */}
             <div className="text-center font-medium text-gray-700 dark:text-gray-200">
               {processingStatus}
-            </div>
-
-            {/* Progress Details */}
-            <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-              {stage === 'preprocessing' ? 'Preparing document' :
-               stage === 'analyzing' && currentChunk > 0 && totalChunks > 0 ?
-                 `Processing section ${currentChunk} of ${totalChunks}` :
-               stage === 'analyzing' ? 'Analyzing document' :
-               'Analysis complete'}
             </div>
 
             {/* Progress Bar */}
