@@ -5,7 +5,8 @@ import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
 import { AnalysisHistory } from '../analysis-history/AnalysisHistory';
-import { FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { History, FileText } from 'lucide-react';
 import type { StoredAnalysis } from '@/lib/storage';
 import type { AnalysisResult } from '@/types/analysis';
 import type { AnalysisStage } from './hooks/useContractAnalysis';
@@ -70,9 +71,22 @@ export const AnalysisSection = ({
           Upload your contract, let AI highlight the risks and key terms.
         </p>
 
-        {hasStoredAnalyses && (
-          <div className="absolute right-0 top-0">
-            <AnalysisHistory onSelect={onSelectStoredAnalysis} />
+        {(hasStoredAnalyses || showAnalysisButton) && (
+          <div className="absolute right-0 top-0 flex gap-2">
+            {showAnalysisButton && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => onShowResults(true)}
+              >
+                <FileText className="w-4 h-4" />
+                View Latest Analysis
+              </Button>
+            )}
+            {hasStoredAnalyses && (
+              <AnalysisHistory onSelect={onSelectStoredAnalysis} />
+            )}
           </div>
         )}
       </div>
@@ -95,30 +109,19 @@ export const AnalysisSection = ({
         {/* Analysis Progress Section */}
         {isAnalyzing && (
           <div className="w-full max-w-md space-y-4">
-            {/* Progress Bar */}
             <AnalysisProgress 
               currentChunk={currentChunk}
               totalChunks={totalChunks}
               isAnalyzing={isAnalyzing}
               stage={stage}
               progress={progress}
-              processingStatus={processingStatus}  // Pass the processing status
+              processingStatus={processingStatus}
             />
           </div>
         )}
       </div>
 
       {error && <ErrorDisplay error={error} />}
-      
-      {showAnalysisButton && (
-        <button
-          onClick={() => onShowResults(true)}
-          className="fixed bottom-4 right-4 z-40 bg-white dark:bg-gray-800 shadow-lg rounded-full p-3 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white border border-gray-200 dark:border-gray-700 transition-all duration-200 flex items-center gap-2 hover:shadow-xl"
-        >
-          <FileText className="w-5 h-5" />
-          <span>Show Analysis</span>
-        </button>
-      )}
       
       {((analysis && showResults) || (currentStoredAnalysis && showResults)) && (
         <AnalysisResults 
