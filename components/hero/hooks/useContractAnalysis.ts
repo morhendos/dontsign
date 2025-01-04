@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { readPdfText } from '@/lib/pdf-utils';
 import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors';
@@ -46,17 +46,8 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
   const [stage, setStage] = useState<AnalysisStage>('preprocessing');
   const [currentChunk, setCurrentChunk] = useState(0);
   const [totalChunks, setTotalChunks] = useState(0);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
   
-  // Clean up event source on unmount
-  useEffect(() => {
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
-  }, []);
-
   const updateStatus = (message: string) => {
     console.log('[Status Update]', message);
     onStatusUpdate?.(message, { type: 'persistent' });
@@ -96,12 +87,6 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       return;
     }
 
-    // Clean up any existing event source
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
@@ -136,58 +121,73 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      if (!response.body) {
+        throw new Error('No response body');
+      }
 
-      // Set up event source for response stream
-      const url = URL.createObjectURL(await response.blob());
-      const eventSource = new EventSource(url);
-      eventSourceRef.current = eventSource;
+      // Read the response stream
+      const reader = response.body.getReader();
+      readerRef.current = reader;
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-      console.log('[Setting up EventSource]');
-      
-      eventSource.onmessage = (event) => {
-        console.log('[EventSource Message]', event.data);
-        try {
-          const data = JSON.parse(event.data) as AnalysisStreamResponse;
-          console.log('[Parsed Event Data]', data);
+      console.log('[Starting Stream Read]');
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          console.log('[Stream Read]', { done, hasValue: !!value });
+          
+          if (done) break;
+          
+          // Decode and append to buffer
+          buffer += decoder.decode(value, { stream: true });
+          console.log('[Buffer]', buffer);
+          
+          // Split on double newline (SSE format)
+          const lines = buffer.split('\n\n');
+          // Keep the last partial line in the buffer
+          buffer = lines.pop() || '';
+          
+          // Process complete lines
+          console.log('[Processing Lines]', lines);
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            
+            try {
+              const data = JSON.parse(line.slice(6)) as AnalysisStreamResponse;
+              console.log('[Parsed Data]', data);
 
-          if (data.type === 'complete' && data.result) {
-            processUpdate({
-              type: 'progress',
-              progress: 100,
-              stage: 'complete',
-              activity: 'Analysis complete!'
-            });
-            setAnalysis(data.result);
-            onEntryComplete?.();
-            eventSource.close();
-            eventSourceRef.current = null;
-          } else if (data.type === 'error') {
-            throw new Error(data.error);
-          } else {
-            processUpdate(data);
+              if (data.type === 'error') {
+                throw new Error(data.error);
+              } else if (data.type === 'complete' && data.result) {
+                processUpdate({
+                  type: 'progress',
+                  progress: 100,
+                  stage: 'complete',
+                  activity: 'Analysis complete!'
+                });
+                setAnalysis(data.result);
+                onEntryComplete?.();
+                return;
+              } else {
+                processUpdate(data);
+              }
+            } catch (e) {
+              console.error('[Parse Error]', e);
+              throw e;
+            }
           }
-        } catch (e) {
-          console.error('[Event Parse Error]', e);
-          handleAnalysisError(e);
-          eventSource.close();
-          eventSourceRef.current = null;
         }
-      };
-
-      eventSource.onerror = (event) => {
-        console.error('[EventSource Error]', event);
-        handleAnalysisError(new Error('Stream connection error'));
-        eventSource.close();
-        eventSourceRef.current = null;
-      };
-
+      } finally {
+        reader.releaseLock();
+      }
     } catch (error) {
       console.error('[Analysis Error]', error);
       handleAnalysisError(error);
     } finally {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
+      if (readerRef.current) {
+        readerRef.current.releaseLock();
+        readerRef.current = null;
       }
       setIsAnalyzing(false);
     }
