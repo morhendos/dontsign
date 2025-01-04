@@ -88,19 +88,13 @@ export const useContractAnalysis = ({
     setAnalysis(null);
     setProgress(2);
     setStage('preprocessing');
-    updateActivity('Initializing analysis...');
 
     const startTime = Date.now();
     trackAnalysisStart(file.type);
 
     try {
       // Process file content
-      const readSpan = transaction.startChild({
-        op: 'read_document',
-        description: 'Read document content'
-      });
-
-      updateActivity('Reading document content...');
+      console.log('[Client] Reading document...');
       let text: string;
       if (file.type === 'application/pdf') {
         text = await readPdfText(file);
@@ -108,11 +102,8 @@ export const useContractAnalysis = ({
         text = await file.text();
       }
       setProgress(5);
-      updateActivity('Document content extracted successfully');
-      readSpan.finish();
-
+      
       // Prepare analysis request
-      updateActivity('Preparing for AI analysis...');
       const formData = new FormData();
       formData.append('text', text);
       formData.append('filename', file.name);
@@ -136,6 +127,7 @@ export const useContractAnalysis = ({
       });
 
       // Start analysis stream
+      updateActivity('Connecting to analysis service...');
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData
@@ -169,8 +161,10 @@ export const useContractAnalysis = ({
               if (data.progress) setProgress(data.progress);
               if (data.stage) setStage(data.stage);
               
-              // Always update activity if present
-              updateActivity(data.activity);
+              // Update activity only from server messages
+              if (data.activity && data.activity !== lastActivityRef.current) {
+                updateActivity(data.activity);
+              }
 
               // Update metadata
               if (data.currentChunk && data.totalChunks) {
