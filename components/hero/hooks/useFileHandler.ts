@@ -2,9 +2,16 @@ import { useState } from 'react';
 import { readPdfText } from '@/lib/pdf-utils';
 import type { ErrorDisplay } from '@/types/analysis';
 
+type StatusType = 'persistent' | 'temporary';
+
+interface SetStatusOptions {
+  type?: StatusType;
+  duration?: number;
+}
+
 interface UseFileHandlerProps {
   /** Callback function to handle status updates during file processing */
-  onStatusUpdate?: (status: string, duration?: number) => void;
+  onStatusUpdate?: (status: string, options?: SetStatusOptions) => void;
   /** Callback function called when an entry is complete */
   onEntryComplete?: () => void;
 }
@@ -85,7 +92,7 @@ export const useFileHandler = ({
     }
 
     setIsProcessing(true);
-    onStatusUpdate?.('Checking file format', 2000);
+    onStatusUpdate?.('Checking file format', { type: 'temporary', duration: 2000 });
 
     try {
       // Validate file
@@ -93,19 +100,19 @@ export const useFileHandler = ({
         return;
       }
 
-      onStatusUpdate?.('File format verified', 1500);
+      onStatusUpdate?.('File format verified', { type: 'temporary', duration: 1500 });
 
       // For PDFs, verify we can extract text
       if (selectedFile.type === 'application/pdf') {
-        onStatusUpdate?.('Parsing PDF content', 2000);
+        onStatusUpdate?.('Parsing PDF content', { type: 'temporary', duration: 2000 });
         await readPdfText(selectedFile);
-        onStatusUpdate?.('PDF content extracted successfully', 1500);
+        onStatusUpdate?.('PDF content extracted successfully', { type: 'temporary', duration: 1500 });
       }
 
       // Update state
       setFile(selectedFile);
       setError(null);
-      onStatusUpdate?.('File ready for analysis!', 2000);
+      onStatusUpdate?.('File ready for analysis!', { type: 'temporary', duration: 2000 });
       
       // Mark the last entry as complete
       requestAnimationFrame(() => {
