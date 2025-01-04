@@ -1,53 +1,44 @@
 import { analyzeContract } from '@/app/actions';
 
 export async function POST(request: Request) {
+  const encoder = new TextEncoder();
+  const stream = new TransformStream();
+  const writer = stream.writable.getWriter();
+  
   try {
     const formData = await request.formData();
-    const encoder = new TextEncoder();
-
-    const sendProgress = (data: any) => {
-      console.log(JSON.stringify(data)); // Keep server logging
-      return encoder.encode(`data: ${JSON.stringify(data)}\n\n`);
+    
+    // Create a progress handler that writes to the stream
+    const handleProgress = async (data: any) => {
+      // Also log to server console for debugging
+      console.log(JSON.stringify(data));
+      
+      // Write to stream
+      await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
     };
-
-    // Set up the stream
-    const stream = new TransformStream();
-    const writer = stream.writable.getWriter();
-
-    try {
-      // Initial progress
-      await writer.write(sendProgress({
-        type: 'progress',
-        stage: 'preprocessing',
-        progress: 15,
-        activity: 'Starting AI analysis'
-      }));
-
-      // Analyze the contract
-      const result = await analyzeContract(formData);
-
-      // Send completion
-      await writer.write(sendProgress({
-        type: 'complete',
-        result
-      }));
-    } finally {
-      await writer.close();
-    }
-
-    // Return the stream
-    return new Response(stream.readable, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
+    
+    // Analyze with progress updates
+    const result = await analyzeContract(formData, handleProgress);
+    
+    // Send final completion message
+    await writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'complete', result })}\n\n`));
+    
   } catch (error) {
     console.error('API Error:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    // Send error through stream
+    await writer.write(encoder.encode(`data: ${JSON.stringify({
+      type: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })}\n\n`));
+  } finally {
+    await writer.close();
   }
+
+  return new Response(stream.readable, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
 }
