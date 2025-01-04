@@ -18,14 +18,14 @@ interface UseContractAnalysisProps {
 
 /** Response structure from the analysis service */
 interface AnalysisStreamResponse {
-  type: 'update' | 'complete' | 'error';  // Changed back to 'update' to match server
+  type: 'update' | 'complete' | 'error';
   progress?: number;
   stage?: AnalysisStage;
   currentChunk?: number;
   totalChunks?: number;
   result?: AnalysisResult;
   error?: string;
-  activity?: string; // Activity field for status messages
+  activity?: string;
 }
 
 /**
@@ -42,6 +42,7 @@ export const useContractAnalysis = ({
   const [stage, setStage] = useState<AnalysisStage>('preprocessing');
   
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
+  const lastActivityRef = useRef<string>('');
 
   useEffect(() => {
     return () => {
@@ -51,7 +52,18 @@ export const useContractAnalysis = ({
     };
   }, []);
 
+  // Helper to update activity without duplicates
+  const updateActivity = (activity: string | undefined, duration?: number) => {
+    if (activity && activity !== lastActivityRef.current) {
+      lastActivityRef.current = activity;
+      onStatusUpdate?.(activity, duration);
+      console.log('[Client] Activity update:', activity);
+    }
+  };
+
   const handleAnalyze = async (file: File | null) => {
+    lastActivityRef.current = ''; // Reset activity tracking
+    
     if (!file) {
       setError({
         message: 'Please upload a file before analyzing.',
@@ -60,39 +72,35 @@ export const useContractAnalysis = ({
       return;
     }
 
+    // Start tracking the transaction
     const transaction = Sentry.startTransaction({
       name: 'analyze_contract',
       op: 'analyze'
     });
-
+    
     Sentry.configureScope(scope => {
       scope.setSpan(transaction);
     });
 
+    // Reset state and start analysis
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
     setProgress(2);
     setStage('preprocessing');
-    onStatusUpdate?.('Starting contract analysis...');
+    updateActivity('Initializing analysis...');
 
     const startTime = Date.now();
     trackAnalysisStart(file.type);
-    console.log('[Client] Analysis started');
 
     try {
-      Sentry.setContext("file", {
-        type: file.type,
-        size: file.size,
-        name: file.name
-      });
-
+      // Process file content
       const readSpan = transaction.startChild({
         op: 'read_document',
         description: 'Read document content'
       });
 
-      console.log('[Client] Reading document content...');
+      updateActivity('Reading document content...');
       let text: string;
       if (file.type === 'application/pdf') {
         text = await readPdfText(file);
@@ -100,15 +108,16 @@ export const useContractAnalysis = ({
         text = await file.text();
       }
       setProgress(5);
-      console.log('[Client] Document content read successfully');
+      updateActivity('Document content extracted successfully');
       readSpan.finish();
 
+      // Prepare analysis request
+      updateActivity('Preparing for AI analysis...');
       const formData = new FormData();
       formData.append('text', text);
       formData.append('filename', file.name);
 
-      onStatusUpdate?.('Initializing AI analysis...');
-      console.log('[Client] Initializing analysis state');
+      // Initialize analysis state
       setAnalysis({
         summary: "Starting analysis...",
         keyTerms: [],
@@ -126,130 +135,79 @@ export const useContractAnalysis = ({
         }
       });
 
-      const requestSpan = transaction.startChild({
-        op: 'api_request',
-        description: 'Make request to analysis service'
-      });
-
-      console.log('[Client] Making request to analysis service...');
-      onStatusUpdate?.('Connecting to analysis service...');
+      // Start analysis stream
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData
       });
 
-      console.log('[Client] Got response from server:', response.status);
       if (!response.body) {
         throw new Error('No response body received from server');
       }
 
-      requestSpan.finish();
-
-      const streamSpan = transaction.startChild({
-        op: 'stream_processing',
-        description: 'Process analysis stream'
-      });
-
+      // Process the stream
       const reader = response.body.getReader();
       readerRef.current = reader;
       const decoder = new TextDecoder();
       let buffer = '';
 
-      console.log('[Client] Starting to read stream...');
       try {
         while (true) {
           const { done, value } = await reader.read();
-          console.log('[Client] Stream read iteration:', { done, hasValue: !!value });
-          
-          if (done) {
-            console.log('[Client] Stream ended normally');
-            break;
-          }
+          if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
-          console.log('[Client] Received chunk data:', chunk);
           buffer += chunk;
           const lines = buffer.split('\n\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
-              try {
-                const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
-                console.log('[Client] Parsed update:', data);
-                
-                if (data.progress) setProgress(data.progress);
-                if (data.stage) setStage(data.stage);
-                if (data.activity) onStatusUpdate?.(data.activity); // Use activity field for status updates
+              const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
 
-                Sentry.addBreadcrumb({
-                  category: 'analysis',
-                  message: `Analysis update received`,
-                  level: 'info',
-                  data: {
-                    type: data.type,
-                    stage: data.stage,
-                    progress: data.progress,
-                    currentChunk: data.currentChunk,
-                    totalChunks: data.totalChunks,
-                    activity: data.activity
-                  }
+              // Update progress and stage
+              if (data.progress) setProgress(data.progress);
+              if (data.stage) setStage(data.stage);
+              
+              // Always update activity if present
+              updateActivity(data.activity);
+
+              // Update metadata
+              if (data.currentChunk && data.totalChunks) {
+                setAnalysis(prev => {
+                  if (!prev) return null;
+                  return {
+                    ...prev,
+                    metadata: {
+                      ...prev.metadata,
+                      currentChunk: data.currentChunk,
+                      totalChunks: data.totalChunks,
+                      stage: data.stage || 'analyzing',
+                      progress: data.progress || 0
+                    }
+                  };
                 });
+              }
 
-                if (data.stage === 'preprocessing') {
-                  onStatusUpdate?.('Preparing document for analysis...');
-                } else if (data.stage === 'analyzing' && data.currentChunk && data.totalChunks) {
-                  onStatusUpdate?.(\`Processing section \${data.currentChunk} of \${data.totalChunks}\`, 5000);
-                }
+              // Handle completion
+              if (data.type === 'complete' && data.result) {
+                updateActivity('Analysis complete!');
+                onEntryComplete?.();
+                setAnalysis(data.result);
+                const analysisTime = (Date.now() - startTime) / 1000;
+                trackAnalysisComplete(file.type, analysisTime);
+                break;
+              }
 
-                if (data.currentChunk && data.totalChunks) {
-                  setAnalysis(prev => {
-                    if (!prev) return null;
-                    return {
-                      ...prev,
-                      metadata: {
-                        analyzedAt: prev.metadata?.analyzedAt || new Date().toISOString(),
-                        documentName: prev.metadata?.documentName || '',
-                        modelVersion: prev.metadata?.modelVersion || "gpt-3.5-turbo-1106",
-                        currentChunk: data.currentChunk,
-                        totalChunks: data.totalChunks,
-                        stage: data.stage || 'analyzing',
-                        progress: data.progress || 0
-                      }
-                    };
-                  });
-                }
-
-                if (data.type === 'complete' && data.result) {
-                  console.log('[Client] Analysis complete, got result:', data.result);
-                  onStatusUpdate?.('Analysis complete!');
-                  requestAnimationFrame(() => {
-                    onEntryComplete?.();
-                  });
-                  setAnalysis(data.result);
-                  const analysisTime = (Date.now() - startTime) / 1000;
-                  trackAnalysisComplete(file.type, analysisTime);
-                  break;
-                } else if (data.type === 'error') {
-                  throw new Error(data.error);
-                }
-              } catch (e) {
-                console.error('[Client] Error parsing server update:', e);
-                Sentry.captureException(e, {
-                  extra: {
-                    rawLine: line,
-                    stage: 'parsing_update'
-                  }
-                });
-                throw e;
+              // Handle errors
+              if (data.type === 'error') {
+                throw new Error(data.error);
               }
             }
           }
         }
       } finally {
-        console.log('[Client] Cleaning up reader');
         readerRef.current = null;
-        streamSpan.finish();
       }
 
     } catch (error) {
