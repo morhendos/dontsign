@@ -85,33 +85,41 @@ export const AnalysisSection = ({
         processingStatus={processingStatus}
       />
 
-      <div className="flex justify-center mt-6">
+      <div className="flex flex-col items-center gap-6 mt-6">
         <AnalysisButton
           isDisabled={!file || isAnalyzing || isProcessing}
           isAnalyzing={isAnalyzing}
           onClick={handleAnalyze}
         />
+
+        {/* Analysis Progress Section */}
+        {isAnalyzing && (
+          <div className="w-full max-w-md space-y-4">
+            {/* Status Message */}
+            <div className="text-center font-medium text-gray-700 dark:text-gray-200">
+              {processingStatus}
+            </div>
+
+            {/* Progress Details */}
+            <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+              {stage === 'preprocessing' ? 'Preparing document' :
+               stage === 'analyzing' && currentChunk > 0 && totalChunks > 0 ?
+                 `Processing section ${currentChunk} of ${totalChunks}` :
+               stage === 'analyzing' ? 'Analyzing document' :
+               'Analysis complete'}
+            </div>
+
+            {/* Progress Bar */}
+            <AnalysisProgress 
+              currentChunk={currentChunk}
+              totalChunks={totalChunks}
+              isAnalyzing={isAnalyzing}
+              stage={stage}
+              progress={progress}
+            />
+          </div>
+        )}
       </div>
-
-      {/* Activity message above progress bar */}
-      {isAnalyzing && processingStatus && (
-        <div className="w-full max-w-md mx-auto mt-4 text-center">
-          <span className="text-sm text-gray-600 dark:text-gray-300">
-            {processingStatus}
-          </span>
-        </div>
-      )}
-
-      {/* Progress bar */}
-      {isAnalyzing && (
-        <AnalysisProgress 
-          currentChunk={currentChunk}
-          totalChunks={totalChunks}
-          isAnalyzing={isAnalyzing}
-          stage={stage}
-          progress={progress}
-        />
-      )}
 
       {error && <ErrorDisplay error={error} />}
       
