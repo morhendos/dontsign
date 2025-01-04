@@ -1,30 +1,33 @@
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface AnalysisButtonProps {
   isDisabled: boolean;
   isAnalyzing: boolean;
   onClick: () => void;
+  currentStatus?: string;
 }
 
-export function AnalysisButton({ isDisabled, isAnalyzing, onClick }: AnalysisButtonProps) {
+export function AnalysisButton({ 
+  isDisabled, 
+  isAnalyzing,
+  onClick,
+  currentStatus
+}: AnalysisButtonProps) {
   return (
     <Button
-      variant="default"
-      disabled={isDisabled}
       onClick={onClick}
-      className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-6"
+      disabled={isDisabled}
+      size="lg"
+      className="relative min-w-[200px] font-semibold"
     >
       {isAnalyzing ? (
-        <>
-          <Loader2 className="animate-spin mr-2" />
-          Analyzing...
-        </>
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>{currentStatus || 'Analyzing...'}</span>
+        </div>
       ) : (
-        <>
-          Analyze Contract
-          <ArrowRight className="ml-2" />
-        </>
+        'Analyze Contract'
       )}
     </Button>
   );
