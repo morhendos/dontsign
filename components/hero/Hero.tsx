@@ -29,11 +29,15 @@ export default function Hero() {
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
 
-  // Status management
+  // Status management with single message display
   const { setStatusWithTimeout } = useStatusManager({
     onStatusUpdate: (status: string) => {
       setProcessingStatus(status);
+      // Only add new entry if status is non-empty
       if (status) {
+        // First complete any active entries
+        updateLastEntry('complete');
+        // Then add the new entry
         addEntry(status);
       }
     }
@@ -65,6 +69,8 @@ export default function Hero() {
     error: analysisError,
     progress: analysisProgress,
     stage,
+    currentChunk,
+    totalChunks,
     handleAnalyze
   } = useContractAnalysis({
     onStatusUpdate: setStatusWithTimeout,
@@ -77,6 +83,8 @@ export default function Hero() {
       const stored = saveAnalysis(file.name, analysis);
       setCurrentStoredAnalysis(stored);
       setHasStoredAnalyses(true);
+      // Clear status when complete
+      setProcessingStatus('');
     }
   }, [analysis, isAnalyzing, stage, file]);
 
@@ -87,6 +95,8 @@ export default function Hero() {
   useEffect(() => {
     if (error) {
       updateLastEntry('error');
+      // Clear status on error
+      setProcessingStatus('');
     }
   }, [error, updateLastEntry]);
 
@@ -96,6 +106,7 @@ export default function Hero() {
     showLogWithAutoHide();
     setShowResults(true);
     setCurrentStoredAnalysis(null);
+    setProcessingStatus(''); // Clear any existing status
     await handleAnalyze(file);
   };
 
@@ -130,6 +141,8 @@ export default function Hero() {
         processingStatus={processingStatus}
         progress={analysisProgress}
         stage={stage}
+        currentChunk={currentChunk}
+        totalChunks={totalChunks}
         analysis={analysis}
         showResults={showResults}
         currentStoredAnalysis={currentStoredAnalysis}

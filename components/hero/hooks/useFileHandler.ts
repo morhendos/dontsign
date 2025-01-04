@@ -2,9 +2,16 @@ import { useState } from 'react';
 import { readPdfText } from '@/lib/pdf-utils';
 import type { ErrorDisplay } from '@/types/analysis';
 
+type StatusType = 'persistent' | 'temporary';
+
+interface SetStatusOptions {
+  type?: StatusType;
+  duration?: number;
+}
+
 interface UseFileHandlerProps {
   /** Callback function to handle status updates during file processing */
-  onStatusUpdate?: (status: string, duration?: number) => void;
+  onStatusUpdate?: (status: string, options?: SetStatusOptions) => void;
   /** Callback function called when an entry is complete */
   onEntryComplete?: () => void;
 }
@@ -24,15 +31,6 @@ interface FileHandlerResult {
 
 /**
  * A custom hook for handling file upload and processing functionality.
- *
- * This hook manages:
- * - File selection and validation
- * - PDF/DOCX content extraction
- * - Error handling
- * - Processing status updates
- *
- * @param props - Configuration options for the hook
- * @returns Object containing file state and control functions
  */
 export const useFileHandler = ({
   onStatusUpdate,
@@ -85,7 +83,6 @@ export const useFileHandler = ({
     }
 
     setIsProcessing(true);
-    onStatusUpdate?.('Checking file format', 2000);
 
     try {
       // Validate file
@@ -93,24 +90,17 @@ export const useFileHandler = ({
         return;
       }
 
-      onStatusUpdate?.('File format verified', 1500);
-
       // For PDFs, verify we can extract text
       if (selectedFile.type === 'application/pdf') {
-        onStatusUpdate?.('Parsing PDF content', 2000);
         await readPdfText(selectedFile);
-        onStatusUpdate?.('PDF content extracted successfully', 1500);
       }
 
       // Update state
       setFile(selectedFile);
       setError(null);
-      onStatusUpdate?.('File ready for analysis!', 2000);
+      onStatusUpdate?.('File ready for analysis', { type: 'temporary', duration: 2000 });
       
-      // Mark the last entry as complete
-      requestAnimationFrame(() => {
-        onEntryComplete?.();
-      });
+      onEntryComplete?.();
     } catch (error) {
       console.error('Error processing uploaded file:', error);
       setError({

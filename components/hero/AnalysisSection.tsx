@@ -18,6 +18,8 @@ interface AnalysisSectionProps {
   processingStatus: string;
   progress: number;
   stage: AnalysisStage;
+  currentChunk: number;
+  totalChunks: number;
   analysis: AnalysisResult | null;
   showResults: boolean;
   currentStoredAnalysis: StoredAnalysis | null;
@@ -40,6 +42,8 @@ export const AnalysisSection = ({
   processingStatus,
   progress,
   stage,
+  currentChunk,
+  totalChunks,
   analysis,
   showResults,
   currentStoredAnalysis,
@@ -81,24 +85,32 @@ export const AnalysisSection = ({
         processingStatus={processingStatus}
       />
 
-      <div className="flex justify-center mt-6">
+      <div className="flex flex-col items-center gap-6 mt-6">
         <AnalysisButton
           isDisabled={!file || isAnalyzing || isProcessing}
           isAnalyzing={isAnalyzing}
           onClick={handleAnalyze}
         />
-      </div>
 
-      {isAnalyzing && (
-        <AnalysisProgress 
-          currentChunk={analysis?.metadata?.currentChunk ?? 0}
-          totalChunks={analysis?.metadata?.totalChunks ?? 0}
-          isAnalyzing={isAnalyzing}
-          stage={stage}
-          progress={progress}
-          currentStatus={processingStatus}
-        />
-      )}
+        {/* Analysis Progress Section */}
+        {isAnalyzing && (
+          <div className="w-full max-w-md space-y-4">
+            {/* Status Message - Only show detailed message */}
+            <div className="text-center font-medium text-gray-700 dark:text-gray-200">
+              {processingStatus}
+            </div>
+
+            {/* Progress Bar */}
+            <AnalysisProgress 
+              currentChunk={currentChunk}
+              totalChunks={totalChunks}
+              isAnalyzing={isAnalyzing}
+              stage={stage}
+              progress={progress}
+            />
+          </div>
+        )}
+      </div>
 
       {error && <ErrorDisplay error={error} />}
       

@@ -1,5 +1,4 @@
 import { Progress } from '@/components/ui/progress';
-import { useEffect, useState } from 'react';
 
 interface AnalysisProgressProps {
   currentChunk: number;
@@ -7,7 +6,6 @@ interface AnalysisProgressProps {
   isAnalyzing: boolean;
   stage: 'preprocessing' | 'analyzing' | 'complete';
   progress: number;
-  currentStatus?: string;
 }
 
 export function AnalysisProgress({ 
@@ -16,28 +14,19 @@ export function AnalysisProgress({
   isAnalyzing, 
   stage, 
   progress,
-  currentStatus 
 }: AnalysisProgressProps) {
-  const [statusText, setStatusText] = useState<string>('');
-
   // Show progress bar while analyzing or if we have any progress
-  if (!isAnalyzing && currentChunk === 0) return null;
-
-  const isComplete = currentChunk === totalChunks && totalChunks > 0;
+  if (!isAnalyzing && progress === 0) return null;
   
   return (
     <div className="w-full max-w-md mx-auto mt-4 space-y-2">
       <div className="flex justify-between text-sm">
         <span className="text-gray-600 dark:text-gray-300">
-          {currentStatus || (
-            stage === 'complete' 
-              ? 'Analysis complete!' 
-              : stage === 'preprocessing'
-                ? 'Preparing document...'
-                : currentChunk === 0 
-                  ? 'Starting analysis...'
-                  : `Analyzing section ${currentChunk} of ${totalChunks}`
-          )}
+          {stage === 'preprocessing' ? 'Preparing' : 
+           stage === 'analyzing' && currentChunk > 0 && totalChunks > 0 ? 
+             `Analyzing section ${currentChunk} of ${totalChunks}` :
+           stage === 'analyzing' ? 'Analyzing' :
+           'Complete'}
         </span>
         <span className="text-gray-600 dark:text-gray-300">
           {progress}%
