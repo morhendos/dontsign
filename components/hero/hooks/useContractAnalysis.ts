@@ -23,6 +23,22 @@ interface AnalysisStreamResponse {
   error?: string;
 }
 
+// Consistent status messages across all places
+const STATUS_MESSAGES = {
+  READING: 'Reading document...',
+  EXTRACTING: 'Extracting text...',
+  PREPARING: 'Preparing document for analysis...',
+  INITIALIZING: 'Starting AI analysis...',
+  PROCESSING_CHUNK: (current: number, total: number) => `Processing section ${current} of ${total}`,
+  PROCESSING_SUMMARIES: 'Processing summaries...',
+  CONSOLIDATING_TERMS: 'Consolidating key terms...',
+  MERGING_RISKS: 'Merging risk analysis...',
+  REVIEWING_CLAUSES: 'Reviewing clauses...',
+  COMBINING_RECOMMENDATIONS: 'Combining recommendations...',
+  FINALIZING: 'Finalizing analysis...',
+  COMPLETE: 'Analysis complete!'
+};
+
 export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseContractAnalysisProps = {}) => {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -32,6 +48,12 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
   const [currentChunk, setCurrentChunk] = useState(0);
   const [totalChunks, setTotalChunks] = useState(0);
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
+  
+  // Helper to update status consistently across all places
+  const updateStatus = (message: string) => {
+    console.log('[Status]', message);
+    onStatusUpdate?.(message);
+  };
 
   // Process updates synchronously to ensure state consistency
   const processUpdate = (update: AnalysisStreamResponse) => {
@@ -51,9 +73,39 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       setTotalChunks(update.totalChunks);
       console.log('[State] Total chunks set to:', update.totalChunks);
     }
+
+    // Map server activities to our consistent messages
     if (update.activity) {
-      onStatusUpdate?.(update.activity);
-      console.log('[State] Activity set to:', update.activity);
+      let statusMessage = update.activity;
+      switch (update.activity) {
+        case 'Starting AI analysis':
+          statusMessage = STATUS_MESSAGES.INITIALIZING;
+          break;
+        case 'Processing summaries':
+          statusMessage = STATUS_MESSAGES.PROCESSING_SUMMARIES;
+          break;
+        case 'Consolidating key terms':
+          statusMessage = STATUS_MESSAGES.CONSOLIDATING_TERMS;
+          break;
+        case 'Merging risk analysis':
+          statusMessage = STATUS_MESSAGES.MERGING_RISKS;
+          break;
+        case 'Reviewing clauses':
+          statusMessage = STATUS_MESSAGES.REVIEWING_CLAUSES;
+          break;
+        case 'Combining recommendations':
+          statusMessage = STATUS_MESSAGES.COMBINING_RECOMMENDATIONS;
+          break;
+        case 'Finalizing output':
+          statusMessage = STATUS_MESSAGES.FINALIZING;
+          break;
+        case 'Analysis complete':
+          statusMessage = STATUS_MESSAGES.COMPLETE;
+          break;
+      }
+      updateStatus(statusMessage);
+    } else if (update.currentChunk && update.totalChunks) {
+      updateStatus(STATUS_MESSAGES.PROCESSING_CHUNK(update.currentChunk, update.totalChunks));
     }
   };
 
@@ -70,24 +122,25 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
     setStage('preprocessing');
     setCurrentChunk(0);
     setTotalChunks(0);
-    onStatusUpdate?.('Starting document processing...');
+    updateStatus(STATUS_MESSAGES.READING);
 
     try {
       let text: string;
       if (file.type === 'application/pdf') {
         text = await readPdfText(file, (progress) => {
           setProgress(progress);
-          if (progress <= 2) onStatusUpdate?.('Reading document...');
-          else if (progress <= 3) onStatusUpdate?.('Preparing document...');
-          else if (progress < 5) onStatusUpdate?.('Extracting text...');
+          if (progress <= 2) updateStatus(STATUS_MESSAGES.READING);
+          else if (progress <= 3) updateStatus(STATUS_MESSAGES.PREPARING);
+          else if (progress < 5) updateStatus(STATUS_MESSAGES.EXTRACTING);
         });
       } else {
         text = await file.text();
         setProgress(5);
       }
 
-      onStatusUpdate?.('Initializing AI analysis...');
+      updateStatus(STATUS_MESSAGES.INITIALIZING);
       setProgress(10);
+      setStage('analyzing');
 
       const formData = new FormData();
       formData.append('text', text);
@@ -122,7 +175,7 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
                 type: 'progress', 
                 progress: 100, 
                 stage: 'complete',
-                activity: 'Analysis complete!',
+                activity: STATUS_MESSAGES.COMPLETE,
                 currentChunk: data.result.metadata?.totalChunks || 1,
                 totalChunks: data.result.metadata?.totalChunks || 1
               });
