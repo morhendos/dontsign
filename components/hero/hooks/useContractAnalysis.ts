@@ -23,7 +23,6 @@ interface AnalysisStreamResponse {
   error?: string;
 }
 
-// Consistent status messages across all places
 const STATUS_MESSAGES = {
   READING: 'Reading document...',
   EXTRACTING: 'Extracting text...',
@@ -49,34 +48,38 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
   const [totalChunks, setTotalChunks] = useState(0);
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
   
-  // Helper to update status consistently across all places
   const updateStatus = (message: string) => {
-    console.log('[Status]', message);
+    console.log('[Status Update]', message);
     onStatusUpdate?.(message, { type: 'persistent' });
   };
 
-  // Process updates synchronously to ensure state consistency
   const processUpdate = (update: AnalysisStreamResponse) => {
+    console.log('[Processing Update]', update);
+    
     if (update.progress !== undefined) {
+      console.log('[Setting Progress]', update.progress);
       setProgress(update.progress);
-      console.log('[State] Progress set to:', update.progress);
     }
+    
     if (update.stage) {
+      console.log('[Setting Stage]', update.stage);
       setStage(update.stage);
-      console.log('[State] Stage set to:', update.stage);
     }
+    
     if (update.currentChunk !== undefined) {
+      console.log('[Setting Current Chunk]', update.currentChunk);
       setCurrentChunk(update.currentChunk);
-      console.log('[State] Current chunk set to:', update.currentChunk);
     }
+    
     if (update.totalChunks !== undefined) {
+      console.log('[Setting Total Chunks]', update.totalChunks);
       setTotalChunks(update.totalChunks);
-      console.log('[State] Total chunks set to:', update.totalChunks);
     }
 
-    // Map server activities to our consistent messages
     if (update.activity) {
+      console.log('[Got Activity]', update.activity);
       let statusMessage = update.activity;
+      
       switch (update.activity) {
         case 'Starting AI analysis':
           statusMessage = STATUS_MESSAGES.INITIALIZING;
@@ -103,9 +106,13 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
           statusMessage = STATUS_MESSAGES.COMPLETE;
           break;
       }
+      
+      console.log('[Updating Status To]', statusMessage);
       updateStatus(statusMessage);
     } else if (update.currentChunk && update.totalChunks) {
-      updateStatus(STATUS_MESSAGES.PROCESSING_CHUNK(update.currentChunk, update.totalChunks));
+      const message = STATUS_MESSAGES.PROCESSING_CHUNK(update.currentChunk, update.totalChunks);
+      console.log('[Updating Chunk Status To]', message);
+      updateStatus(message);
     }
   };
 
@@ -138,6 +145,7 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
         setProgress(5);
       }
 
+      console.log('[Starting Analysis Phase]');
       updateStatus(STATUS_MESSAGES.INITIALIZING);
       setProgress(10);
       setStage('analyzing');
@@ -146,6 +154,7 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       formData.append('text', text);
       formData.append('filename', file.name);
 
+      console.log('[Sending Request]');
       const response = await fetch('/api/analyze', { method: 'POST', body: formData });
       if (!response.body) throw new Error('No response body');
 
@@ -154,23 +163,32 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
       const decoder = new TextDecoder();
       let buffer = '';
 
+      console.log('[Starting Stream Reading]');
       while (true) {
         const { done, value } = await reader.read();
+        console.log('[Stream Read]', { done, hasValue: !!value });
+        
         if (done) break;
         
         buffer += decoder.decode(value, { stream: true });
+        console.log('[Buffer]', buffer);
+        
         const lines = buffer.split('\n\n');
         buffer = lines.pop() || '';
-
+        
+        console.log('[Processing Lines]', lines.length);
         for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
+          if (!line.startsWith('data: ')) {
+            console.log('[Skipping Line]', line);
+            continue;
+          }
           
           try {
+            console.log('[Parsing Line]', line);
             const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
-            console.log('[Stream] Parsed data:', data);
+            console.log('[Parsed Data]', data);
             
             if (data.type === 'complete' && data.result) {
-              // Process final state update synchronously
               processUpdate({ 
                 type: 'progress', 
                 progress: 100, 
@@ -180,24 +198,22 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
                 totalChunks: data.result.metadata?.totalChunks || 1
               });
               
-              // Set the final analysis result
               setAnalysis(data.result);
               onEntryComplete?.();
               break;
             } else if (data.type === 'error') {
               throw new Error(data.error);
             } else {
-              // Process regular updates synchronously
               processUpdate(data);
             }
           } catch (e) {
-            console.error('[Stream] Parse error:', e);
+            console.error('[Stream Parse Error]', e);
             throw e;
           }
         }
       }
     } catch (error) {
-      console.error('[Analysis] Error:', error);
+      console.error('[Analysis Error]', error);
       handleAnalysisError(error);
     } finally {
       readerRef.current = null;
