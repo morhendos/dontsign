@@ -8,13 +8,14 @@ export function createProgressHandler(controller: StreamController): ProgressHan
   };
 
   return {
-    sendProgress: (stage: string, progress: number, currentChunk?: number, totalChunks?: number) => {
+    sendProgress: (stage: string, progress: number, currentChunk?: number, totalChunks?: number, description?: string) => {
       const eventData = {
         type: 'update',  // Important: Keep this as 'update' to match client expectations
         stage,
         progress,
         ...(currentChunk !== undefined && { currentChunk }),
-        ...(totalChunks !== undefined && { totalChunks })
+        ...(totalChunks !== undefined && { totalChunks }),
+        ...(description && { description }), // Include description in event data
       };
       
       // Log the progress update with context
@@ -23,7 +24,7 @@ export function createProgressHandler(controller: StreamController): ProgressHan
         progress,
         currentChunk,
         totalChunks,
-        description: getProgressDescription(stage, progress, currentChunk, totalChunks)
+        description
       });
       
       sendEvent(eventData);
