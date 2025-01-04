@@ -8,7 +8,7 @@ import type { AnalysisResult, ErrorDisplay } from '@/types/analysis';
 export type AnalysisStage = 'preprocessing' | 'analyzing' | 'complete';
 
 interface UseContractAnalysisProps {
-  onStatusUpdate?: (status: string, duration?: number) => void;
+  onStatusUpdate?: (status: string, options?: { type?: 'persistent' | 'temporary', duration?: number }) => void;
   onEntryComplete?: () => void;
 }
 
@@ -52,7 +52,7 @@ export const useContractAnalysis = ({ onStatusUpdate, onEntryComplete }: UseCont
   // Helper to update status consistently across all places
   const updateStatus = (message: string) => {
     console.log('[Status]', message);
-    onStatusUpdate?.(message);
+    onStatusUpdate?.(message, { type: 'persistent' });
   };
 
   // Process updates synchronously to ensure state consistency
