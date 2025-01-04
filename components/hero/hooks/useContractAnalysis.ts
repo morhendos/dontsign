@@ -26,6 +26,7 @@ interface AnalysisStreamResponse {
   result?: AnalysisResult;
   error?: string;
   activity?: string;
+  description?: string; // Added to catch server descriptions
 }
 
 /**
@@ -44,7 +45,7 @@ export const useContractAnalysis = ({
   const [totalChunks, setTotalChunks] = useState(0);
   
   const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
-  const lastActivityRef = useRef<string>('');
+  const lastMessageRef = useRef<string>('');
 
   useEffect(() => {
     return () => {
@@ -54,17 +55,17 @@ export const useContractAnalysis = ({
     };
   }, []);
 
-  // Helper to update activity without duplicates
-  const updateActivity = (activity: string | undefined, duration?: number) => {
-    if (activity && activity !== lastActivityRef.current) {
-      lastActivityRef.current = activity;
-      onStatusUpdate?.(activity, duration);
-      console.log('[Client] Activity update:', activity);
+  // Helper to update activity without exact duplicates
+  const updateActivity = (message: string | undefined, duration?: number) => {
+    if (message && message !== lastMessageRef.current) {
+      lastMessageRef.current = message;
+      onStatusUpdate?.(message, duration);
+      console.log('[Client] Activity:', message);
     }
   };
 
   const handleAnalyze = async (file: File | null) => {
-    lastActivityRef.current = ''; // Reset activity tracking
+    lastMessageRef.current = ''; // Reset message tracking
     
     if (!file) {
       setError({
@@ -159,6 +160,7 @@ export const useContractAnalysis = ({
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
+              console.log('[Client] Server update:', data); // Log all server updates
 
               // Update progress and stage
               if (data.progress) setProgress(data.progress);
@@ -166,9 +168,10 @@ export const useContractAnalysis = ({
               if (data.currentChunk) setCurrentChunk(data.currentChunk);
               if (data.totalChunks) setTotalChunks(data.totalChunks);
               
-              // Update activity only from server messages
-              if (data.activity && data.activity !== lastActivityRef.current) {
-                updateActivity(data.activity);
+              // Show most detailed message available
+              const message = data.description || data.activity;
+              if (message) {
+                updateActivity(message);
               }
 
               // Update metadata
