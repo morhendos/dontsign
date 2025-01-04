@@ -28,6 +28,18 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing, stage }: Analy
   const [isWidthExpanded, setIsWidthExpanded] = useState(false);
   const [shouldStartAnimation, setShouldStartAnimation] = useState(false);
 
+  // Handle body scroll lock
+  useEffect(() => {
+    if (shouldStartAnimation) {
+      // Lock scroll when modal opens
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      // Restore scroll when component unmounts
+      document.body.style.overflow = '';
+    };
+  }, [shouldStartAnimation]);
+
   useEffect(() => {
     if (!isAnalyzing && stage === 'complete') {
       const timer = setTimeout(() => {
@@ -67,6 +79,8 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing, stage }: Analy
 
   const handleClose = () => {
     setIsVisible(false);
+    // Restore scroll when modal starts closing
+    document.body.style.overflow = '';
     setTimeout(() => {
       onClose?.();
     }, 300);
@@ -116,18 +130,20 @@ export function AnalysisResults({ analysis, onClose, isAnalyzing, stage }: Analy
   if (!shouldStartAnimation) return null;
 
   return (
+    // Add touch-none to prevent touch scrolling on backdrop
     <div 
       className={cn(
         'fixed inset-0 flex items-center justify-center z-50',
-        'bg-black/40 backdrop-blur-sm',
+        'bg-black/40 backdrop-blur-sm touch-none',
         'transition-opacity duration-300',
         isVisible ? 'opacity-100' : 'opacity-0'
       )}
       onClick={handleBackdropClick}
     >
+      {/* Add touch-auto to re-enable touch scrolling inside modal */}
       <Card 
         className={cn(
-          'absolute inset-4 md:inset-6 max-h-[90vh] flex flex-col',
+          'absolute inset-4 md:inset-6 max-h-[90vh] flex flex-col touch-auto',
           'bg-white dark:bg-gray-800/95 backdrop-blur-sm',
           'rounded-xl shadow-2xl border-0',
           'transition-all duration-500 ease-out',
