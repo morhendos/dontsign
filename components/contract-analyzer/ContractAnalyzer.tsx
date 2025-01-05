@@ -1,6 +1,6 @@
 'use client';
 
-import { useAnalyzerState } from './hooks/useAnalyzerState';
+import { useAnalyzerState, useLogVisibility } from './hooks';
 import {
   AnalyzerLayout,
   AnalyzerHeader,
@@ -11,7 +11,6 @@ import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
 import { AnalysisLog } from '../analysis-log/AnalysisLog';
-import { useLogVisibility } from './hooks/useLogVisibility';
 
 /**
  * Main contract analysis component that orchestrates the document analysis workflow
