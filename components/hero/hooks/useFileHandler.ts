@@ -4,7 +4,7 @@ import type { ErrorDisplay } from '@/types/analysis';
 
 type StatusType = 'persistent' | 'temporary';
 
-interface SetStatusOptions {
+export interface SetStatusOptions {
   type?: StatusType;
   duration?: number;
 }
