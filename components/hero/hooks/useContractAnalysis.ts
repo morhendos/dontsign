@@ -26,7 +26,18 @@ interface AnalysisStreamResponse {
   result?: AnalysisResult;
   error?: string;
   activity?: string;
-  description?: string; // Added to catch server descriptions
+  description?: string;
+}
+
+/** Analysis state interface */
+export interface AnalysisState {
+  analysis: AnalysisResult | null;
+  isAnalyzing: boolean;
+  error: ErrorDisplay | null;
+  progress: number;
+  stage: AnalysisStage;
+  currentChunk: number;
+  totalChunks: number;
 }
 
 /**
@@ -62,6 +73,17 @@ export const useContractAnalysis = ({
       onStatusUpdate?.(message);
       console.log('[Client] Activity:', message);
     }
+  };
+
+  // Update all analysis state at once
+  const setAnalysisState = (state: AnalysisState) => {
+    setAnalysis(state.analysis);
+    setIsAnalyzing(state.isAnalyzing);
+    setError(state.error);
+    setProgress(state.progress);
+    setStage(state.stage);
+    setCurrentChunk(state.currentChunk);
+    setTotalChunks(state.totalChunks);
   };
 
   const handleAnalyze = async (file: File | null) => {
@@ -256,5 +278,6 @@ export const useContractAnalysis = ({
     currentChunk,
     totalChunks,
     handleAnalyze,
+    setAnalysisState,  // Export the setter for external state updates
   };
 };
