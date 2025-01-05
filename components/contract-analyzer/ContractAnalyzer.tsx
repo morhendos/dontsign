@@ -1,10 +1,12 @@
 'use client';
 
 import { useAnalyzerState } from './hooks/useAnalyzerState';
-import { AnalyzerLayout } from './components/AnalyzerLayout';
-import { AnalyzerHeader } from './components/AnalyzerHeader';
-import { FileUploadSection } from './components/FileUploadSection';
-import { AnalysisControls } from './components/AnalysisControls';
+import {
+  AnalyzerLayout,
+  AnalyzerHeader,
+  FileUploadSection,
+  AnalysisControls
+} from './components';
 import { AnalysisProgress } from '../contract-analysis/AnalysisProgress';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
