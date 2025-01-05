@@ -86,6 +86,17 @@ export const useContractAnalysis = ({
     if (state.totalChunks !== undefined) setTotalChunks(state.totalChunks);
   }, []);
 
+  // Reset all analysis state
+  const resetAnalysisState = useCallback(() => {
+    setAnalysis(null);
+    setIsAnalyzing(false);
+    setError(null);
+    setProgress(0);
+    setStage('preprocessing');
+    setCurrentChunk(0);
+    setTotalChunks(0);
+  }, []);
+
   const handleAnalyze = async (file: File | null) => {
     lastMessageRef.current = ''; // Reset message tracking
     
@@ -278,6 +289,7 @@ export const useContractAnalysis = ({
     currentChunk,
     totalChunks,
     handleAnalyze,
-    setAnalysisState,  // Export the setter for external state updates
+    setAnalysisState,
+    resetAnalysisState
   };
 };
