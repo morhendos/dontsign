@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { processFile } from '../../utils/text-processing';
 import type { FileProcessingResult } from '../../types';
 
-export interface UseFileProcessorOptions {
+interface UseFileProcessorOptions {
   onProcessingStart?: () => void;
   onProcessingComplete?: () => void;
   onProcessingError?: (error: Error) => void;
