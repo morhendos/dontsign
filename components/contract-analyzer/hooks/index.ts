@@ -1,3 +1,3 @@
-export * from './useAnalyzerState.ts';
-export * from './useLogVisibility.ts';
-export * from './useContractAnalysis.ts';
+export * from './useAnalyzerState';
+export * from './useLogVisibility';
+export * from './useContractAnalysis';
