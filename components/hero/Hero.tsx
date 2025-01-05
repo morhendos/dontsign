@@ -9,6 +9,7 @@ import { useStatusManager } from './StatusManager';
 import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 import AnalysisLog from '../analysis-log/AnalysisLog';
 import { saveAnalysis, getStoredAnalyses, type StoredAnalysis } from '@/lib/storage';
+import type { SetStatusOptions } from './hooks/useFileHandler';
 
 /**
  * Main hero component that handles the contract analysis workflow
@@ -24,7 +25,6 @@ export default function Hero() {
   useEffect(() => {
     const analyses = getStoredAnalyses();
     setHasStoredAnalyses(analyses.length > 0);
-    // If there are stored analyses, set the most recent one as current
     if (analyses.length > 0) {
       setCurrentStoredAnalysis(analyses[0]);
     }
@@ -35,7 +35,7 @@ export default function Hero() {
 
   // Status management with single message display
   const { setStatusWithTimeout } = useStatusManager({
-    onStatusUpdate: (status: string) => {
+    onStatusUpdate: (status: string, options?: SetStatusOptions) => {
       setProcessingStatus(status);
       // Only add new entry if status is non-empty
       if (status) {
@@ -78,7 +78,7 @@ export default function Hero() {
     totalChunks,
     handleAnalyze
   } = useContractAnalysis({
-    onStatusUpdate: setStatusWithTimeout,
+    onStatusUpdate: (status: string) => setStatusWithTimeout(status, { type: 'temporary' }),
     onEntryComplete: () => updateLastEntry('complete')
   });
 
