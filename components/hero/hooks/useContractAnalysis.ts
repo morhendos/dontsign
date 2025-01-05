@@ -11,7 +11,7 @@ export type AnalysisStage = 'preprocessing' | 'analyzing' | 'complete';
 /** Configuration options for the useContractAnalysis hook */
 interface UseContractAnalysisProps {
   /** Callback function to handle status updates during analysis */
-  onStatusUpdate?: (status: string, duration?: number) => void;
+  onStatusUpdate?: (status: string) => void;
   /** Callback function called when an entry is complete */
   onEntryComplete?: () => void;
 }
@@ -56,10 +56,10 @@ export const useContractAnalysis = ({
   }, []);
 
   // Helper to update activity without exact duplicates
-  const updateActivity = (message: string | undefined, duration?: number) => {
+  const updateActivity = (message: string | undefined) => {
     if (message && message !== lastMessageRef.current) {
       lastMessageRef.current = message;
-      onStatusUpdate?.(message, duration);
+      onStatusUpdate?.(message);
       console.log('[Client] Activity:', message);
     }
   };
@@ -112,7 +112,7 @@ export const useContractAnalysis = ({
       formData.append('text', text);
       formData.append('filename', file.name);
 
-      // Initialize analysis state
+      // Initialize analysis state with required fields
       setAnalysis({
         summary: "Starting analysis...",
         keyTerms: [],
@@ -123,10 +123,10 @@ export const useContractAnalysis = ({
           analyzedAt: new Date().toISOString(),
           documentName: file.name,
           modelVersion: "gpt-3.5-turbo-1106",
-          totalChunks: 0,
+          stage: 'preprocessing',
+          progress: 5,
           currentChunk: 0,
-          stage: 'preprocessing' as const,
-          progress: 5
+          totalChunks: 0,
         }
       });
 
@@ -160,7 +160,7 @@ export const useContractAnalysis = ({
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data: AnalysisStreamResponse = JSON.parse(line.slice(6));
-              console.log('[Client] Server update:', data); // Log all server updates
+              console.log('[Client] Server update:', data);
 
               // Update progress and stage
               if (data.progress) setProgress(data.progress);
@@ -175,17 +175,17 @@ export const useContractAnalysis = ({
               }
 
               // Update metadata
-              if (data.currentChunk && data.totalChunks) {
+              if (data.currentChunk || data.totalChunks) {
                 setAnalysis(prev => {
                   if (!prev) return null;
                   return {
                     ...prev,
                     metadata: {
-                      ...prev.metadata,
-                      currentChunk: data.currentChunk,
-                      totalChunks: data.totalChunks,
-                      stage: data.stage || 'analyzing',
-                      progress: data.progress || 0
+                      ...prev.metadata!,
+                      currentChunk: data.currentChunk || prev.metadata!.currentChunk,
+                      totalChunks: data.totalChunks || prev.metadata!.totalChunks,
+                      stage: data.stage || prev.metadata!.stage,
+                      progress: data.progress || prev.metadata!.progress
                     }
                   };
                 });
