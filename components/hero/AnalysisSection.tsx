@@ -6,7 +6,7 @@ import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisResults } from '../analysis-results/AnalysisResults';
 import { AnalysisHistory } from '../analysis-history/AnalysisHistory';
 import { Button } from '@/components/ui/button';
-import { History, FileText } from 'lucide-react';
+import { History } from 'lucide-react';
 import type { StoredAnalysis } from '@/lib/storage';
 import type { AnalysisResult } from '@/types/analysis';
 import type { AnalysisStage } from './hooks/useContractAnalysis';
@@ -49,7 +49,6 @@ export const AnalysisSection = ({
   showResults,
   currentStoredAnalysis,
   hasStoredAnalyses,
-  showAnalysisButton,
   onFileSelect,
   onAnalyze,
   onShowResults,
@@ -74,32 +73,19 @@ export const AnalysisSection = ({
             </p>
           </div>
 
-          {/* Analysis Controls */}
-          {(hasStoredAnalyses || showAnalysisButton) && (
-            <div className="mb-8 flex justify-center gap-3">
-              {showAnalysisButton && (
+          {/* Analysis History */}
+          {hasStoredAnalyses && (
+            <div className="mb-8 flex justify-center">
+              <AnalysisHistory onSelect={onSelectStoredAnalysis}>
                 <Button
-                  variant="default"
+                  variant="outline"
                   size="lg"
-                  className="gap-2 bg-gray-900 hover:bg-gray-800 text-white dark:bg-gray-800 dark:hover:bg-gray-700"
-                  onClick={() => onShowResults(true)}
+                  className="gap-2 border-gray-300 dark:border-gray-700"
                 >
-                  <FileText className="w-5 h-5" />
-                  View Latest Analysis
+                  <History className="w-5 h-5" />
+                  Previous Analyses
                 </Button>
-              )}
-              {hasStoredAnalyses && (
-                <AnalysisHistory onSelect={onSelectStoredAnalysis}>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="gap-2 border-gray-300 dark:border-gray-700"
-                  >
-                    <History className="w-5 h-5" />
-                    Previous Analyses
-                  </Button>
-                </AnalysisHistory>
-              )}
+              </AnalysisHistory>
             </div>
           )}
 
