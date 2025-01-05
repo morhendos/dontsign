@@ -4,7 +4,7 @@ import type { ErrorDisplay } from '@/types/analysis';
 
 interface UseFileHandlerProps {
   /** Callback function to handle status updates during file processing */
-  onStatusUpdate?: (status: string, duration?: number) => void;
+  onStatusUpdate?: (status: string) => void;
   /** Callback function called when an entry is complete */
   onEntryComplete?: () => void;
 }
@@ -91,7 +91,7 @@ export const useFileHandler = ({
       // Update state
       setFile(selectedFile);
       setError(null);
-      onStatusUpdate?.('File ready for analysis', 2000);
+      onStatusUpdate?.('File ready for analysis');
       
       onEntryComplete?.();
     } catch (error) {
