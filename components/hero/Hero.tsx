@@ -20,15 +20,6 @@ export default function Hero() {
   const [currentStoredAnalysis, setCurrentStoredAnalysis] = useState<StoredAnalysis | null>(null);
   const [hasStoredAnalyses, setHasStoredAnalyses] = useState(false);
 
-  // Check for stored analyses and initialize state on mount
-  useEffect(() => {
-    const analyses = getStoredAnalyses();
-    setHasStoredAnalyses(analyses.length > 0);
-    if (analyses.length > 0) {
-      setCurrentStoredAnalysis(analyses[0]);
-    }
-  }, []);
-
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
 
@@ -44,14 +35,6 @@ export default function Hero() {
         addEntry(status);
       }
     }
-  });
-
-  const {
-    isVisible: showLog,
-    onVisibilityChange: handleVisibilityChange,
-    show: showLogWithAutoHide
-  } = useLogVisibility({
-    entries
   });
 
   // File handling
@@ -75,10 +58,40 @@ export default function Hero() {
     stage,
     currentChunk,
     totalChunks,
-    handleAnalyze
+    handleAnalyze,
+    setAnalysisState  // Get the setter function from the hook
   } = useContractAnalysis({
     onStatusUpdate: setStatusWithTimeout,
     onEntryComplete: () => updateLastEntry('complete')
+  });
+
+  // Check for stored analyses and initialize state on mount
+  useEffect(() => {
+    const analyses = getStoredAnalyses();
+    setHasStoredAnalyses(analyses.length > 0);
+    if (analyses.length > 0) {
+      const latestAnalysis = analyses[0];
+      setCurrentStoredAnalysis(latestAnalysis);
+      // Also set the analysis state and show results
+      setAnalysisState({
+        analysis: latestAnalysis.analysis,
+        isAnalyzing: false,
+        error: null,
+        progress: 100,
+        stage: 'complete',
+        currentChunk: null,
+        totalChunks: null
+      });
+      setShowResults(true);
+    }
+  }, [setAnalysisState]);
+
+  const {
+    isVisible: showLog,
+    onVisibilityChange: handleVisibilityChange,
+    show: showLogWithAutoHide
+  } = useLogVisibility({
+    entries
   });
 
   // Store analysis when complete and show results
@@ -117,8 +130,18 @@ export default function Hero() {
   // Handle selecting a stored analysis
   const handleSelectStoredAnalysis = (stored: StoredAnalysis) => {
     setCurrentStoredAnalysis(stored);
+    // Set the analysis state when selecting a stored analysis
+    setAnalysisState({
+      analysis: stored.analysis,
+      isAnalyzing: false,
+      error: null,
+      progress: 100,
+      stage: 'complete',
+      currentChunk: null,
+      totalChunks: null
+    });
     setShowResults(true);
-    // Reset current file and analysis state since we're viewing a stored analysis
+    // Reset current file state since we're viewing a stored analysis
     resetFile();
   };
 
