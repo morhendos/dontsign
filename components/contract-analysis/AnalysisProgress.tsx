@@ -6,6 +6,7 @@ interface AnalysisProgressProps {
   isAnalyzing: boolean;
   stage: 'preprocessing' | 'analyzing' | 'complete';
   progress: number;
+  processingStatus?: string;
 }
 
 export function AnalysisProgress({ 
@@ -13,41 +14,34 @@ export function AnalysisProgress({
   totalChunks, 
   isAnalyzing, 
   stage, 
-  progress 
+  progress,
+  processingStatus
 }: AnalysisProgressProps) {
   // Show progress bar while analyzing or if we have any progress
-  if (!isAnalyzing && currentChunk === 0) return null;
-
-  const calculatedProgress = totalChunks > 0 ? Math.round((currentChunk / totalChunks) * 100) : 0;
-  const isComplete = currentChunk === totalChunks && totalChunks > 0;
+  if (!isAnalyzing && progress === 0) return null;
   
   return (
     <div className="w-full max-w-md mx-auto mt-4 space-y-2">
-      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
-        <span>
-          {stage === 'complete' 
-            ? 'Analysis complete!' 
-            : stage === 'preprocessing'
-              ? 'Preparing document...'
-              : currentChunk === 0 
-                ? 'Starting analysis...'
-                : 'Analyzing contract...'}
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-600 dark:text-gray-300">
+          {/* Use server-provided message when available */}
+          {processingStatus || (
+            stage === 'preprocessing' ? 'Preparing' : 
+            stage === 'analyzing' && currentChunk > 0 && totalChunks > 0 ? 
+              `Analyzing section ${currentChunk} of ${totalChunks}` :
+            stage === 'analyzing' ? 'Analyzing' :
+            'Complete'
+          )}
         </span>
-        <div>
-          <span className="mr-4">[Debug] Overall: {progress}%</span>
-          <span>Chunks: {calculatedProgress}%</span>
-        </div>
+        <span className="text-gray-600 dark:text-gray-300">
+          {progress}%
+        </span>
       </div>
       <Progress 
         value={progress} 
         className="h-2"
         indicatorColor={stage === 'complete' ? 'bg-green-600 dark:bg-green-500' : 'bg-blue-600 dark:bg-blue-500'}
       />
-      {stage === 'analyzing' && totalChunks > 0 && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-          Processing section {currentChunk} of {totalChunks}
-        </p>
-      )}
     </div>
   );
 }

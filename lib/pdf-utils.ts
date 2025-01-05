@@ -9,9 +9,10 @@ if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
   GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 }
 
-export async function readPdfText(file: File): Promise<string> {
+type ProgressCallback = (progress: number) => void;
+
+export async function readPdfText(file: File, onProgress?: ProgressCallback): Promise<string> {
   try {
-    // Add breadcrumb for PDF processing start
     Sentry.addBreadcrumb({
       category: 'pdf',
       message: 'Starting PDF text extraction',
@@ -22,13 +23,15 @@ export async function readPdfText(file: File): Promise<string> {
       },
     });
 
-    // Validate file size
     if (file.size === 0) {
       throw new PDFProcessingError('Empty PDF file', 'EMPTY_FILE');
     }
 
+    onProgress?.(1); // File validation complete
+    
     // Convert file to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
+    onProgress?.(2); // File loaded
     
     // Load PDF document
     const pdf = await getDocument({
@@ -38,25 +41,25 @@ export async function readPdfText(file: File): Promise<string> {
       useSystemFonts: true    // Use system fonts when possible
     }).promise;
     
+    onProgress?.(3); // PDF initialized
+    
     // Validate page count
     const maxPages = pdf.numPages;
     if (maxPages === 0) {
       throw new PDFProcessingError('PDF file contains no pages', 'EMPTY_FILE');
     }
 
-    // Add breadcrumb for successful PDF loading
-    Sentry.addBreadcrumb({
-      category: 'pdf',
-      message: 'PDF document loaded successfully',
-      level: 'info',
-      data: {
-        pageCount: maxPages,
-      },
-    });
+    // Calculate per-page progress increment
+    const progressPerPage = 2 / maxPages; // 2% total for page extraction
 
-    // Get all pages text
+    // Get all pages text with progress tracking
     const pageTexts = await Promise.all(
-      Array.from({ length: maxPages }, (_, i) => getPageText(pdf, i + 1))
+      Array.from({ length: maxPages }, (_, i) => {
+        return getPageText(pdf, i + 1).then(text => {
+          onProgress?.(3 + progressPerPage * (i + 1)); // Update progress for each page
+          return text;
+        });
+      })
     );
     
     const fullText = pageTexts.join('\n\n');
@@ -65,12 +68,12 @@ export async function readPdfText(file: File): Promise<string> {
       throw new PDFProcessingError('No readable text found in the PDF', 'NO_TEXT_CONTENT');
     }
 
+    onProgress?.(5); // PDF processing complete
     return fullText;
   } catch (error) {
     console.error('Error reading PDF:', error);
     
     if (error instanceof PDFProcessingError) {
-      // Track PDF-specific errors with context
       Sentry.captureException(error, {
         extra: {
           fileName: file.name,
@@ -105,7 +108,6 @@ export async function readPdfText(file: File): Promise<string> {
       }
     }
 
-    // Track unknown errors
     Sentry.captureException(error, {
       extra: {
         fileName: file.name,
@@ -141,7 +143,6 @@ async function getPageText(pdf: PDFDocumentProxy, pageNo: number): Promise<strin
   } catch (error) {
     console.error(`Error reading page ${pageNo}:`, error);
 
-    // Track page-specific errors
     Sentry.captureException(error, {
       extra: {
         pageNumber: pageNo,
