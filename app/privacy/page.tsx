@@ -52,14 +52,7 @@ export default function PrivacyPolicy() {
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold">Third-Party Services</h2>
             <p>
-              We use the following third-party services for analysis:
-            </p>
-            <ul className="list-disc pl-6 space-y-2">
-              <li>OpenAI API for document analysis (GPT-3.5-turbo-1106)</li>
-              <li>Sentry for error tracking (collecting only technical error data)</li>
-            </ul>
-            <p>
-              These services process data solely for providing analysis results and maintaining service quality, without persistent storage.
+              We use third-party tools to power our AI analysis. These tools process data solely for the purpose of providing insights, without persistent storage.
             </p>
           </div>
 
