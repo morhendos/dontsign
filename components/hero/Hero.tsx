@@ -59,7 +59,7 @@ export default function Hero() {
     currentChunk,
     totalChunks,
     handleAnalyze,
-    setAnalysisState  // Get the setter function from the hook
+    setAnalysisState // Get the setter function from the hook
   } = useContractAnalysis({
     onStatusUpdate: setStatusWithTimeout,
     onEntryComplete: () => updateLastEntry('complete')
@@ -72,15 +72,15 @@ export default function Hero() {
     if (analyses.length > 0) {
       const latestAnalysis = analyses[0];
       setCurrentStoredAnalysis(latestAnalysis);
-      // Also set the analysis state and show results
+      // Also restore the full analysis state
       setAnalysisState({
         analysis: latestAnalysis.analysis,
         isAnalyzing: false,
         error: null,
         progress: 100,
         stage: 'complete',
-        currentChunk: null,
-        totalChunks: null
+        currentChunk: 0,
+        totalChunks: 0
       });
       setShowResults(true);
     }
@@ -137,8 +137,8 @@ export default function Hero() {
       error: null,
       progress: 100,
       stage: 'complete',
-      currentChunk: null,
-      totalChunks: null
+      currentChunk: 0,
+      totalChunks: 0
     });
     setShowResults(true);
     // Reset current file state since we're viewing a stored analysis
