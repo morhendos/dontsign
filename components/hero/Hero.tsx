@@ -59,7 +59,7 @@ export default function Hero() {
     currentChunk,
     totalChunks,
     handleAnalyze,
-    setAnalysisState // Get the setter function from the hook
+    setAnalysisState
   } = useContractAnalysis({
     onStatusUpdate: setStatusWithTimeout,
     onEntryComplete: () => updateLastEntry('complete')
@@ -68,8 +68,10 @@ export default function Hero() {
   // Check for stored analyses and initialize state on mount
   useEffect(() => {
     const analyses = getStoredAnalyses();
-    setHasStoredAnalyses(analyses.length > 0);
-    if (analyses.length > 0) {
+    const hasAnalyses = analyses.length > 0;
+    setHasStoredAnalyses(hasAnalyses);
+
+    if (hasAnalyses) {
       const latestAnalysis = analyses[0];
       setCurrentStoredAnalysis(latestAnalysis);
       // Also restore the full analysis state
@@ -84,7 +86,7 @@ export default function Hero() {
       });
       setShowResults(true);
     }
-  }, [setAnalysisState]);
+  }, []); // Only run on mount
 
   const {
     isVisible: showLog,
