@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function TermsOfService() {
   return (
-    <div className="container mx-auto max-w-4xl">
+    <div className="container mx-auto max-w-4xl py-8">
       <div className="space-y-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
@@ -56,7 +56,7 @@ export default function TermsOfService() {
               <li>Maintaining the confidentiality of your account credentials</li>
               <li>Using the service only for lawful purposes</li>
             </ul>
-            <p>You must not upload:</p>
+            <p className="mt-4">You must not upload:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Documents containing illegal content</li>
               <li>Sensitive or classified information</li>
@@ -81,6 +81,7 @@ export default function TermsOfService() {
                 <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
               </li>
               <li>Analysis results are confidential and accessible only to you</li>
+              <li>We implement industry-standard security measures to protect your data</li>
             </ul>
           </div>
 
@@ -114,12 +115,21 @@ export default function TermsOfService() {
             <h2 className="text-2xl font-semibold">10. Changes to Terms</h2>
             <p>
               We may update these terms to reflect service improvements or legal requirements.
-              Continued use after changes constitutes acceptance of updated terms.
+              Continued use after changes constitutes acceptance of updated terms. We will notify
+              users of significant changes via email or service announcement.
             </p>
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">11. Contact</h2>
+            <h2 className="text-2xl font-semibold">11. Governing Law</h2>
+            <p>
+              These Terms are governed by and construed in accordance with the laws of the State of
+              Delaware, United States, without regard to its conflict of law principles.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold">12. Contact</h2>
             <p>
               For questions about these terms, please visit our{" "}
               <a href="/contact" className="text-primary hover:underline">contact page</a>.
