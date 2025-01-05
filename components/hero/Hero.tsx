@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useContractAnalysis } from './hooks/useContractAnalysis';
 import { useFileHandler } from './hooks/useFileHandler';
 import { useLogVisibility } from './hooks/useLogVisibility';
@@ -47,6 +47,11 @@ export default function Hero() {
     }
   });
 
+  // Create a wrapped version of setStatusWithTimeout that matches the expected signature
+  const handleStatusUpdate = useCallback((status: string, options?: SetStatusOptions) => {
+    setStatusWithTimeout(status, options);
+  }, [setStatusWithTimeout]);
+
   const {
     isVisible: showLog,
     onVisibilityChange: handleVisibilityChange,
@@ -63,7 +68,7 @@ export default function Hero() {
     handleFileSelect,
     resetFile
   } = useFileHandler({
-    onStatusUpdate: setStatusWithTimeout,
+    onStatusUpdate: handleStatusUpdate,
     onEntryComplete: () => updateLastEntry('complete')
   });
 
@@ -78,7 +83,7 @@ export default function Hero() {
     totalChunks,
     handleAnalyze
   } = useContractAnalysis({
-    onStatusUpdate: (status: string) => setStatusWithTimeout(status, { type: 'temporary' }),
+    onStatusUpdate: (status: string) => handleStatusUpdate(status, { type: 'temporary' }),
     onEntryComplete: () => updateLastEntry('complete')
   });
 
