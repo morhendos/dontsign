@@ -2,16 +2,9 @@ import { useState } from 'react';
 import { readPdfText } from '@/lib/pdf-utils';
 import type { ErrorDisplay } from '@/types/analysis';
 
-type StatusType = 'persistent' | 'temporary';
-
-interface SetStatusOptions {
-  type?: StatusType;
-  duration?: number;
-}
-
 interface UseFileHandlerProps {
   /** Callback function to handle status updates during file processing */
-  onStatusUpdate?: (status: string, options?: SetStatusOptions) => void;
+  onStatusUpdate?: (status: string) => void;
   /** Callback function called when an entry is complete */
   onEntryComplete?: () => void;
 }
@@ -98,7 +91,7 @@ export const useFileHandler = ({
       // Update state
       setFile(selectedFile);
       setError(null);
-      onStatusUpdate?.('File ready for analysis', { type: 'temporary', duration: 2000 });
+      onStatusUpdate?.('File ready for analysis');
       
       onEntryComplete?.();
     } catch (error) {

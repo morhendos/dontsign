@@ -10,9 +10,10 @@ import { getStoredAnalyses, deleteAnalysis, type StoredAnalysis } from '@/lib/st
 
 interface AnalysisHistoryProps {
   onSelect: (analysis: StoredAnalysis) => void;
+  children?: React.ReactNode;
 }
 
-export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
+export function AnalysisHistory({ onSelect, children }: AnalysisHistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [analyses, setAnalyses] = useState<StoredAnalysis[]>([]);
   const [isVisible, setIsVisible] = useState(false);
@@ -55,17 +56,8 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
   };
 
   return (
-    <>
-      {/* Toggle button */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="gap-2"
-        onClick={() => setIsOpen(true)}
-      >
-        <History className="w-4 h-4" />
-        Previous Analyses
-      </Button>
+    <div onClick={() => setIsOpen(true)}>
+      {children}
 
       {/* Modal */}
       {isOpen && (
@@ -173,6 +165,6 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
           </Card>
         </div>
       )}
-    </>
+    </div>
   );
 }
