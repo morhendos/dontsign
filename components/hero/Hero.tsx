@@ -9,7 +9,6 @@ import { useStatusManager } from './StatusManager';
 import { useAnalysisLog } from '../analysis-log/useAnalysisLog';
 import AnalysisLog from '../analysis-log/AnalysisLog';
 import { saveAnalysis, getStoredAnalyses, type StoredAnalysis } from '@/lib/storage';
-import type { SetStatusOptions } from './hooks/useFileHandler';
 
 /**
  * Main hero component that handles the contract analysis workflow
@@ -35,7 +34,7 @@ export default function Hero() {
 
   // Status management with single message display
   const { setStatusWithTimeout } = useStatusManager({
-    onStatusUpdate: (status: string, options?: SetStatusOptions) => {
+    onStatusUpdate: (status: string) => {
       setProcessingStatus(status);
       // Only add new entry if status is non-empty
       if (status) {
@@ -46,11 +45,6 @@ export default function Hero() {
       }
     }
   });
-
-  // Create a wrapped version of setStatusWithTimeout that matches the expected signature
-  const handleStatusUpdate = useCallback((status: string, options?: SetStatusOptions) => {
-    setStatusWithTimeout(status, options);
-  }, [setStatusWithTimeout]);
 
   const {
     isVisible: showLog,
@@ -68,7 +62,7 @@ export default function Hero() {
     handleFileSelect,
     resetFile
   } = useFileHandler({
-    onStatusUpdate: handleStatusUpdate,
+    onStatusUpdate: setStatusWithTimeout,
     onEntryComplete: () => updateLastEntry('complete')
   });
 
@@ -83,7 +77,7 @@ export default function Hero() {
     totalChunks,
     handleAnalyze
   } = useContractAnalysis({
-    onStatusUpdate: (status: string) => handleStatusUpdate(status, { type: 'temporary' }),
+    onStatusUpdate: (status: string) => setStatusWithTimeout(status, 2000),
     onEntryComplete: () => updateLastEntry('complete')
   });
 
