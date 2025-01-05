@@ -81,12 +81,14 @@ export default function Hero() {
     onEntryComplete: () => updateLastEntry('complete')
   });
 
-  // Store analysis when complete
+  // Store analysis when complete and show results
   useEffect(() => {
     if (analysis && !isAnalyzing && stage === 'complete' && file) {
       const stored = saveAnalysis(file.name, analysis);
       setCurrentStoredAnalysis(stored);
       setHasStoredAnalyses(true);
+      // Show the results when analysis completes
+      setShowResults(true);
       // Clear status when complete
       setProcessingStatus('');
     }
@@ -108,7 +110,7 @@ export default function Hero() {
   const handleAnalyzeWithLogReset = async () => {
     clearEntries();
     showLogWithAutoHide();
-    setShowResults(false);
+    setShowResults(false);  // Hide results when starting new analysis
     await handleAnalyze(file);
   };
 
