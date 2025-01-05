@@ -16,14 +16,14 @@ export default function PrivacyPolicy() {
 
         <section className="space-y-6 text-lg">
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Our Commitment to Privacy</h2>
+            <h2 className="text-2xl font-semibold">1. Our Commitment to Privacy</h2>
             <p>
               At DontSign, we prioritize your privacy by not collecting or storing any of your data. Our service provides real-time AI-powered contract analysis without any server-side storage of your information.
             </p>
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">No Data Collection Policy</h2>
+            <h2 className="text-2xl font-semibold">2. No Data Collection Policy</h2>
             <ul className="list-disc pl-6 space-y-2">
               <li>
                 <strong>Zero Storage:</strong> We do not collect, store, or share any personal information or contract data.
@@ -38,7 +38,7 @@ export default function PrivacyPolicy() {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Data Security</h2>
+            <h2 className="text-2xl font-semibold">3. Data Security</h2>
             <p>
               While we don't store your data, we ensure secure processing through:
             </p>
@@ -50,14 +50,14 @@ export default function PrivacyPolicy() {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Third-Party Services</h2>
+            <h2 className="text-2xl font-semibold">4. Third-Party Services</h2>
             <p>
               We use third-party tools to power our AI analysis. These tools process data solely for the purpose of providing insights, without persistent storage.
             </p>
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Browser Local Storage</h2>
+            <h2 className="text-2xl font-semibold">5. Browser Local Storage</h2>
             <p>
               Your browser's local storage may temporarily contain:
             </p>
@@ -69,14 +69,14 @@ export default function PrivacyPolicy() {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Future Changes</h2>
+            <h2 className="text-2xl font-semibold">6. Future Changes</h2>
             <p>
               If our data practices change, we will update this Privacy Policy and notify users in advance.
             </p>
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Contact Us</h2>
+            <h2 className="text-2xl font-semibold">7. Contact Us</h2>
             <p>
               For any privacy-related questions or concerns, please contact us through our{" "}
               <a href="/contact" className="text-primary hover:underline">contact page</a>.
