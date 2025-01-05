@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useContractAnalysis } from './hooks/useContractAnalysis';
 import { useFileHandler } from './hooks/useFileHandler';
 import { useLogVisibility } from './hooks/useLogVisibility';
@@ -19,15 +19,9 @@ export default function Hero() {
   const [showResults, setShowResults] = useState(false);
   const [currentStoredAnalysis, setCurrentStoredAnalysis] = useState<StoredAnalysis | null>(null);
   const [hasStoredAnalyses, setHasStoredAnalyses] = useState(false);
-
-  // Check for stored analyses and initialize state on mount
-  useEffect(() => {
-    const analyses = getStoredAnalyses();
-    setHasStoredAnalyses(analyses.length > 0);
-    if (analyses.length > 0) {
-      setCurrentStoredAnalysis(analyses[0]);
-    }
-  }, []);
+  
+  // Use ref to track if we're actively analyzing a new document
+  const isAnalyzingNewDocument = useRef(false);
 
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
@@ -46,13 +40,32 @@ export default function Hero() {
     }
   });
 
+  // Contract analysis
   const {
-    isVisible: showLog,
-    onVisibilityChange: handleVisibilityChange,
-    show: showLogWithAutoHide
-  } = useLogVisibility({
-    entries
+    analysis,
+    isAnalyzing,
+    error: analysisError,
+    progress: analysisProgress,
+    stage,
+    currentChunk,
+    totalChunks,
+    handleAnalyze,
+    setAnalysisState,
+    resetAnalysisState
+  } = useContractAnalysis({
+    onStatusUpdate: setStatusWithTimeout,
+    onEntryComplete: () => updateLastEntry('complete')
   });
+
+  // Handle file selection including state reset
+  const handleNewFileSelect = (file: File | null) => {
+    // Reset all states when a new file is selected
+    isAnalyzingNewDocument.current = true;
+    setShowResults(false);
+    setCurrentStoredAnalysis(null);
+    resetAnalysisState();
+    handleFileSelect(file);
+  };
 
   // File handling
   const {
@@ -66,19 +79,39 @@ export default function Hero() {
     onEntryComplete: () => updateLastEntry('complete')
   });
 
-  // Contract analysis
+  // Check for stored analyses and initialize state on mount
+  useEffect(() => {
+    // Don't restore from localStorage if we're analyzing a new document
+    if (isAnalyzingNewDocument.current) {
+      return;
+    }
+
+    const analyses = getStoredAnalyses();
+    const hasAnalyses = analyses.length > 0;
+    setHasStoredAnalyses(hasAnalyses);
+
+    if (hasAnalyses) {
+      const latestAnalysis = analyses[0];
+      setCurrentStoredAnalysis(latestAnalysis);
+      // Also restore the full analysis state
+      setAnalysisState({
+        analysis: latestAnalysis.analysis,
+        isAnalyzing: false,
+        error: null,
+        progress: 100,
+        stage: 'complete',
+        currentChunk: 0,
+        totalChunks: 0
+      });
+    }
+  }, []); // Only run on mount
+
   const {
-    analysis,
-    isAnalyzing,
-    error: analysisError,
-    progress: analysisProgress,
-    stage,
-    currentChunk,
-    totalChunks,
-    handleAnalyze
-  } = useContractAnalysis({
-    onStatusUpdate: setStatusWithTimeout,
-    onEntryComplete: () => updateLastEntry('complete')
+    isVisible: showLog,
+    onVisibilityChange: handleVisibilityChange,
+    show: showLogWithAutoHide
+  } = useLogVisibility({
+    entries
   });
 
   // Store analysis when complete and show results
@@ -91,6 +124,8 @@ export default function Hero() {
       setShowResults(true);
       // Clear status when complete
       setProcessingStatus('');
+      // Reset the analyzing new document flag
+      isAnalyzingNewDocument.current = false;
     }
   }, [analysis, isAnalyzing, stage, file]);
 
@@ -110,15 +145,28 @@ export default function Hero() {
   const handleAnalyzeWithLogReset = async () => {
     clearEntries();
     showLogWithAutoHide();
-    setShowResults(false);  // Hide results when starting new analysis
+    // No need to reset states here as they were already reset on file selection
     await handleAnalyze(file);
   };
 
   // Handle selecting a stored analysis
   const handleSelectStoredAnalysis = (stored: StoredAnalysis) => {
+    // Reset the analyzing new document flag
+    isAnalyzingNewDocument.current = false;
+    
     setCurrentStoredAnalysis(stored);
+    // Set the analysis state when selecting a stored analysis
+    setAnalysisState({
+      analysis: stored.analysis,
+      isAnalyzing: false,
+      error: null,
+      progress: 100,
+      stage: 'complete',
+      currentChunk: 0,
+      totalChunks: 0
+    });
     setShowResults(true);
-    // Reset current file and analysis state since we're viewing a stored analysis
+    // Reset current file state since we're viewing a stored analysis
     resetFile();
   };
 
@@ -139,7 +187,7 @@ export default function Hero() {
         currentStoredAnalysis={currentStoredAnalysis}
         hasStoredAnalyses={hasStoredAnalyses}
         showAnalysisButton={Boolean(analysis || currentStoredAnalysis)}
-        onFileSelect={handleFileSelect}
+        onFileSelect={handleNewFileSelect}
         onAnalyze={handleAnalyzeWithLogReset}
         onShowResults={setShowResults}
         onSelectStoredAnalysis={handleSelectStoredAnalysis}

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { readPdfText } from '@/lib/pdf-utils';
 import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors';
@@ -26,7 +26,18 @@ interface AnalysisStreamResponse {
   result?: AnalysisResult;
   error?: string;
   activity?: string;
-  description?: string; // Added to catch server descriptions
+  description?: string;
+}
+
+/** Analysis state interface */
+export interface AnalysisState {
+  analysis: AnalysisResult | null;
+  isAnalyzing: boolean;
+  error: ErrorDisplay | null;
+  progress: number;
+  stage: AnalysisStage;
+  currentChunk: number;
+  totalChunks: number;
 }
 
 /**
@@ -56,13 +67,35 @@ export const useContractAnalysis = ({
   }, []);
 
   // Helper to update activity without exact duplicates
-  const updateActivity = (message: string | undefined) => {
+  const updateActivity = useCallback((message: string | undefined) => {
     if (message && message !== lastMessageRef.current) {
       lastMessageRef.current = message;
       onStatusUpdate?.(message);
       console.log('[Client] Activity:', message);
     }
-  };
+  }, [onStatusUpdate]);
+
+  // Update all analysis state at once
+  const setAnalysisState = useCallback((state: Partial<AnalysisState>) => {
+    if (state.analysis !== undefined) setAnalysis(state.analysis);
+    if (state.isAnalyzing !== undefined) setIsAnalyzing(state.isAnalyzing);
+    if (state.error !== undefined) setError(state.error);
+    if (state.progress !== undefined) setProgress(state.progress);
+    if (state.stage !== undefined) setStage(state.stage);
+    if (state.currentChunk !== undefined) setCurrentChunk(state.currentChunk);
+    if (state.totalChunks !== undefined) setTotalChunks(state.totalChunks);
+  }, []);
+
+  // Reset all analysis state
+  const resetAnalysisState = useCallback(() => {
+    setAnalysis(null);
+    setIsAnalyzing(false);
+    setError(null);
+    setProgress(0);
+    setStage('preprocessing');
+    setCurrentChunk(0);
+    setTotalChunks(0);
+  }, []);
 
   const handleAnalyze = async (file: File | null) => {
     lastMessageRef.current = ''; // Reset message tracking
@@ -256,5 +289,7 @@ export const useContractAnalysis = ({
     currentChunk,
     totalChunks,
     handleAnalyze,
+    setAnalysisState,
+    resetAnalysisState
   };
 };
