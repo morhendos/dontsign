@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useContractAnalysis } from './hooks/useContractAnalysis';
 import { useFileHandler } from './hooks/useFileHandler';
 import { useLogVisibility } from './hooks/useLogVisibility';
@@ -32,8 +32,8 @@ export default function Hero() {
   // Analysis log handling
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
 
-  // Status management with single message display
-  const { setStatusWithTimeout } = useStatusManager({
+  // Status management
+  const { setStatus } = useStatusManager({
     onStatusUpdate: (status: string) => {
       setProcessingStatus(status);
       // Only add new entry if status is non-empty
@@ -62,7 +62,7 @@ export default function Hero() {
     handleFileSelect,
     resetFile
   } = useFileHandler({
-    onStatusUpdate: setStatusWithTimeout,
+    onStatusUpdate: setStatus,
     onEntryComplete: () => updateLastEntry('complete')
   });
 
@@ -77,7 +77,7 @@ export default function Hero() {
     totalChunks,
     handleAnalyze
   } = useContractAnalysis({
-    onStatusUpdate: (status: string) => setStatusWithTimeout(status, 2000),
+    onStatusUpdate: setStatus,
     onEntryComplete: () => updateLastEntry('complete')
   });
 
