@@ -8,9 +8,9 @@ interface StatusManagerProps {
  * Manages status updates
  */
 export const useStatusManager = ({ onStatusUpdate }: StatusManagerProps) => {
-  const setStatus = useCallback((status: string) => {
+  const setStatusWithTimeout = useCallback((status: string) => {
     onStatusUpdate(status);
   }, [onStatusUpdate]);
 
-  return { setStatus };
+  return { setStatusWithTimeout };
 };
