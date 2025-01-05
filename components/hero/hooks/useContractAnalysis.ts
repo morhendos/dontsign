@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { readPdfText } from '@/lib/pdf-utils';
 import { PDFProcessingError, ContractAnalysisError } from '@/lib/errors';
@@ -67,24 +67,24 @@ export const useContractAnalysis = ({
   }, []);
 
   // Helper to update activity without exact duplicates
-  const updateActivity = (message: string | undefined) => {
+  const updateActivity = useCallback((message: string | undefined) => {
     if (message && message !== lastMessageRef.current) {
       lastMessageRef.current = message;
       onStatusUpdate?.(message);
       console.log('[Client] Activity:', message);
     }
-  };
+  }, [onStatusUpdate]);
 
   // Update all analysis state at once
-  const setAnalysisState = (state: AnalysisState) => {
-    setAnalysis(state.analysis);
-    setIsAnalyzing(state.isAnalyzing);
-    setError(state.error);
-    setProgress(state.progress);
-    setStage(state.stage);
-    setCurrentChunk(state.currentChunk);
-    setTotalChunks(state.totalChunks);
-  };
+  const setAnalysisState = useCallback((state: Partial<AnalysisState>) => {
+    if (state.analysis !== undefined) setAnalysis(state.analysis);
+    if (state.isAnalyzing !== undefined) setIsAnalyzing(state.isAnalyzing);
+    if (state.error !== undefined) setError(state.error);
+    if (state.progress !== undefined) setProgress(state.progress);
+    if (state.stage !== undefined) setStage(state.stage);
+    if (state.currentChunk !== undefined) setCurrentChunk(state.currentChunk);
+    if (state.totalChunks !== undefined) setTotalChunks(state.totalChunks);
+  }, []);
 
   const handleAnalyze = async (file: File | null) => {
     lastMessageRef.current = ''; // Reset message tracking
