@@ -40,18 +40,6 @@ export default function Hero() {
     }
   });
 
-  // File handling
-  const {
-    file,
-    error: fileError,
-    isProcessing,
-    handleFileSelect,
-    resetFile
-  } = useFileHandler({
-    onStatusUpdate: setStatusWithTimeout,
-    onEntryComplete: () => updateLastEntry('complete')
-  });
-
   // Contract analysis
   const {
     analysis,
@@ -65,6 +53,28 @@ export default function Hero() {
     setAnalysisState,
     resetAnalysisState
   } = useContractAnalysis({
+    onStatusUpdate: setStatusWithTimeout,
+    onEntryComplete: () => updateLastEntry('complete')
+  });
+
+  // Handle file selection including state reset
+  const handleNewFileSelect = (file: File | null) => {
+    // Reset all states when a new file is selected
+    isAnalyzingNewDocument.current = true;
+    setShowResults(false);
+    setCurrentStoredAnalysis(null);
+    resetAnalysisState();
+    handleFileSelect(file);
+  };
+
+  // File handling
+  const {
+    file,
+    error: fileError,
+    isProcessing,
+    handleFileSelect,
+    resetFile
+  } = useFileHandler({
     onStatusUpdate: setStatusWithTimeout,
     onEntryComplete: () => updateLastEntry('complete')
   });
@@ -133,21 +143,9 @@ export default function Hero() {
 
   // Clear logs and show log window when starting new analysis
   const handleAnalyzeWithLogReset = async () => {
-    // Set flag that we're analyzing a new document
-    isAnalyzingNewDocument.current = true;
-
     clearEntries();
     showLogWithAutoHide();
-    setShowResults(false);
-    setCurrentStoredAnalysis(null);
-    
-    // Reset all analysis states
-    resetAnalysisState();
-
-    // Wait a tick to ensure state updates are processed
-    await new Promise(resolve => setTimeout(resolve, 0));
-    
-    // Now start the new analysis
+    // No need to reset states here as they were already reset on file selection
     await handleAnalyze(file);
   };
 
@@ -189,7 +187,7 @@ export default function Hero() {
         currentStoredAnalysis={currentStoredAnalysis}
         hasStoredAnalyses={hasStoredAnalyses}
         showAnalysisButton={Boolean(analysis || currentStoredAnalysis)}
-        onFileSelect={handleFileSelect}
+        onFileSelect={handleNewFileSelect}
         onAnalyze={handleAnalyzeWithLogReset}
         onShowResults={setShowResults}
         onSelectStoredAnalysis={handleSelectStoredAnalysis}
