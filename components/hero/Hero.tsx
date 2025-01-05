@@ -33,7 +33,7 @@ export default function Hero() {
   const { entries, addEntry, updateLastEntry, clearEntries } = useAnalysisLog();
 
   // Status management
-  const { setStatus } = useStatusManager({
+  const { setStatusWithTimeout } = useStatusManager({
     onStatusUpdate: (status: string) => {
       setProcessingStatus(status);
       // Only add new entry if status is non-empty
@@ -62,7 +62,7 @@ export default function Hero() {
     handleFileSelect,
     resetFile
   } = useFileHandler({
-    onStatusUpdate: setStatus,
+    onStatusUpdate: setStatusWithTimeout,
     onEntryComplete: () => updateLastEntry('complete')
   });
 
@@ -77,7 +77,7 @@ export default function Hero() {
     totalChunks,
     handleAnalyze
   } = useContractAnalysis({
-    onStatusUpdate: setStatus,
+    onStatusUpdate: setStatusWithTimeout,
     onEntryComplete: () => updateLastEntry('complete')
   });
 
