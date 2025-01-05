@@ -1,8 +1,7 @@
 import { useRef, useCallback } from 'react';
-import type { SetStatusOptions } from './hooks/useFileHandler';
 
 interface StatusManagerProps {
-  onStatusUpdate: (status: string, options?: SetStatusOptions) => void;
+  onStatusUpdate: (status: string) => void;
 }
 
 /**
@@ -11,26 +10,21 @@ interface StatusManagerProps {
 export const useStatusManager = ({ onStatusUpdate }: StatusManagerProps) => {
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  const setStatusWithTimeout = useCallback((status: string, options: SetStatusOptions = {}) => {
-    const { type = 'temporary', duration = 2000 } = options;
-    
+  const setStatusWithTimeout = useCallback((status: string, duration: number = 2000) => {
     // Update the status
-    onStatusUpdate(status, { type, duration });
+    onStatusUpdate(status);
     
-    // Only set timeout for temporary messages
-    if (type === 'temporary') {
-      // Clear any existing timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = undefined;
-      }
-      
-      // Set new timeout to clear the status
-      timeoutRef.current = setTimeout(() => {
-        onStatusUpdate('', { type: 'temporary' });
-        timeoutRef.current = undefined;
-      }, duration);
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
     }
+    
+    // Set new timeout to clear the status
+    timeoutRef.current = setTimeout(() => {
+      onStatusUpdate('');
+      timeoutRef.current = undefined;
+    }, duration);
   }, [onStatusUpdate]);
 
   return { setStatusWithTimeout };
