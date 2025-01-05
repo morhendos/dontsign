@@ -84,8 +84,6 @@ export default function Hero() {
         currentChunk: 0,
         totalChunks: 0
       });
-      // Don't show results automatically on page load
-      // setShowResults(true); - removed this line
     }
   }, []); // Only run on mount
 
@@ -103,7 +101,7 @@ export default function Hero() {
       const stored = saveAnalysis(file.name, analysis);
       setCurrentStoredAnalysis(stored);
       setHasStoredAnalyses(true);
-      // Show the results ONLY when analysis completes (not on page load)
+      // Show the results when analysis completes
       setShowResults(true);
       // Clear status when complete
       setProcessingStatus('');
@@ -127,6 +125,17 @@ export default function Hero() {
     clearEntries();
     showLogWithAutoHide();
     setShowResults(false);  // Hide results when starting new analysis
+    setCurrentStoredAnalysis(null);  // Reset stored analysis when starting new one
+    // Reset all analysis states before starting new analysis
+    setAnalysisState({
+      analysis: null,
+      isAnalyzing: false,
+      error: null,
+      progress: 0,
+      stage: 'preprocessing',
+      currentChunk: 0,
+      totalChunks: 0
+    });
     await handleAnalyze(file);
   };
 
