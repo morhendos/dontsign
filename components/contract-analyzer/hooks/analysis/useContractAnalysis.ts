@@ -7,6 +7,7 @@ import type { AnalysisState, AnalysisStreamResponse } from '../../types';
 export interface UseContractAnalysisOptions {
   onStatusUpdate?: (status: string) => void;
   onEntryComplete?: () => void;
+  onAnalysisComplete?: () => void;
 }
 
 /**
@@ -76,7 +77,11 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
       if (data.type === 'complete' && data.result) {
         next.analysis = data.result;
         next.isAnalyzing = false;
+        next.progress = 100;
+        next.stage = 'complete';
+        // Complete current entry and call complete handlers
         options.onEntryComplete?.();
+        options.onAnalysisComplete?.();
       }
 
       return next;
@@ -205,7 +210,8 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
         progress: 0,
         stage: 'preprocessing',
         currentChunk: 0,
-        totalChunks: 0
+        totalChunks: 0,
+        isAnalyzing: false
       }));
 
       trackAnalysis.error(
@@ -213,7 +219,6 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
         error instanceof Error ? error.message : 'Unknown error'
       );
     } finally {
-      setState(prev => ({ ...prev, isAnalyzing: false }));
       transaction.finish();
     }
   };
