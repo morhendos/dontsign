@@ -64,20 +64,30 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
     }
   }, [entries.length]);
 
-  const renderIcon = (status: LogEntry['status'], entryId: string) => {
+  const renderIcon = (status: LogEntry['status']) => {
     switch (status) {
       case 'complete':
-        return <CheckCircle key={`icon-${entryId}`} className="w-3.5 h-3.5 text-green-500" />;
+        return <CheckCircle className="w-3.5 h-3.5 text-green-500" />;
       case 'active':
-        return <Loader2 key={`icon-${entryId}`} className="w-3.5 h-3.5 text-blue-500 animate-spin" />;
+        return <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />;
       case 'error':
-        return <Circle key={`icon-${entryId}`} className="w-3.5 h-3.5 text-red-500" />;
+        return <Circle className="w-3.5 h-3.5 text-red-500" />;
       default:
-        return <Circle key={`icon-${entryId}`} className="w-3.5 h-3.5 text-gray-300" />;
+        return <Circle className="w-3.5 h-3.5 text-gray-300" />;
     }
   };
 
   if (entries.length === 0) return null;
+
+  // Create memoized entries with validated IDs
+  const validatedEntries = React.useMemo(() => 
+    entries.map((entry, index) => ({
+      ...entry,
+      // Ensure unique ID even if entries have duplicate IDs
+      uniqueId: `${entry.id}-${index}-${entry.timestamp?.getTime() ?? Date.now()}`
+    })),
+    [entries]
+  );
 
   return (
     <div 
@@ -121,10 +131,10 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
               }}
             >
               <div className="py-1 px-2 space-y-1" ref={scrollRef}>
-                {entries.map((entry, index) => (
+                {validatedEntries.map((entry, index) => (
                   <div
-                    key={entry.id}
-                    ref={index === entries.length - 1 ? lastEntryRef : null}
+                    key={entry.uniqueId}
+                    ref={index === validatedEntries.length - 1 ? lastEntryRef : null}
                     className={cn(
                       'flex items-start gap-2 px-2 py-1.5 rounded-md transition-all duration-300',
                       'animate-in slide-in-from-right-5',
@@ -132,11 +142,11 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
                       entry.status === 'active' && 'bg-blue-50 dark:bg-blue-950/50'
                     )}
                   >
-                    <div key={`icon-wrapper-${entry.id}`} className="flex-shrink-0 mt-0.5">
-                      {renderIcon(entry.status, entry.id)}
+                    <div className="flex-shrink-0 mt-0.5">
+                      {renderIcon(entry.status)}
                     </div>
-                    <div key={`content-${entry.id}`} className="flex-grow min-w-0">
-                      <p key={`message-${entry.id}`} className="text-xs text-gray-700 dark:text-gray-200 leading-tight">
+                    <div className="flex-grow min-w-0">
+                      <p className="text-xs text-gray-700 dark:text-gray-200 leading-tight">
                         {entry.message}
                       </p>
                     </div>
