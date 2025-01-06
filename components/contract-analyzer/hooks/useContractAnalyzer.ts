@@ -54,6 +54,13 @@ export const useContractAnalyzer = () => {
     results.show();
   }, [baseHandleSelectStoredAnalysis, results]);
 
+  // Trigger handleAnalysisComplete when analysis is complete
+  useEffect(() => {
+    if (analysis && !isAnalyzing && stage === 'complete' && file) {
+      handleAnalysisComplete();
+    }
+  }, [analysis, isAnalyzing, stage, file, handleAnalysisComplete]);
+
   return {
     // State
     file,
