@@ -1,68 +1,117 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload } from 'lucide-react';
+import { Upload, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface DropZoneProps {
+  file: File | null;
+  error: Error | null;
   onFileAccepted: (file: File) => void;
-  onError?: (error: string) => void;
+  isUploading?: boolean;
+  processingStatus?: string;
 }
 
-export const DropZone: React.FC<DropZoneProps> = ({ onFileAccepted, onError }) => {
-  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+export const DropZone: React.FC<DropZoneProps> = ({
+  file,
+  error,
+  onFileAccepted,
+  isUploading = false,
+  processingStatus
+}) => {
+  const [isDragging, setIsDragging] = useState(false);
+
+  const { getRootProps, getInputProps } = useDropzone({
     accept: {
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
     },
     maxFiles: 1,
     multiple: false,
-    onDropAccepted: (files) => onFileAccepted(files[0]),
-    onDropRejected: (fileRejections) => {
-      const error = fileRejections[0]?.errors[0]?.message || 'Invalid file type. Please upload a PDF or DOCX file.';
-      onError?.(error);
-    },
+    disabled: isUploading,
+    onDragEnter: () => setIsDragging(true),
+    onDragLeave: () => setIsDragging(false),
+    onDrop: (acceptedFiles) => {
+      const uploadedFile = acceptedFiles[0];
+      if (uploadedFile?.size > MAX_FILE_SIZE) {
+        throw new Error('File too large. Please upload a file smaller than 10MB.');
+      }
+      if (uploadedFile) {
+        onFileAccepted(uploadedFile);
+      }
+    }
   });
 
   return (
     <div
       {...getRootProps()}
       className={cn(
-        'relative w-full cursor-pointer overflow-hidden rounded-lg border-2 border-dashed transition-all duration-200 ease-in-out',
-        'min-h-[200px] p-6',
-        isDragActive && !isDragReject && 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2',
-        isDragReject && 'border-destructive bg-destructive/5',
-        !isDragActive && !isDragReject && 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
+        'w-full max-w-3xl mx-auto p-8',
+        'border-2 border-dashed rounded-lg',
+        'transition-all duration-200 ease-in-out',
+        'cursor-pointer group relative',
+        isDragging && 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30 scale-102',
+        !isDragging && !error && !file && 'border-gray-300 dark:border-gray-700 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:border-blue-500 dark:hover:bg-blue-950/20',
+        error && 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30',
+        file && !error && 'border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/30',
+        isUploading && 'opacity-75 cursor-wait'
       )}
     >
       <input {...getInputProps()} />
-      <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-        <div
-          className={cn(
-            'rounded-full p-4 transition-colors duration-200',
-            isDragActive && !isDragReject && 'bg-primary/10',
-            !isDragActive && 'bg-muted'
-          )}
-        >
-          <Upload
-            className={cn(
-              'h-8 w-8 transition-colors duration-200',
-              isDragActive && !isDragReject && 'text-primary',
-              isDragReject && 'text-destructive',
-              !isDragActive && !isDragReject && 'text-muted-foreground'
+      <div className="flex flex-col items-center justify-center space-y-4 text-center">
+        {isUploading ? (
+          <div className="flex flex-col items-center space-y-3">
+            <div className="w-8 h-8 text-blue-500">
+              <LoadingSpinner />
+            </div>
+            {processingStatus && (
+              <p className="text-sm text-blue-600 dark:text-blue-400">
+                {processingStatus}
+              </p>
             )}
-          />
-        </div>
-        <div className="space-y-2">
-          <p className="text-sm font-medium">
-            {isDragActive
-              ? isDragReject
-                ? 'This file type is not supported'
-                : 'Drop your file here'
-              : 'Drag & drop your contract here'}
-          </p>
-          <p className="text-xs text-muted-foreground">Supports PDF and DOCX files</p>
-        </div>
+          </div>
+        ) : file ? (
+          <>
+            <div className="flex items-center space-x-2 text-green-800 dark:text-green-100 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
+              <FileText className="w-8 h-8" />
+              <span className="text-lg font-medium">{file.name}</span>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
+              Click or drop another file to replace
+            </p>
+          </>
+        ) : (
+          <>
+            <Upload
+              className={cn(
+                'w-12 h-12 mb-2',
+                'transition-all duration-200',
+                isDragging
+                  ? 'text-blue-500 dark:text-blue-400 scale-110'
+                  : 'text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:scale-110'
+              )}
+            />
+            <p
+              className={cn(
+                'text-base font-medium',
+                'transition-colors duration-200',
+                isDragging
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+              )}
+            >
+              Drop your contract here or click to select
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Supports PDF and DOCX files up to 10MB
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
-}
+};
