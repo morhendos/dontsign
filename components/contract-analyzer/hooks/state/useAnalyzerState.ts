@@ -20,7 +20,10 @@ export const useAnalyzerState = () => {
     handleFileSelect,
     resetFile
   } = useFileUpload({
-    onStatusUpdate: status.setMessage,
+    onStatusUpdate: (msg) => {
+      status.setMessage(msg);
+      log.addEntry(msg); // Add file processing messages to log
+    },
     onEntryComplete: () => log.updateLastEntry('complete')
   });
 
@@ -36,13 +39,17 @@ export const useAnalyzerState = () => {
     analyze,
     updateState
   } = useContractAnalysis({
-    onStatusUpdate: status.setMessage,
+    onStatusUpdate: (msg) => {
+      status.setMessage(msg);
+      log.addEntry(msg); // Add analysis messages to log
+    },
     onEntryComplete: () => log.updateLastEntry('complete')
   });
 
   // Handle starting new analysis
   const handleStartAnalysis = useCallback(async () => {
     log.clearEntries();
+    log.addEntry('Starting contract analysis...'); // Add initial message
     processing.setIsProcessingNew(true);
     await analyze(file);
     processing.setIsProcessingNew(false);
@@ -85,6 +92,7 @@ export const useAnalyzerState = () => {
     handleStartAnalysis,
     handleSelectStoredAnalysis,
     setShowResults: processing.setShowResults,
-    updateLastEntry: log.updateLastEntry
+    updateLastEntry: log.updateLastEntry,
+    addLogEntry: log.addEntry // Expose addEntry function
   };
 };
