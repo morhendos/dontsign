@@ -1,27 +1,32 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export interface UseLogVisibilityOptions {
   entries: any[];
-  autoHideDuration?: number;
 }
 
-export const useLogVisibility = ({ 
-  entries, 
-  autoHideDuration = 10000 
-}: UseLogVisibilityOptions) => {
+export const useLogVisibility = ({ entries }: UseLogVisibilityOptions) => {
   const [isVisible, setIsVisible] = useState(false);
+
+  // Show logs panel whenever we have entries
+  useEffect(() => {
+    if (entries.length > 0) {
+      setIsVisible(true);
+    }
+  }, [entries.length]);
 
   const show = useCallback(() => {
     setIsVisible(true);
-    // Auto-hide after duration if there are no updates
-    setTimeout(() => {
-      setIsVisible(false);
-    }, autoHideDuration);
-  }, [autoHideDuration]);
+  }, []);
+
+  const hide = useCallback(() => {
+    setIsVisible(false);
+  }, []);
 
   return {
+    entries,
     isVisible,
     onVisibilityChange: setIsVisible,
-    show
+    show,
+    hide
   };
 };
