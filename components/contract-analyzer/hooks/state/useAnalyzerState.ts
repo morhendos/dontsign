@@ -12,6 +12,13 @@ export const useAnalyzerState = () => {
   const status = useStatusManager();
   const log = useAnalysisLog();
 
+  // Status update helper that also manages log entries
+  const updateStatus = useCallback((message: string) => {
+    status.setMessage(message);
+    log.updateLastEntry('complete');  // Complete previous entry if exists
+    log.addEntry(message);  // Add new entry
+  }, [status, log]);
+
   // File handling
   const {
     file,
@@ -20,10 +27,7 @@ export const useAnalyzerState = () => {
     handleFileSelect,
     resetFile
   } = useFileUpload({
-    onStatusUpdate: (msg) => {
-      status.setMessage(msg);
-      log.addEntry(msg); // Add file processing messages to log
-    },
+    onStatusUpdate: updateStatus,
     onEntryComplete: () => log.updateLastEntry('complete')
   });
 
@@ -39,20 +43,18 @@ export const useAnalyzerState = () => {
     analyze,
     updateState
   } = useContractAnalysis({
-    onStatusUpdate: (msg) => {
-      status.setMessage(msg);
-      log.addEntry(msg); // Add analysis messages to log
-    },
+    onStatusUpdate: updateStatus,
     onEntryComplete: () => log.updateLastEntry('complete')
   });
 
   // Handle starting new analysis
   const handleStartAnalysis = useCallback(async () => {
     log.clearEntries();
-    log.addEntry('Starting contract analysis...'); // Add initial message
+    log.addEntry('Starting contract analysis...');
     processing.setIsProcessingNew(true);
     await analyze(file);
     processing.setIsProcessingNew(false);
+    log.updateLastEntry('complete');
   }, [analyze, file, log, processing]);
 
   // Handle selecting stored analysis
@@ -93,6 +95,6 @@ export const useAnalyzerState = () => {
     handleSelectStoredAnalysis,
     setShowResults: processing.setShowResults,
     updateLastEntry: log.updateLastEntry,
-    addLogEntry: log.addEntry // Expose addEntry function
+    addLogEntry: log.addEntry
   };
 };
