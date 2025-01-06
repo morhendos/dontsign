@@ -1,12 +1,10 @@
 import { Progress } from '@/components/ui/progress';
-import { useAnalysisProgress } from '../../hooks';
-import type { AnalysisStage } from '../../types';
 
 interface AnalysisProgressProps {
   currentChunk: number;
   totalChunks: number;
   isAnalyzing: boolean;
-  stage: AnalysisStage;
+  stage: 'preprocessing' | 'analyzing' | 'complete';
   progress: number;
   processingStatus: string;
 }
@@ -19,24 +17,40 @@ export const AnalysisProgress = ({
   progress,
   processingStatus
 }: AnalysisProgressProps) => {
-  const { description, showChunks } = useAnalysisProgress({
-    stage,
-    progress,
-    currentChunk,
-    totalChunks
-  });
+  // Show progress bar while analyzing or if we have any progress
+  if (!isAnalyzing && progress === 0) return null;
 
-  if (!isAnalyzing) return null;
+  // Get the appropriate message to display
+  const message = (
+    // Use server-provided message when available
+    processingStatus || (
+      stage === 'preprocessing' ? 'Preparing' : 
+      stage === 'analyzing' && currentChunk > 0 && totalChunks > 0 ? 
+        `Analyzing section ${currentChunk} of ${totalChunks}` :
+      stage === 'analyzing' ? 'Analyzing' :
+      'Complete'
+    )
+  );
 
   return (
     <div className="w-full space-y-2">
-      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-        <span>{description || processingStatus}</span>
-        <span>{progress}%</span>
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-600 dark:text-gray-300">
+          {message}
+        </span>
+        <span className="text-gray-600 dark:text-gray-300">
+          {progress}%
+        </span>
       </div>
-      <Progress value={progress} className="w-full" />
-      {showChunks && (
-        <div className="text-sm text-gray-500 dark:text-gray-500 text-center">
+      <Progress 
+        value={progress} 
+        className={`h-2 ${stage === 'complete' ? 'bg-green-600/20 dark:bg-green-500/20' : 'bg-blue-600/20 dark:bg-blue-500/20'}`}
+        indicatorClassName={stage === 'complete' ? 'bg-green-600 dark:bg-green-500' : 'bg-blue-600 dark:bg-blue-500'}
+      />
+
+      {/* Optional detailed status for long operations */}
+      {stage === 'analyzing' && currentChunk > 0 && totalChunks > 0 && (
+        <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
           Processing section {currentChunk} of {totalChunks}
         </div>
       )}
