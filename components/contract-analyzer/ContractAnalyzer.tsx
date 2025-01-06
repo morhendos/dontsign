@@ -78,7 +78,7 @@ export const ContractAnalyzer = () => {
         {results.isVisible && analysis && (
           <AnalysisResults 
             analysis={analysis}
-            onClose={results.hide}
+            onClose={() => results.hide()}
           />
         )}
       </div>
