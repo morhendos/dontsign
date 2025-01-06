@@ -13,11 +13,10 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
   ({ 
     className, 
     value = 0, 
-    indicatorColor, 
+    indicatorColor = 'bg-blue-600 dark:bg-blue-500',
     indicatorClassName,
     ...props 
   }, ref) => {
-    const indicatorClasses = indicatorClassName || indicatorColor || 'bg-blue-600 dark:bg-blue-500';
 
     return (
       <div
@@ -31,7 +30,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
         <div
           className={cn(
             'h-full w-full flex-1 transition-all',
-            indicatorClasses
+            indicatorClassName || indicatorColor
           )}
           style={{ 
             transform: `translateX(-${100 - (Math.min(Math.max(value, 0), 100))}%)`

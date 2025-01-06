@@ -80,14 +80,11 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
   if (entries.length === 0) return null;
 
   // Create memoized entries with validated IDs
-  const validatedEntries = React.useMemo(() => 
-    entries.map((entry, index) => ({
-      ...entry,
-      // Ensure unique ID even if entries have duplicate IDs
-      uniqueId: `${entry.id}-${index}-${entry.timestamp?.getTime() ?? Date.now()}`
-    })),
-    [entries]
-  );
+  const validatedEntries = entries.map((entry, index) => ({
+    ...entry,
+    id: entry.id || `entry-${index}-${Date.now()}` // Fallback ID if none exists
+  }));
+
 
   return (
     <div 
@@ -131,27 +128,31 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
               }}
             >
               <div className="py-1 px-2 space-y-1" ref={scrollRef}>
-                {validatedEntries.map((entry, index) => (
-                  <div
-                    key={entry.uniqueId}
-                    ref={index === validatedEntries.length - 1 ? lastEntryRef : null}
-                    className={cn(
-                      'flex items-start gap-2 px-2 py-1.5 rounded-md transition-all duration-300',
-                      'animate-in slide-in-from-right-5',
-                      entry.status === 'error' && 'bg-red-50 dark:bg-red-950/50',
-                      entry.status === 'active' && 'bg-blue-50 dark:bg-blue-950/50'
-                    )}
-                  >
-                    <div className="flex-shrink-0 mt-0.5">
-                      {renderIcon(entry.status)}
+                {validatedEntries.map((entry, index) => {
+                  const isLast = index === validatedEntries.length - 1;
+                  return (
+                    <div
+                      key={entry.id}
+                      ref={isLast ? lastEntryRef : null}
+                      className={cn(
+                        'flex items-start gap-2 px-2 py-1.5 rounded-md transition-all duration-300',
+                        'animate-in slide-in-from-right-5',
+                        entry.status === 'error' && 'bg-red-50 dark:bg-red-950/50',
+                        entry.status === 'active' && 'bg-blue-50 dark:bg-blue-950/50'
+                      )}
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        {renderIcon(entry.status)}
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <p className="text-xs text-gray-700 dark:text-gray-200 leading-tight">
+                          {entry.message}
+                        </p>
+                      </div>
+
                     </div>
-                    <div className="flex-grow min-w-0">
-                      <p className="text-xs text-gray-700 dark:text-gray-200 leading-tight">
-                        {entry.message}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           </div>
