@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAnalyzerState } from './state';
 import { useAnalysisHistory } from './storage';
 import { useLogVisibility, useResultsDisplay } from './ui';
+import type { StoredAnalysis } from '../types/storage';
 
 /**
  * Main hook that combines all functionality for the contract analyzer
@@ -26,7 +27,6 @@ export const useContractAnalyzer = () => {
     handleFileSelect,
     handleStartAnalysis,
     handleSelectStoredAnalysis: baseHandleSelectStoredAnalysis,
-    setAnalysis,
   } = useAnalyzerState();
 
   // Analysis history
@@ -59,7 +59,7 @@ export const useContractAnalyzer = () => {
   }, [handleStartAnalysis]);
 
   // Wrap handleSelectStoredAnalysis to also show results
-  const handleSelectStoredAnalysis = useCallback((stored) => {
+  const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
     baseHandleSelectStoredAnalysis(stored);
     results.show();
   }, [baseHandleSelectStoredAnalysis, results]);

@@ -1,4 +1,4 @@
-export type LogStatus = 'info' | 'success' | 'error' | 'warning' | 'loading';
+export type LogStatus = 'pending' | 'active' | 'complete' | 'error';
 
 export interface LogEntry {
   id: string;

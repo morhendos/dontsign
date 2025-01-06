@@ -3,13 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCircle, Circle, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-export interface LogEntry {
-  id: string;
-  message: string;
-  status: 'pending' | 'active' | 'complete' | 'error';
-  timestamp: Date;
-}
+import type { LogEntry } from '@/types/log';
 
 interface AnalysisLogProps {
   entries: LogEntry[];
@@ -79,13 +73,6 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
 
   if (entries.length === 0) return null;
 
-  // Create memoized entries with validated IDs
-  const validatedEntries = entries.map((entry, index) => ({
-    ...entry,
-    id: entry.id || `entry-${index}-${Date.now()}` // Fallback ID if none exists
-  }));
-
-
   return (
     <div 
       ref={containerRef}
@@ -128,8 +115,8 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
               }}
             >
               <div className="py-1 px-2 space-y-1" ref={scrollRef}>
-                {validatedEntries.map((entry, index) => {
-                  const isLast = index === validatedEntries.length - 1;
+                {entries.map((entry, index) => {
+                  const isLast = index === entries.length - 1;
                   return (
                     <div
                       key={entry.id}
