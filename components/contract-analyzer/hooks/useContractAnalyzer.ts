@@ -7,7 +7,7 @@ import { useLogVisibility, useResultsDisplay } from './ui';
  * Main hook that combines all functionality for the contract analyzer
  */
 export const useContractAnalyzer = () => {
-  // Core state and functionality
+  // Core state handlers
   const {
     file,
     error,
@@ -53,13 +53,6 @@ export const useContractAnalyzer = () => {
     baseHandleSelectStoredAnalysis(stored);
     results.show();
   }, [baseHandleSelectStoredAnalysis, results]);
-
-  // Handle state updates
-  useEffect(() => {
-    if (analysis && !isAnalyzing && progress === 100) {
-      handleAnalysisComplete();
-    }
-  }, [analysis, isAnalyzing, progress, handleAnalysisComplete]);
 
   return {
     // State
