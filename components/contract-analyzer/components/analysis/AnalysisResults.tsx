@@ -13,18 +13,29 @@ export const AnalysisResults = ({
   analysis,
   onClose
 }: AnalysisResultsProps) => {
+  // Click handler for the backdrop
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50"
+      onClick={handleBackdropClick}
+    >
       <Card className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-gray-800 shadow-xl relative">
         <div className="absolute right-4 top-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="hover:bg-gray-100 dark:hover:bg-gray-700"
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-200"
           >
-            <X className="h-6 w-6" />
-          </Button>
+            <X className="h-6 w-6 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
+          </button>
         </div>
 
         <ScrollArea className="h-[80vh] p-6">
