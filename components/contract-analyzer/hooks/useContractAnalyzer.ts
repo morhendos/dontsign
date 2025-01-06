@@ -26,7 +26,6 @@ export const useContractAnalyzer = () => {
     handleFileSelect,
     handleStartAnalysis,
     handleSelectStoredAnalysis: baseHandleSelectStoredAnalysis,
-    setAnalysis,
   } = useAnalyzerState();
 
   // Analysis history
