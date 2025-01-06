@@ -44,17 +44,30 @@ export const useAnalyzerState = () => {
     updateState
   } = useContractAnalysis({
     onStatusUpdate: updateStatus,
-    onEntryComplete: () => log.updateLastEntry('complete')
+    onEntryComplete: () => {
+      log.updateLastEntry('complete');
+    },
+    onAnalysisComplete: () => {
+      if (analysis && file) {
+        processing.setShowResults(true); // Show results panel
+        processing.setIsProcessingNew(false);
+        storage.addAnalysis({
+          id: Date.now().toString(),
+          fileName: file.name,
+          analysis,
+          analyzedAt: new Date().toISOString()
+        });
+      }
+    }
   });
 
   // Handle starting new analysis
   const handleStartAnalysis = useCallback(async () => {
     log.clearEntries();
+    processing.setShowResults(false); // Hide previous results
     log.addEntry('Starting contract analysis...');
     processing.setIsProcessingNew(true);
     await analyze(file);
-    processing.setIsProcessingNew(false);
-    log.updateLastEntry('complete');
   }, [analyze, file, log, processing]);
 
   // Handle selecting stored analysis
