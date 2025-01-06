@@ -19,6 +19,8 @@ export const AnalysisProgress = ({
 }: AnalysisProgressProps) => {
   if (!isAnalyzing && progress === 0) return null;
 
+  const baseColor = stage === 'complete' ? 'green' : 'blue';
+
   return (
     <div className="w-full space-y-2">
       <div className="flex justify-between text-sm">
@@ -31,8 +33,8 @@ export const AnalysisProgress = ({
       </div>
       <Progress 
         value={progress} 
-        className={`h-2 ${stage === 'complete' ? 'bg-green-600/20 dark:bg-green-500/20' : 'bg-blue-600/20 dark:bg-blue-500/20'}`}
-        indicatorClassName={stage === 'complete' ? 'bg-green-600 dark:bg-green-500' : 'bg-blue-600 dark:bg-blue-500'}
+        className={`h-2 bg-${baseColor}-600/20 dark:bg-${baseColor}-500/20`}
+        indicatorColor={`bg-${baseColor}-600 dark:bg-${baseColor}-500`}
       />
 
       {stage === 'analyzing' && currentChunk > 0 && totalChunks > 0 && (
