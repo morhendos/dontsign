@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useAnalyzerState } from './state';
 import { useAnalysisHistory } from './storage';
 import { useLogVisibility, useResultsDisplay } from './ui';
@@ -7,6 +7,9 @@ import { useLogVisibility, useResultsDisplay } from './ui';
  * Main hook that combines all functionality for the contract analyzer
  */
 export const useContractAnalyzer = () => {
+  // Use ref to track if we already handled this analysis completion
+  const analysisHandledRef = useRef(false);
+
   // Core state handlers
   const {
     file,
@@ -35,7 +38,8 @@ export const useContractAnalyzer = () => {
 
   // Handle analysis completion
   const handleAnalysisComplete = useCallback(() => {
-    if (analysis && file) {
+    if (analysis && file && !analysisHandledRef.current) {
+      analysisHandledRef.current = true;
       // Store in history
       history.addAnalysis({
         id: Date.now().toString(),
@@ -47,6 +51,12 @@ export const useContractAnalyzer = () => {
       results.show();
     }
   }, [analysis, file, history, results]);
+
+  // Reset handled flag when starting new analysis
+  const wrappedHandleStartAnalysis = useCallback(async () => {
+    analysisHandledRef.current = false;
+    await handleStartAnalysis();
+  }, [handleStartAnalysis]);
 
   // Wrap handleSelectStoredAnalysis to also show results
   const handleSelectStoredAnalysis = useCallback((stored) => {
@@ -60,6 +70,11 @@ export const useContractAnalyzer = () => {
       handleAnalysisComplete();
     }
   }, [analysis, isAnalyzing, stage, file, handleAnalysisComplete]);
+
+  // Reset handled flag when file changes
+  useEffect(() => {
+    analysisHandledRef.current = false;
+  }, [file]);
 
   return {
     // State
@@ -103,7 +118,7 @@ export const useContractAnalyzer = () => {
     // Actions
     actions: {
       handleFileSelect,
-      handleStartAnalysis,
+      handleStartAnalysis: wrappedHandleStartAnalysis,
       handleSelectStoredAnalysis,
       handleAnalysisComplete
     }
