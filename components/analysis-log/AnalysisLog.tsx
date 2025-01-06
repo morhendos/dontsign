@@ -19,7 +19,7 @@ interface AnalysisLogProps {
   onVisibilityChange?: (isVisible: boolean) => void;
 }
 
-const AnalysisLog: React.FC<AnalysisLogProps> = ({ 
+export const AnalysisLog: React.FC<AnalysisLogProps> = ({ 
   entries, 
   className, 
   onClose,
@@ -150,5 +150,3 @@ const AnalysisLog: React.FC<AnalysisLogProps> = ({
     </div>
   );
 };
-
-export default AnalysisLog;
