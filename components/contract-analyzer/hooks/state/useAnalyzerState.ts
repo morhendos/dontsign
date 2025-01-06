@@ -5,6 +5,7 @@ import { useAnalysisLog } from '../ui';
 import { useStatusManager } from './useStatusManager';
 import { useProcessingState } from './useProcessingState';
 import { storage } from '../../utils';
+import type { StoredAnalysis } from '../../types/storage';
 
 export const useAnalyzerState = () => {
   // Core state handlers
@@ -51,7 +52,7 @@ export const useAnalyzerState = () => {
       processing.setShowResults(true); // Show results panel
       processing.setIsProcessingNew(false);
       if (file && analysis) {
-        storage.addAnalysis({
+        storage.add({
           id: Date.now().toString(),
           fileName: file.name,
           analysis,
