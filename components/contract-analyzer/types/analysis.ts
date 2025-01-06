@@ -1,9 +1,9 @@
-import type { ErrorDisplay } from '@/types/analysis';
+import type { AnalysisResult as SharedAnalysisResult, ErrorDisplay } from '@/types/analysis';
 
 export type AnalysisStage = 'preprocessing' | 'analyzing' | 'complete';
 
 export interface AnalysisState {
-  analysis: AnalysisResult | null;
+  analysis: SharedAnalysisResult | null;
   isAnalyzing: boolean;
   error: ErrorDisplay | null;
   progress: number;
@@ -12,22 +12,8 @@ export interface AnalysisState {
   totalChunks: number;
 }
 
-export interface AnalysisResult {
-  summary: string;
-  keyTerms: string[];
-  potentialRisks: string[];
-  importantClauses: string[];
-  recommendations: string[];
-  metadata?: {
-    analyzedAt: string;
-    documentName: string;
-    modelVersion: string;
-    stage?: string;
-    progress?: number;
-    currentChunk?: number;
-    totalChunks?: number;
-  };
-}
+// Re-export the shared type
+export type { SharedAnalysisResult as AnalysisResult };
 
 export interface AnalysisStreamResponse {
   type: 'update' | 'complete' | 'error';
@@ -35,7 +21,7 @@ export interface AnalysisStreamResponse {
   stage?: AnalysisStage;
   currentChunk?: number;
   totalChunks?: number;
-  result?: AnalysisResult;
+  result?: SharedAnalysisResult;
   error?: string;
   activity?: string;
   description?: string;
