@@ -5,8 +5,12 @@ const DEFAULT_OPTIONS: Required<StorageOptions> = {
   storageKey: 'dontsign_analyses'
 };
 
+const isBrowser = typeof window !== 'undefined';
+
 export const storage = {
   get: (options: StorageOptions = {}) => {
+    if (!isBrowser) return [];
+    
     const { storageKey } = { ...DEFAULT_OPTIONS, ...options };
     try {
       const stored = localStorage.getItem(storageKey);
@@ -18,6 +22,8 @@ export const storage = {
   },
 
   set: (analyses: StoredAnalysis[], options: StorageOptions = {}) => {
+    if (!isBrowser) return false;
+
     const { maxItems, storageKey } = { ...DEFAULT_OPTIONS, ...options };
     try {
       // Keep only the latest maxItems
@@ -37,6 +43,8 @@ export const storage = {
   },
 
   clear: (options: StorageOptions = {}) => {
+    if (!isBrowser) return false;
+
     const { storageKey } = { ...DEFAULT_OPTIONS, ...options };
     try {
       localStorage.removeItem(storageKey);
