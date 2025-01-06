@@ -22,7 +22,8 @@ export const useContractAnalyzer = () => {
     entries,
     handleFileSelect,
     handleStartAnalysis,
-    handleSelectStoredAnalysis,
+    handleSelectStoredAnalysis: baseHandleSelectStoredAnalysis,
+    setAnalysis,
   } = useAnalyzerState();
 
   // Analysis history
@@ -35,15 +36,30 @@ export const useContractAnalyzer = () => {
   // Handle analysis completion
   const handleAnalysisComplete = useCallback(() => {
     if (analysis && file) {
+      // Store in history
       history.addAnalysis({
         id: Date.now().toString(),
         fileName: file.name,
         analysis,
         analyzedAt: new Date().toISOString()
       });
+      // Show results
       results.show();
     }
   }, [analysis, file, history, results]);
+
+  // Wrap handleSelectStoredAnalysis to also show results
+  const handleSelectStoredAnalysis = useCallback((stored) => {
+    baseHandleSelectStoredAnalysis(stored);
+    results.show();
+  }, [baseHandleSelectStoredAnalysis, results]);
+
+  // Handle state updates
+  useEffect(() => {
+    if (analysis && !isAnalyzing && progress === 100) {
+      handleAnalysisComplete();
+    }
+  }, [analysis, isAnalyzing, progress, handleAnalysisComplete]);
 
   return {
     // State
