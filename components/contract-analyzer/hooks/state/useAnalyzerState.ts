@@ -44,7 +44,21 @@ export const useAnalyzerState = () => {
     updateState
   } = useContractAnalysis({
     onStatusUpdate: updateStatus,
-    onEntryComplete: () => log.updateLastEntry('complete'),
+    onEntryComplete: () => {
+      log.updateLastEntry('complete');
+    },
+    onAnalysisComplete: () => {
+      processing.setShowResults(true); // Show results panel
+      processing.setIsProcessingNew(false);
+      if (file && analysis) {
+        storage.addAnalysis({
+          id: Date.now().toString(),
+          fileName: file.name,
+          analysis,
+          analyzedAt: new Date().toISOString()
+        });
+      }
+    }
   });
 
   // Handle starting new analysis
@@ -67,6 +81,7 @@ export const useAnalyzerState = () => {
       currentChunk: 0,
       totalChunks: 0
     });
+    processing.setShowResults(true);
     resetFile();
   }, [processing, resetFile, updateState]);
 
