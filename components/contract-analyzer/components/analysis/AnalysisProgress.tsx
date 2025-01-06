@@ -31,8 +31,10 @@ export const AnalysisProgress = ({
       </div>
       <Progress 
         value={progress} 
-        className={`h-2 ${stage === 'complete' ? 'bg-green-600/20 dark:bg-green-500/20' : 'bg-blue-600/20 dark:bg-blue-500/20'}`}
-        indicatorClassName={stage === 'complete' ? 'bg-green-600 dark:bg-green-500' : 'bg-blue-600 dark:bg-blue-500'}
+        className="h-2"
+        indicatorClassName={stage === 'complete' 
+          ? 'bg-green-600 dark:bg-green-500' 
+          : 'bg-blue-600 dark:bg-blue-500'}
       />
 
       {stage === 'analyzing' && currentChunk > 0 && totalChunks > 0 && (

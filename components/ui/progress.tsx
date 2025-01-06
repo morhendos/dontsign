@@ -17,6 +17,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
     indicatorClassName,
     ...props 
   }, ref) => {
+
     return (
       <div
         ref={ref}

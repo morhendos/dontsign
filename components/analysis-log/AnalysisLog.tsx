@@ -85,6 +85,7 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
     id: entry.id || `entry-${index}-${Date.now()}` // Fallback ID if none exists
   }));
 
+
   return (
     <div 
       ref={containerRef}
@@ -148,6 +149,7 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
                           {entry.message}
                         </p>
                       </div>
+
                     </div>
                   );
                 })}
