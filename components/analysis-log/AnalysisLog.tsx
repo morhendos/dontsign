@@ -64,16 +64,16 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
     }
   }, [entries.length]);
 
-  const renderIcon = (status: LogEntry['status']) => {
+  const renderIcon = (status: LogEntry['status'], entryId: string) => {
     switch (status) {
       case 'complete':
-        return <CheckCircle className="w-3.5 h-3.5 text-green-500" />;
+        return <CheckCircle key={`icon-${entryId}`} className="w-3.5 h-3.5 text-green-500" />;
       case 'active':
-        return <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />;
+        return <Loader2 key={`icon-${entryId}`} className="w-3.5 h-3.5 text-blue-500 animate-spin" />;
       case 'error':
-        return <Circle className="w-3.5 h-3.5 text-red-500" />;
+        return <Circle key={`icon-${entryId}`} className="w-3.5 h-3.5 text-red-500" />;
       default:
-        return <Circle className="w-3.5 h-3.5 text-gray-300" />;
+        return <Circle key={`icon-${entryId}`} className="w-3.5 h-3.5 text-gray-300" />;
     }
   };
 
@@ -83,7 +83,7 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
     <div 
       ref={containerRef}
       className={cn(
-        'fixed bottom-4 right-4 z-50', // Changed from top to bottom positioning
+        'fixed bottom-4 right-4 z-50',
         'transition-all duration-300 ease-in-out',
         isVisible ? 'translate-x-0 opacity-100' : 'translate-x-[120%] opacity-0'
       )}
@@ -117,7 +117,7 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
             <ScrollArea 
               className="overflow-y-auto"
               style={{
-                maxHeight: 'min(40vh, 300px)' // Reduced max height to work better with bottom positioning
+                maxHeight: 'min(40vh, 300px)'
               }}
             >
               <div className="py-1 px-2 space-y-1" ref={scrollRef}>
@@ -132,11 +132,11 @@ export const AnalysisLog: React.FC<AnalysisLogProps> = ({
                       entry.status === 'active' && 'bg-blue-50 dark:bg-blue-950/50'
                     )}
                   >
-                    <div className="flex-shrink-0 mt-0.5">
-                      {renderIcon(entry.status)}
+                    <div key={`icon-wrapper-${entry.id}`} className="flex-shrink-0 mt-0.5">
+                      {renderIcon(entry.status, entry.id)}
                     </div>
-                    <div className="flex-grow min-w-0">
-                      <p className="text-xs text-gray-700 dark:text-gray-200 leading-tight">
+                    <div key={`content-${entry.id}`} className="flex-grow min-w-0">
+                      <p key={`message-${entry.id}`} className="text-xs text-gray-700 dark:text-gray-200 leading-tight">
                         {entry.message}
                       </p>
                     </div>
