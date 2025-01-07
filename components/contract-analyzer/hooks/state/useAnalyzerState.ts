@@ -20,8 +20,8 @@ export const useAnalyzerState = () => {
   // Status update helper that also manages log entries
   const updateStatus = useCallback((message: string) => {
     status.setMessage(message);
-    log.updateLastEntry('complete');  // Complete previous entry if exists
-    log.addEntry(message);  // Add new entry
+    log.updateLastEntry('complete');
+    log.addEntry(message);
   }, [status, log]);
 
   // Contract analysis
@@ -42,6 +42,7 @@ export const useAnalyzerState = () => {
       log.updateLastEntry('complete');
     },
     onAnalysisComplete: async () => {
+      console.log('Analysis complete');
       processing.setShowResults(true);
       processing.setIsProcessingNew(false);
       setIsAnalyzed(true);
@@ -62,6 +63,7 @@ export const useAnalyzerState = () => {
 
   // Enhanced file selection with hash check
   const handleFileSelect = useCallback(async (newFile: File | null) => {
+    console.log('File selected:', newFile?.name);
     // Reset analyzed state when selecting new file
     setIsAnalyzed(false);
 
@@ -69,12 +71,14 @@ export const useAnalyzerState = () => {
       try {
         // Generate hash for the new file
         const fileHash = await generateFileHash(newFile);
+        console.log('File hash:', fileHash);
 
         // Check if we have this file already
         const existingAnalyses = storage.get();
         const existingAnalysis = existingAnalyses.find(a => a.fileHash === fileHash);
 
         if (existingAnalysis) {
+          console.log('Found existing analysis');
           // File already analyzed - show existing results
           processing.setIsProcessingNew(false);
           updateState({
@@ -107,32 +111,48 @@ export const useAnalyzerState = () => {
 
   // Handle starting analysis
   const handleStartAnalysis = useCallback(async () => {
-    if (!file) return;
+    console.log('handleStartAnalysis called, isAnalyzed:', isAnalyzed);
+    console.log('Current processing state:', {
+      file: file?.name,
+      isAnalyzed,
+      isAnalyzing,
+      showResults: processing.showResults
+    });
 
     // If already analyzed, just show results
     if (isAnalyzed) {
+      console.log('File is already analyzed, showing results');
       processing.setShowResults(true);
+      return;
+    }
+
+    if (!file) {
+      console.log('No file selected');
       return;
     }
 
     try {
       // Check if file is already analyzed
       const fileHash = await generateFileHash(file);
+      console.log('Generated hash for analysis:', fileHash);
       const existingAnalyses = storage.get();
       const existingAnalysis = existingAnalyses.find(a => a.fileHash === fileHash);
 
       if (existingAnalysis) {
+        console.log('Found existing analysis, showing results');
         // File already analyzed - just show results and update timestamp
         processing.setShowResults(true);
         storage.update(fileHash);
         return;
       }
       
+      console.log('Starting new analysis');
       log.clearEntries();
       log.addEntry('Starting contract analysis...');
       processing.setIsProcessingNew(true);
       
       const result = await analyze(file);
+      console.log('Analysis completed, result:', result ? 'success' : 'failed');
       
       // Add to storage only after successful analysis
       if (result) {
@@ -148,10 +168,11 @@ export const useAnalyzerState = () => {
       console.error('Error in analysis:', error);
       throw error;
     }
-  }, [analyze, file, isAnalyzed, log, processing]);
+  }, [analyze, file, isAnalyzed, log, processing, isAnalyzing]);
 
   // Handle selecting stored analysis
   const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
+    console.log('Selecting stored analysis');
     processing.setIsProcessingNew(false);
     updateState({
       analysis: stored.analysis,
