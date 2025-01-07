@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useContractAnalysis } from '../analysis';
 import { useFileUpload } from '../file';
 import { useAnalysisLog } from '../ui';
@@ -9,6 +9,9 @@ import { generateFileHash } from '../../utils/hash';
 import type { StoredAnalysis } from '../../types/storage';
 
 export const useAnalyzerState = () => {
+  // Track if current file is from history
+  const [isFromHistory, setIsFromHistory] = useState(false);
+
   // Core state handlers
   const processing = useProcessingState();
   const status = useStatusManager();
@@ -32,7 +35,7 @@ export const useAnalyzerState = () => {
     totalChunks,
     analyze,
     updateState,
-    setFile: setAnalysisFile  // Get the setFile from analysis hook
+    setFile: setAnalysisFile
   } = useContractAnalysis({
     onStatusUpdate: updateStatus,
     onEntryComplete: () => {
@@ -41,10 +44,6 @@ export const useAnalyzerState = () => {
     onAnalysisComplete: async () => {
       processing.setShowResults(true);
       processing.setIsProcessingNew(false);
-      if (file && analysis) {
-        const fileHash = await generateFileHash(file);
-        // Here we don't add to storage as it's handled in handleFileSelect
-      }
     }
   });
 
@@ -62,6 +61,8 @@ export const useAnalyzerState = () => {
 
   // Enhanced file selection with hash check
   const handleFileSelect = useCallback(async (newFile: File | null) => {
+    setIsFromHistory(false);
+
     if (newFile) {
       try {
         // Generate hash for the new file
@@ -84,6 +85,7 @@ export const useAnalyzerState = () => {
             totalChunks: 0
           });
           processing.setShowResults(true);
+          setIsFromHistory(true);
 
           // Update access time and move to top of list
           const updatedAnalyses = [
@@ -93,7 +95,7 @@ export const useAnalyzerState = () => {
           storage.set(updatedAnalyses);
           
           // Update UI state without triggering new analysis
-          setAnalysisFile(newFile);  // Update file in analysis state
+          baseHandleFileSelect(newFile);
           return;
         }
       } catch (error) {
@@ -103,10 +105,16 @@ export const useAnalyzerState = () => {
 
     // New file or null - handle normally
     baseHandleFileSelect(newFile);
-  }, [baseHandleFileSelect, processing, updateState, setAnalysisFile]);
+  }, [baseHandleFileSelect, processing, updateState]);
 
   // Handle starting analysis
   const handleStartAnalysis = useCallback(async () => {
+    // Don't start analysis if file is from history
+    if (isFromHistory) {
+      processing.setShowResults(true);
+      return;
+    }
+
     if (!file) return;
 
     try {
@@ -133,7 +141,7 @@ export const useAnalyzerState = () => {
       console.error('Error in analysis:', error);
       throw error;
     }
-  }, [analyze, file, log, processing]);
+  }, [analyze, file, isFromHistory, log, processing]);
 
   // Handle selecting stored analysis
   const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
@@ -149,6 +157,7 @@ export const useAnalyzerState = () => {
     });
     processing.setShowResults(true);
     resetFile();
+    setIsFromHistory(true);
   }, [processing, resetFile, updateState]);
 
   return {
@@ -166,6 +175,7 @@ export const useAnalyzerState = () => {
     showResults: processing.showResults,
     hasStoredAnalyses: storage.get().length > 0,
     entries: log.entries,
+    isFromHistory,
 
     // Actions
     handleFileSelect,
