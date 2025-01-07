@@ -38,7 +38,23 @@ export const storage = {
 
   add: (analysis: StoredAnalysis, options: StorageOptions = {}) => {
     const current = storage.get(options);
-    const updated = [analysis, ...current];
+    const updated = [analysis, ...current.filter(a => a.fileHash !== analysis.fileHash)];
+    return storage.set(updated, options);
+  },
+
+  update: (fileHash: string, options: StorageOptions = {}) => {
+    const current = storage.get(options);
+    const existingIndex = current.findIndex(a => a.fileHash === fileHash);
+    if (existingIndex === -1) return false;
+
+    // Move to top with updated timestamp
+    const item = current[existingIndex];
+    const updated = [
+      { ...item, analyzedAt: new Date().toISOString() },
+      ...current.slice(0, existingIndex),
+      ...current.slice(existingIndex + 1)
+    ];
+
     return storage.set(updated, options);
   },
 
