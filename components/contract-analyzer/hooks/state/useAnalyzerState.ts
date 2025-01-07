@@ -4,7 +4,8 @@ import { useFileUpload } from '../file';
 import { useAnalysisLog } from '../ui';
 import { useStatusManager } from './useStatusManager';
 import { useProcessingState } from './useProcessingState';
-import { storage } from '../../utils';
+import { storage } from '../../utils/storage';
+import { generateFileHash } from '../../utils/hash';
 import type { StoredAnalysis } from '../../types/storage';
 
 export const useAnalyzerState = () => {
@@ -25,12 +26,51 @@ export const useAnalyzerState = () => {
     file,
     error: fileError,
     isProcessing,
-    handleFileSelect,
+    handleFileSelect: baseHandleFileSelect,
     resetFile
   } = useFileUpload({
     onStatusUpdate: updateStatus,
     onEntryComplete: () => log.updateLastEntry('complete')
   });
+
+  // Enhanced file selection with hash check
+  const handleFileSelect = useCallback(async (newFile: File | null) => {
+    if (newFile) {
+      // Generate hash for the new file
+      const fileHash = await generateFileHash(newFile);
+
+      // Check if we have this file already
+      const existingAnalyses = storage.get();
+      const existingAnalysis = existingAnalyses.find(a => a.fileHash === fileHash);
+
+      if (existingAnalysis) {
+        // File already analyzed - show existing results
+        processing.setIsProcessingNew(false);
+        updateState({
+          analysis: existingAnalysis.analysis,
+          isAnalyzing: false,
+          error: null,
+          progress: 100,
+          stage: 'complete',
+          currentChunk: 0,
+          totalChunks: 0
+        });
+        processing.setShowResults(true);
+
+        // Update access time and move to top of list
+        const updatedAnalyses = [
+          { ...existingAnalysis, analyzedAt: new Date().toISOString() },
+          ...existingAnalyses.filter(a => a.id !== existingAnalysis.id)
+        ];
+        storage.set(updatedAnalyses);
+
+        return;
+      }
+    }
+
+    // New file or null - handle normally
+    baseHandleFileSelect(newFile);
+  }, [baseHandleFileSelect, processing, updateState]);
 
   // Contract analysis
   const {
@@ -48,13 +88,15 @@ export const useAnalyzerState = () => {
     onEntryComplete: () => {
       log.updateLastEntry('complete');
     },
-    onAnalysisComplete: () => {
-      processing.setShowResults(true); // Show results panel
+    onAnalysisComplete: async () => {
+      processing.setShowResults(true);
       processing.setIsProcessingNew(false);
       if (file && analysis) {
+        const fileHash = await generateFileHash(file);
         storage.add({
           id: Date.now().toString(),
           fileName: file.name,
+          fileHash,
           analysis,
           analyzedAt: new Date().toISOString()
         });
@@ -62,29 +104,7 @@ export const useAnalyzerState = () => {
     }
   });
 
-  // Handle starting new analysis
-  const handleStartAnalysis = useCallback(async () => {
-    log.clearEntries();
-    log.addEntry('Starting contract analysis...');
-    processing.setIsProcessingNew(true);
-    await analyze(file);
-  }, [analyze, file, log, processing]);
-
-  // Handle selecting stored analysis
-  const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
-    processing.setIsProcessingNew(false);
-    updateState({
-      analysis: stored.analysis,
-      isAnalyzing: false,
-      error: null,
-      progress: 100,
-      stage: 'complete',
-      currentChunk: 0,
-      totalChunks: 0
-    });
-    processing.setShowResults(true);
-    resetFile();
-  }, [processing, resetFile, updateState]);
+  // Rest of the code remains the same...
 
   return {
     // State
