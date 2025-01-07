@@ -9,6 +9,9 @@ import { generateFileHash } from '../../utils/hash';
 import type { StoredAnalysis } from '../../types/storage';
 
 export const useAnalyzerState = () => {
+  // Track if current file is already analyzed
+  const [isAnalyzed, setIsAnalyzed] = useState(false);
+
   // Core state handlers
   const processing = useProcessingState();
   const status = useStatusManager();
@@ -41,6 +44,7 @@ export const useAnalyzerState = () => {
     onAnalysisComplete: async () => {
       processing.setShowResults(true);
       processing.setIsProcessingNew(false);
+      setIsAnalyzed(true);
     }
   });
 
@@ -58,6 +62,9 @@ export const useAnalyzerState = () => {
 
   // Enhanced file selection with hash check
   const handleFileSelect = useCallback(async (newFile: File | null) => {
+    // Reset analyzed state when selecting new file
+    setIsAnalyzed(false);
+
     if (newFile) {
       try {
         // Generate hash for the new file
@@ -80,6 +87,7 @@ export const useAnalyzerState = () => {
             totalChunks: 0
           });
           processing.setShowResults(true);
+          setIsAnalyzed(true);
           
           // Just update timestamp and move to top
           storage.update(fileHash);
@@ -102,8 +110,16 @@ export const useAnalyzerState = () => {
     if (!file) return;
 
     try {
-      // Generate hash before starting analysis
+      // Check if file is already analyzed
       const fileHash = await generateFileHash(file);
+      const existingAnalyses = storage.get();
+      const existingAnalysis = existingAnalyses.find(a => a.fileHash === fileHash);
+
+      if (existingAnalysis || isAnalyzed) {
+        // File already analyzed - just show results
+        processing.setShowResults(true);
+        return;
+      }
       
       log.clearEntries();
       log.addEntry('Starting contract analysis...');
@@ -125,7 +141,7 @@ export const useAnalyzerState = () => {
       console.error('Error in analysis:', error);
       throw error;
     }
-  }, [analyze, file, log, processing]);
+  }, [analyze, file, isAnalyzed, log, processing]);
 
   // Handle selecting stored analysis
   const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
@@ -141,6 +157,7 @@ export const useAnalyzerState = () => {
     });
     processing.setShowResults(true);
     resetFile();
+    setIsAnalyzed(true);
 
     // Update timestamp and move to top
     storage.update(stored.fileHash);
@@ -161,6 +178,7 @@ export const useAnalyzerState = () => {
     showResults: processing.showResults,
     hasStoredAnalyses: storage.get().length > 0,
     entries: log.entries,
+    isAnalyzed,
 
     // Actions
     handleFileSelect,
