@@ -31,7 +31,8 @@ export const useAnalyzerState = () => {
     currentChunk,
     totalChunks,
     analyze,
-    updateState
+    updateState,
+    setFile: setAnalysisFile  // Get the setFile from analysis hook
   } = useContractAnalysis({
     onStatusUpdate: updateStatus,
     onEntryComplete: () => {
@@ -42,13 +43,7 @@ export const useAnalyzerState = () => {
       processing.setIsProcessingNew(false);
       if (file && analysis) {
         const fileHash = await generateFileHash(file);
-        storage.add({
-          id: Date.now().toString(),
-          fileName: file.name,
-          fileHash,
-          analysis,
-          analyzedAt: new Date().toISOString()
-        });
+        // Here we don't add to storage as it's handled in handleFileSelect
       }
     }
   });
@@ -97,26 +92,47 @@ export const useAnalyzerState = () => {
           ];
           storage.set(updatedAnalyses);
           
-          // Also need to update the file state
-          baseHandleFileSelect(newFile);
+          // Update UI state without triggering new analysis
+          setAnalysisFile(newFile);  // Update file in analysis state
           return;
         }
       } catch (error) {
         console.error('Error checking file hash:', error);
-        // If there's any error in hash checking, proceed with normal file handling
       }
     }
 
     // New file or null - handle normally
     baseHandleFileSelect(newFile);
-  }, [baseHandleFileSelect, processing, updateState]);
+  }, [baseHandleFileSelect, processing, updateState, setAnalysisFile]);
 
   // Handle starting analysis
   const handleStartAnalysis = useCallback(async () => {
-    log.clearEntries();
-    log.addEntry('Starting contract analysis...');
-    processing.setIsProcessingNew(true);
-    await analyze(file);
+    if (!file) return;
+
+    try {
+      // Generate hash before starting analysis
+      const fileHash = await generateFileHash(file);
+      
+      log.clearEntries();
+      log.addEntry('Starting contract analysis...');
+      processing.setIsProcessingNew(true);
+      
+      const result = await analyze(file);
+      
+      // Add to storage only after successful analysis
+      if (result) {
+        storage.add({
+          id: Date.now().toString(),
+          fileName: file.name,
+          fileHash,
+          analysis: result,
+          analyzedAt: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('Error in analysis:', error);
+      throw error;
+    }
   }, [analyze, file, log, processing]);
 
   // Handle selecting stored analysis
