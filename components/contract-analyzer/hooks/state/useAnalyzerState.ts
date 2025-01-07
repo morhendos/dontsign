@@ -11,6 +11,8 @@ import type { StoredAnalysis } from '../../types/storage';
 export const useAnalyzerState = () => {
   // Track if current file is already analyzed
   const [isAnalyzed, setIsAnalyzed] = useState(false);
+  // Keep track of last analyzed file for reopening
+  const [lastAnalyzedFile, setLastAnalyzedFile] = useState<File | null>(null);
 
   // Core state handlers
   const processing = useProcessingState();
@@ -45,6 +47,9 @@ export const useAnalyzerState = () => {
       processing.setShowResults(true);
       processing.setIsProcessingNew(false);
       setIsAnalyzed(true);
+      if (file) {
+        setLastAnalyzedFile(file);
+      }
     }
   });
 
@@ -64,6 +69,7 @@ export const useAnalyzerState = () => {
   const handleFileSelect = useCallback(async (newFile: File | null) => {
     // Reset analyzed state when selecting new file
     setIsAnalyzed(false);
+    setLastAnalyzedFile(null);
 
     if (newFile) {
       try {
@@ -88,6 +94,7 @@ export const useAnalyzerState = () => {
           });
           processing.setShowResults(true);
           setIsAnalyzed(true);
+          setLastAnalyzedFile(newFile);
           
           // Just update timestamp and move to top
           storage.update(fileHash);
@@ -107,6 +114,14 @@ export const useAnalyzerState = () => {
 
   // Handle starting analysis
   const handleStartAnalysis = useCallback(async () => {
+    // If we have analyzed file but no current file (report was closed)
+    // restore the last analyzed file state
+    if (!file && lastAnalyzedFile) {
+      baseHandleFileSelect(lastAnalyzedFile);
+      processing.setShowResults(true);
+      return;
+    }
+
     if (!file) return;
 
     try {
@@ -116,21 +131,8 @@ export const useAnalyzerState = () => {
       const existingAnalysis = existingAnalyses.find(a => a.fileHash === fileHash);
 
       if (existingAnalysis || isAnalyzed) {
-        // File already analyzed - just show results and update timestamp
+        // File already analyzed - just show results
         processing.setShowResults(true);
-        if (existingAnalysis) {
-          storage.update(fileHash);
-          // Update state with most recent analysis
-          updateState({
-            analysis: existingAnalysis.analysis,
-            isAnalyzing: false,
-            error: null,
-            progress: 100,
-            stage: 'complete',
-            currentChunk: 0,
-            totalChunks: 0
-          });
-        }
         return;
       }
       
@@ -154,7 +156,7 @@ export const useAnalyzerState = () => {
       console.error('Error in analysis:', error);
       throw error;
     }
-  }, [analyze, file, isAnalyzed, log, processing, updateState]);
+  }, [analyze, file, lastAnalyzedFile, isAnalyzed, log, processing, baseHandleFileSelect]);
 
   // Handle selecting stored analysis
   const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
@@ -171,6 +173,7 @@ export const useAnalyzerState = () => {
     processing.setShowResults(true);
     resetFile();
     setIsAnalyzed(true);
+    setLastAnalyzedFile(null);
 
     // Update timestamp and move to top
     storage.update(stored.fileHash);
@@ -178,7 +181,7 @@ export const useAnalyzerState = () => {
 
   return {
     // State
-    file,
+    file: file || lastAnalyzedFile,  // Return last analyzed file if current file is null
     error: fileError || analysisError,
     isProcessing,
     isAnalyzing,
