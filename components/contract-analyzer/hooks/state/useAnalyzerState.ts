@@ -21,57 +21,6 @@ export const useAnalyzerState = () => {
     log.addEntry(message);  // Add new entry
   }, [status, log]);
 
-  // File handling
-  const {
-    file,
-    error: fileError,
-    isProcessing,
-    handleFileSelect: baseHandleFileSelect,
-    resetFile
-  } = useFileUpload({
-    onStatusUpdate: updateStatus,
-    onEntryComplete: () => log.updateLastEntry('complete')
-  });
-
-  // Enhanced file selection with hash check
-  const handleFileSelect = useCallback(async (newFile: File | null) => {
-    if (newFile) {
-      // Generate hash for the new file
-      const fileHash = await generateFileHash(newFile);
-
-      // Check if we have this file already
-      const existingAnalyses = storage.get();
-      const existingAnalysis = existingAnalyses.find(a => a.fileHash === fileHash);
-
-      if (existingAnalysis) {
-        // File already analyzed - show existing results
-        processing.setIsProcessingNew(false);
-        updateState({
-          analysis: existingAnalysis.analysis,
-          isAnalyzing: false,
-          error: null,
-          progress: 100,
-          stage: 'complete',
-          currentChunk: 0,
-          totalChunks: 0
-        });
-        processing.setShowResults(true);
-
-        // Update access time and move to top of list
-        const updatedAnalyses = [
-          { ...existingAnalysis, analyzedAt: new Date().toISOString() },
-          ...existingAnalyses.filter(a => a.id !== existingAnalysis.id)
-        ];
-        storage.set(updatedAnalyses);
-
-        return;
-      }
-    }
-
-    // New file or null - handle normally
-    baseHandleFileSelect(newFile);
-  }, [baseHandleFileSelect, processing, updateState]);
-
   // Contract analysis
   const {
     analysis,
@@ -104,7 +53,87 @@ export const useAnalyzerState = () => {
     }
   });
 
-  // Rest of the code remains the same...
+  // File handling
+  const {
+    file,
+    error: fileError,
+    isProcessing,
+    handleFileSelect: baseHandleFileSelect,
+    resetFile
+  } = useFileUpload({
+    onStatusUpdate: updateStatus,
+    onEntryComplete: () => log.updateLastEntry('complete')
+  });
+
+  // Enhanced file selection with hash check
+  const handleFileSelect = useCallback(async (newFile: File | null) => {
+    if (newFile) {
+      try {
+        // Generate hash for the new file
+        const fileHash = await generateFileHash(newFile);
+
+        // Check if we have this file already
+        const existingAnalyses = storage.get();
+        const existingAnalysis = existingAnalyses.find(a => a.fileHash === fileHash);
+
+        if (existingAnalysis) {
+          // File already analyzed - show existing results
+          processing.setIsProcessingNew(false);
+          updateState({
+            analysis: existingAnalysis.analysis,
+            isAnalyzing: false,
+            error: null,
+            progress: 100,
+            stage: 'complete',
+            currentChunk: 0,
+            totalChunks: 0
+          });
+          processing.setShowResults(true);
+
+          // Update access time and move to top of list
+          const updatedAnalyses = [
+            { ...existingAnalysis, analyzedAt: new Date().toISOString() },
+            ...existingAnalyses.filter(a => a.id !== existingAnalysis.id)
+          ];
+          storage.set(updatedAnalyses);
+          
+          // Also need to update the file state
+          baseHandleFileSelect(newFile);
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking file hash:', error);
+        // If there's any error in hash checking, proceed with normal file handling
+      }
+    }
+
+    // New file or null - handle normally
+    baseHandleFileSelect(newFile);
+  }, [baseHandleFileSelect, processing, updateState]);
+
+  // Handle starting analysis
+  const handleStartAnalysis = useCallback(async () => {
+    log.clearEntries();
+    log.addEntry('Starting contract analysis...');
+    processing.setIsProcessingNew(true);
+    await analyze(file);
+  }, [analyze, file, log, processing]);
+
+  // Handle selecting stored analysis
+  const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
+    processing.setIsProcessingNew(false);
+    updateState({
+      analysis: stored.analysis,
+      isAnalyzing: false,
+      error: null,
+      progress: 100,
+      stage: 'complete',
+      currentChunk: 0,
+      totalChunks: 0
+    });
+    processing.setShowResults(true);
+    resetFile();
+  }, [processing, resetFile, updateState]);
 
   return {
     // State
