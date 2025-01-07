@@ -1,1 +1,33 @@
-aW1wb3J0IHsgQnV0dG9uIH0gZnJvbSAnQC9jb21wb25lbnRzL3VpL2J1dHRvbic7CmltcG9ydCB7IExvYWRlcjIgfSBmcm9tICdsdWNpZGUtcmVhY3QnOwoKaW50ZXJmYWNlIEFuYWx5emVCdXR0b25Qcm9wcyB7CiAgaXNEaXNhYmxlZDogYm9vbGVhbjsKICBpc0FuYWx5emluZzogYm9vbGVhbjsKICBvbkNsaWNrOiAoKSA9PiB2b2lkOwp9CgpleHBvcnQgZnVuY3Rpb24gQW5hbHl6ZUJ1dHRvbih7IAogIGlzRGlzYWJsZWQsIAogIGlzQW5hbHl6aW5nLAogIG9uQ2xpY2ssCn06IEFuYWx5emVCdXR0b25Qcm9wcykgewogIHJldHVybiAoCiAgICA8QnV0dG9uCiAgICAgIG9uQ2xpY2s9e29uQ2xpY2t9CiAgICAgIGRpc2FibGVkPXtpc0Rpc2FibGVkfQogICAgICBzaXplPSJsZyIKICAgICAgdmFyaWFudD0iZGVmYXVsdCIKICAgICAgY2xhc3NOYW1lPSJyZWxhdGl2ZSBtaW4tdy1bMjAwcHhdIGZvbnQtc2VtaWJvbGQgYmctYmx1ZS02MDAgaG92ZXI6YmctYmx1ZS03MDAgdGV4dC13aGl0ZSBkYXJrOmJnLWJsdWUtNzAwIGRhcms6aG92ZXI6YmctYmx1ZS04MDAiCiAgICA+CiAgICAgIHtpc0FuYWx5emluZyA/ICgKICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTIiPgogICAgICAgICAgPExvYWRlcjIgY2xhc3NOYW1lPSJoLTQgdy00IGFuaW1hdGUtc3BpbiIgLz4KICAgICAgICAgIDxzcGFuPkFuYWx5emluZy4uLjwvc3Bhbj4KICAgICAgICA8L2Rpdj4KICAgICAgKSA6ICgKICAgICAgICAnQW5hbHl6ZSBDb250cmFjdCcKICAgICAgKX0KICAgIDwvQnV0dG9uPgogICk7Cn0=
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
+
+interface AnalyzeButtonProps {
+  isDisabled: boolean;
+  isAnalyzing: boolean;
+  onClick: () => void;
+}
+
+export function AnalyzeButton({ 
+  isDisabled, 
+  isAnalyzing,
+  onClick,
+}: AnalyzeButtonProps) {
+  return (
+    <Button
+      onClick={onClick}
+      disabled={isDisabled}
+      size="lg"
+      variant="default"
+      className="relative min-w-[200px] font-semibold bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
+    >
+      {isAnalyzing ? (
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Analyzing...</span>
+        </div>
+      ) : (
+        'Analyze Contract'
+      )}
+    </Button>
+  );
+}
