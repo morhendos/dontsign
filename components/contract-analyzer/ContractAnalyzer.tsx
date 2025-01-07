@@ -2,7 +2,11 @@
 
 import { useContractAnalyzer } from './hooks/useContractAnalyzer';
 import { AnalyzerLayout, AnalyzerHeader } from './components/layout';
-import { AnalysisControls, AnalysisProgress, AnalysisResults } from './components/analysis';
+import {
+  AnalysisControls,
+  AnalysisProgress,
+  AnalysisResults,
+} from './components/analysis';
 import { FileUploadSection } from './components/upload';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisLog } from '../analysis-log/AnalysisLog';
@@ -32,25 +36,25 @@ export const ContractAnalyzer = () => {
     results,
 
     // Actions
-    actions
+    actions,
   } = useContractAnalyzer();
 
   return (
     <AnalyzerLayout>
       {/* Header with Analysis Controls */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="">
         <AnalyzerHeader />
         {history.hasAnalyses && (
-          <AnalysisControls 
+          <AnalysisControls
             hasStoredAnalyses={history.hasAnalyses}
             onSelectStoredAnalysis={actions.handleSelectStoredAnalysis}
           />
         )}
       </div>
-      
+
       <div className="space-y-8">
         {/* File Upload Section */}
-        <FileUploadSection 
+        <FileUploadSection
           file={file}
           error={error}
           onFileSelect={actions.handleFileSelect}
@@ -63,7 +67,7 @@ export const ContractAnalyzer = () => {
         {/* Analysis Progress */}
         {isAnalyzing && (
           <div className="w-full max-w-md mx-auto">
-            <AnalysisProgress 
+            <AnalysisProgress
               currentChunk={currentChunk}
               totalChunks={totalChunks}
               isAnalyzing={isAnalyzing}
@@ -76,19 +80,16 @@ export const ContractAnalyzer = () => {
 
         {/* Error Display */}
         {error && <ErrorDisplay error={error} />}
-        
+
         {/* Analysis Results */}
         {results.isVisible && analysis && (
-          <AnalysisResults 
-            analysis={analysis}
-            onClose={() => results.hide()}
-          />
+          <AnalysisResults analysis={analysis} onClose={() => results.hide()} />
         )}
       </div>
 
       {/* Analysis Log */}
       {log.entries.length > 0 && (
-        <AnalysisLog 
+        <AnalysisLog
           entries={log.entries}
           isVisible={log.isVisible}
           onVisibilityChange={log.onVisibilityChange}
