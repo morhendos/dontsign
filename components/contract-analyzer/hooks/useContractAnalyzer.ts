@@ -24,6 +24,7 @@ export const useContractAnalyzer = () => {
     totalChunks,
     analysis,
     entries,
+    isAnalyzed,
     handleFileSelect,
     handleStartAnalysis,
     handleSelectStoredAnalysis: baseHandleSelectStoredAnalysis,
@@ -34,7 +35,12 @@ export const useContractAnalyzer = () => {
 
   // UI state
   const log = useLogVisibility({ entries });
-  const results = useResultsDisplay();
+  const results = useResultsDisplay({ 
+    onHide: () => {
+      // Don't reset isAnalyzed when hiding results
+      // Only new file selection should reset it
+    }
+  });
 
   // Handle analysis completion
   const handleAnalysisComplete = useCallback(() => {
@@ -88,6 +94,7 @@ export const useContractAnalyzer = () => {
     currentChunk,
     totalChunks,
     analysis,
+    isAnalyzed,
     
     // History
     history: {
