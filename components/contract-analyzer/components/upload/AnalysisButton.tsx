@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { PlayCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface AnalysisButtonProps {
   isDisabled: boolean;
@@ -18,18 +17,16 @@ export const AnalysisButton = ({
       onClick={onClick}
       disabled={isDisabled}
       size="lg"
-      className="gap-2"
+      variant="default"
+      className="relative min-w-[200px] font-semibold bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
     >
       {isAnalyzing ? (
-        <>
-          <LoadingSpinner className="w-5 h-5" />
-          Analyzing...
-        </>
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Analyzing...</span>
+        </div>
       ) : (
-        <>
-          <PlayCircle className="w-5 h-5" />
-          Analyze Contract
-        </>
+        'Analyze Contract'
       )}
     </Button>
   );
