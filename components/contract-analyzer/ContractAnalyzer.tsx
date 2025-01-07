@@ -37,15 +37,18 @@ export const ContractAnalyzer = () => {
 
   return (
     <AnalyzerLayout>
-      <AnalyzerHeader />
+      {/* Header with Analysis Controls */}
+      <div className="flex items-center justify-between mb-8">
+        <AnalyzerHeader />
+        {history.hasAnalyses && (
+          <AnalysisControls 
+            hasStoredAnalyses={history.hasAnalyses}
+            onSelectStoredAnalysis={actions.handleSelectStoredAnalysis}
+          />
+        )}
+      </div>
       
       <div className="space-y-8">
-        {/* Analysis Controls */}
-        <AnalysisControls 
-          hasStoredAnalyses={history.hasAnalyses}
-          onSelectStoredAnalysis={actions.handleSelectStoredAnalysis}
-        />
-
         {/* File Upload Section */}
         <FileUploadSection 
           file={file}
