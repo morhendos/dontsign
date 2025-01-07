@@ -127,6 +127,25 @@ export const useAnalyzerState = () => {
     }
   }, [analyze, file, log, processing]);
 
+  // Handle selecting stored analysis
+  const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
+    processing.setIsProcessingNew(false);
+    updateState({
+      analysis: stored.analysis,
+      isAnalyzing: false,
+      error: null,
+      progress: 100,
+      stage: 'complete',
+      currentChunk: 0,
+      totalChunks: 0
+    });
+    processing.setShowResults(true);
+    resetFile();
+
+    // Update timestamp and move to top
+    storage.update(stored.fileHash);
+  }, [processing, resetFile, updateState]);
+
   return {
     // State
     file,
@@ -146,7 +165,7 @@ export const useAnalyzerState = () => {
     // Actions
     handleFileSelect,
     handleStartAnalysis,
-    handleSelectStoredAnalysis: baseHandleSelectStoredAnalysis,
+    handleSelectStoredAnalysis,
     setShowResults: processing.setShowResults,
     updateLastEntry: log.updateLastEntry,
     addLogEntry: log.addEntry
