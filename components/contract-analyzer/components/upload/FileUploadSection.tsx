@@ -111,7 +111,7 @@ export const FileUploadSection = ({
       {/* Analysis Button */}
       <div className="flex justify-center">
         <AnalysisButton 
-          isDisabled={!file || isAnalyzing || isUploading}
+          isDisabled={(!file && !isAnalyzed) || isAnalyzing || isUploading}
           isAnalyzing={isAnalyzing}
           isAnalyzed={isAnalyzed}
           onClick={onAnalyze}
