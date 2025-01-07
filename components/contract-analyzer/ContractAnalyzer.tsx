@@ -27,6 +27,7 @@ export const ContractAnalyzer = () => {
     currentChunk,
     totalChunks,
     analysis,
+    isFromHistory,
 
     // History
     history,
@@ -62,6 +63,7 @@ export const ContractAnalyzer = () => {
           processingStatus={status}
           onAnalyze={actions.handleStartAnalysis}
           isAnalyzing={isAnalyzing}
+          isFromHistory={isFromHistory}
         />
 
         {/* Analysis Progress */}
