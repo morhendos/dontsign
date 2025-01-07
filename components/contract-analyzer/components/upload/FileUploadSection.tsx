@@ -13,6 +13,7 @@ interface FileUploadSectionProps {
   processingStatus: string;
   onAnalyze: () => void;
   isAnalyzing: boolean;
+  isFromHistory?: boolean;
 }
 
 export const FileUploadSection = ({
@@ -22,7 +23,8 @@ export const FileUploadSection = ({
   isUploading,
   processingStatus,
   onAnalyze,
-  isAnalyzing
+  isAnalyzing,
+  isFromHistory = false
 }: FileUploadSectionProps) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: files => onFileSelect(files[0]),
@@ -109,7 +111,7 @@ export const FileUploadSection = ({
       {/* Analysis Button */}
       <div className="flex justify-center">
         <AnalysisButton 
-          isDisabled={!file || isAnalyzing || isUploading}
+          isDisabled={!file || isAnalyzing || isUploading || isFromHistory}
           isAnalyzing={isAnalyzing}
           onClick={onAnalyze}
         />
