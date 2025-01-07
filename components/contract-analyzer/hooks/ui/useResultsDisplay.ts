@@ -1,6 +1,10 @@
 import { useState, useCallback } from 'react';
 
-export const useResultsDisplay = () => {
+interface UseResultsDisplayOptions {
+  onHide?: () => void;
+}
+
+export const useResultsDisplay = (options: UseResultsDisplayOptions = {}) => {
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('summary');
 
@@ -12,7 +16,8 @@ export const useResultsDisplay = () => {
   const hide = useCallback(() => {
     setIsVisible(false);
     setActiveTab('summary');
-  }, []);
+    options.onHide?.();
+  }, [options]);
 
   return {
     isVisible,
