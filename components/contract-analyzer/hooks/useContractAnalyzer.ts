@@ -106,13 +106,12 @@ export const useContractAnalyzer = () => {
       wasResultClosed: resultClosedByUserRef.current
     });
 
-    if (!file || (file.size === stored.fileSize && await isFileMatchingHash(file, stored.fileHash))) {
-      resultClosedByUserRef.current = false;
-      lastSelectedAnalysisIdRef.current = stored.id;
-      baseHandleSelectStoredAnalysis(stored);
-      results.show();
-    }
-  }, [baseHandleSelectStoredAnalysis, results, file]);
+    // Always allow viewing stored analysis
+    resultClosedByUserRef.current = false;
+    lastSelectedAnalysisIdRef.current = stored.id;
+    baseHandleSelectStoredAnalysis(stored);
+    results.show();
+  }, [baseHandleSelectStoredAnalysis, results]);
 
   // Effect for analysis completion
   useEffect(() => {
