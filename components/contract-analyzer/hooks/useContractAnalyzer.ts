@@ -7,6 +7,7 @@ import type { StoredAnalysis } from '../types/storage';
 
 export const useContractAnalyzer = () => {
   const analysisHandledRef = useRef(false);
+  const resultIntentionallyHiddenRef = useRef(false);
 
   // Core state handlers
   const {
@@ -34,18 +35,18 @@ export const useContractAnalyzer = () => {
   const log = useLogVisibility({ entries });
   const results = useResultsDisplay({ 
     onHide: () => {
-      // Don't reset isAnalyzed when hiding results
-      // Only new file selection should reset it
+      resultIntentionallyHiddenRef.current = true;
     }
   });
 
   // Wrapped file select handler with cleanup
   const handleFileSelect = useCallback(async (newFile: File | null) => {
+    // Reset flags
+    resultIntentionallyHiddenRef.current = false;
+    analysisHandledRef.current = false;
+    
     // Hide current results before state changes
     results.hide();
-    
-    // Reset analysis state
-    analysisHandledRef.current = false;
     
     // Call the base handler
     await baseHandleFileSelect(newFile);
@@ -55,7 +56,7 @@ export const useContractAnalyzer = () => {
   // Handle analysis completion
   const handleAnalysisComplete = useCallback(async () => {
     try {
-      if (analysis && file && !analysisHandledRef.current) {
+      if (analysis && file && !analysisHandledRef.current && !resultIntentionallyHiddenRef.current) {
         // Set flag first to prevent duplicate processing
         analysisHandledRef.current = true;
         
@@ -77,14 +78,16 @@ export const useContractAnalyzer = () => {
       }
     } catch (error) {
       console.error('Error in handleAnalysisComplete:', error);
-      // Reset flag on error
+      // Reset flags on error
       analysisHandledRef.current = false;
+      resultIntentionallyHiddenRef.current = false;
     }
   }, [analysis, file, history, results]);
 
   // Reset handled flag when starting new analysis
   const wrappedHandleStartAnalysis = useCallback(async () => {
     analysisHandledRef.current = false;
+    resultIntentionallyHiddenRef.current = false;
     await handleStartAnalysis();
   }, [handleStartAnalysis]);
 
@@ -99,6 +102,9 @@ export const useContractAnalyzer = () => {
       return;
     }
 
+    // Reset flags when selecting stored analysis
+    resultIntentionallyHiddenRef.current = false;
+
     // Then verify hash using existing utility
     if (await isFileMatchingHash(file, stored.fileHash)) {
       baseHandleSelectStoredAnalysis(stored);
@@ -111,6 +117,7 @@ export const useContractAnalyzer = () => {
     if (file) {
       // Reset state for new file
       analysisHandledRef.current = false;
+      resultIntentionallyHiddenRef.current = false;
       
       // Hide results if they don't match current file
       if (analysis && (analysis.metadata.documentName !== file.name)) {
@@ -124,7 +131,12 @@ export const useContractAnalyzer = () => {
     let mounted = true;
 
     const triggerAnalysisComplete = async () => {
-      if (analysis && !isAnalyzing && stage === 'complete' && file && mounted) {
+      if (analysis && 
+          !isAnalyzing && 
+          stage === 'complete' && 
+          file && 
+          mounted && 
+          !resultIntentionallyHiddenRef.current) {
         await handleAnalysisComplete();
       }
     };
