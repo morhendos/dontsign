@@ -2,14 +2,13 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAnalyzerState } from './state';
 import { useAnalysisHistory } from './storage';
 import { useLogVisibility, useResultsDisplay } from './ui';
+import { generateFileHash, isFileMatchingHash } from '../utils/hash';
 import type { StoredAnalysis } from '../types/storage';
 
-/**
- * Main hook that combines all functionality for the contract analyzer
- */
 export const useContractAnalyzer = () => {
-  // Use ref to track if we already handled this analysis completion
   const analysisHandledRef = useRef(false);
+  const resultClosedByUserRef = useRef(false);
+  const lastSelectedAnalysisIdRef = useRef<string | null>(null);
 
   // Core state handlers
   const {
@@ -24,7 +23,8 @@ export const useContractAnalyzer = () => {
     totalChunks,
     analysis,
     entries,
-    handleFileSelect,
+    isAnalyzed,
+    handleFileSelect: baseHandleFileSelect,
     handleStartAnalysis,
     handleSelectStoredAnalysis: baseHandleSelectStoredAnalysis,
   } = useAnalyzerState();
@@ -34,20 +34,37 @@ export const useContractAnalyzer = () => {
 
   // UI state
   const log = useLogVisibility({ entries });
-  const results = useResultsDisplay();
+  const results = useResultsDisplay({ 
+    onHide: () => {
+      resultClosedByUserRef.current = true;
+    }
+  });
 
-  // Handle analysis completion
-  const handleAnalysisComplete = useCallback(() => {
+  // File selection handler
+  const handleFileSelect = useCallback(async (newFile: File | null) => {
+    results.hide();
+    await baseHandleFileSelect(newFile);
+  }, [baseHandleFileSelect, results]);
+
+  // Analysis completion handler
+  const handleAnalysisComplete = useCallback(async () => {
     if (analysis && file && !analysisHandledRef.current) {
       analysisHandledRef.current = true;
-      // Store in history
-      history.addAnalysis({
+      
+      const fileHash = await generateFileHash(file);
+      const newAnalysis = {
         id: Date.now().toString(),
         fileName: file.name,
+        fileHash,
+        fileSize: file.size,
         analysis,
         analyzedAt: new Date().toISOString()
-      });
-      // Show results
+      };
+      
+      history.addAnalysis(newAnalysis);
+      lastSelectedAnalysisIdRef.current = newAnalysis.id;
+      resultClosedByUserRef.current = false;
+      
       results.show();
     }
   }, [analysis, file, history, results]);
@@ -55,26 +72,28 @@ export const useContractAnalyzer = () => {
   // Reset handled flag when starting new analysis
   const wrappedHandleStartAnalysis = useCallback(async () => {
     analysisHandledRef.current = false;
+    resultClosedByUserRef.current = false;
     await handleStartAnalysis();
   }, [handleStartAnalysis]);
 
-  // Wrap handleSelectStoredAnalysis to also show results
-  const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
+  // Verify file match before showing stored analysis
+  const handleSelectStoredAnalysis = useCallback(async (stored: StoredAnalysis) => {
+    resultClosedByUserRef.current = false;
+    lastSelectedAnalysisIdRef.current = stored.id;
     baseHandleSelectStoredAnalysis(stored);
     results.show();
   }, [baseHandleSelectStoredAnalysis, results]);
 
-  // Trigger handleAnalysisComplete when analysis is complete
+  // Only run completion logic when all conditions are met
   useEffect(() => {
-    if (analysis && !isAnalyzing && stage === 'complete' && file) {
+    if (!analysisHandledRef.current && 
+        analysis && 
+        !isAnalyzing && 
+        stage === 'complete' && 
+        file) {
       handleAnalysisComplete();
     }
   }, [analysis, isAnalyzing, stage, file, handleAnalysisComplete]);
-
-  // Reset handled flag when file changes
-  useEffect(() => {
-    analysisHandledRef.current = false;
-  }, [file]);
 
   return {
     // State
@@ -88,6 +107,7 @@ export const useContractAnalyzer = () => {
     currentChunk,
     totalChunks,
     analysis,
+    isAnalyzed,
     
     // History
     history: {

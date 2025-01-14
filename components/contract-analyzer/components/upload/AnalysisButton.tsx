@@ -1,16 +1,18 @@
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 
 interface AnalysisButtonProps {
   isDisabled: boolean;
   isAnalyzing: boolean;
+  isAnalyzed: boolean;
   onClick: () => void;
 }
 
-export const AnalysisButton = ({
+export const AnalysisButton = ({ 
   isDisabled,
   isAnalyzing,
-  onClick
+  isAnalyzed,
+  onClick,
 }: AnalysisButtonProps) => {
   return (
     <Button
@@ -25,9 +27,14 @@ export const AnalysisButton = ({
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Analyzing...</span>
         </div>
+      ) : isAnalyzed ? (
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4" />
+          <span>View Analysis</span>
+        </div>
       ) : (
         'Analyze Contract'
       )}
     </Button>
   );
-};
+}

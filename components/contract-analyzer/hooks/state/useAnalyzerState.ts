@@ -1,13 +1,17 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useContractAnalysis } from '../analysis';
 import { useFileUpload } from '../file';
 import { useAnalysisLog } from '../ui';
 import { useStatusManager } from './useStatusManager';
 import { useProcessingState } from './useProcessingState';
-import { storage } from '../../utils';
+import { storage } from '../../utils/storage';
+import { generateFileHash } from '../../utils/hash';
 import type { StoredAnalysis } from '../../types/storage';
 
 export const useAnalyzerState = () => {
+  // Track if current file is already analyzed
+  const [isAnalyzed, setIsAnalyzed] = useState(false);
+
   // Core state handlers
   const processing = useProcessingState();
   const status = useStatusManager();
@@ -16,21 +20,9 @@ export const useAnalyzerState = () => {
   // Status update helper that also manages log entries
   const updateStatus = useCallback((message: string) => {
     status.setMessage(message);
-    log.updateLastEntry('complete');  // Complete previous entry if exists
-    log.addEntry(message);  // Add new entry
+    log.updateLastEntry('complete');
+    log.addEntry(message);
   }, [status, log]);
-
-  // File handling
-  const {
-    file,
-    error: fileError,
-    isProcessing,
-    handleFileSelect,
-    resetFile
-  } = useFileUpload({
-    onStatusUpdate: updateStatus,
-    onEntryComplete: () => log.updateLastEntry('complete')
-  });
 
   // Contract analysis
   const {
@@ -42,33 +34,94 @@ export const useAnalyzerState = () => {
     currentChunk,
     totalChunks,
     analyze,
-    updateState
+    updateState,
+    setFile: setAnalysisFile
   } = useContractAnalysis({
     onStatusUpdate: updateStatus,
     onEntryComplete: () => {
       log.updateLastEntry('complete');
     },
-    onAnalysisComplete: () => {
-      processing.setShowResults(true); // Show results panel
+    onAnalysisComplete: async () => {
+      console.log('Analysis complete');
+      processing.setShowResults(true);
       processing.setIsProcessingNew(false);
-      if (file && analysis) {
-        storage.add({
-          id: Date.now().toString(),
-          fileName: file.name,
-          analysis,
-          analyzedAt: new Date().toISOString()
-        });
-      }
+      setIsAnalyzed(true);
     }
   });
 
-  // Handle starting new analysis
+  // File handling
+  const {
+    file,
+    error: fileError,
+    isProcessing,
+    handleFileSelect: baseHandleFileSelect,
+    resetFile
+  } = useFileUpload({
+    onStatusUpdate: updateStatus,
+    onEntryComplete: () => log.updateLastEntry('complete')
+  });
+
+  // Handle file selection - ONLY handles file selection, nothing else
+  const handleFileSelect = useCallback(async (newFile: File | null) => {
+    // Reset state
+    setIsAnalyzed(false);
+    processing.setShowResults(false);
+    processing.setIsProcessingNew(false);
+    
+    // Update file
+    baseHandleFileSelect(newFile);
+  }, [baseHandleFileSelect, processing]);
+
+  // Handle starting analysis
   const handleStartAnalysis = useCallback(async () => {
-    log.clearEntries();
-    log.addEntry('Starting contract analysis...');
-    processing.setIsProcessingNew(true);
-    await analyze(file);
-  }, [analyze, file, log, processing]);
+    if (!file) {
+      return;
+    }
+
+    try {
+      // Check if file is already analyzed
+      const fileHash = await generateFileHash(file);
+      const existingAnalyses = storage.get();
+      const existingAnalysis = existingAnalyses.find(a => a.fileHash === fileHash);
+
+      if (existingAnalysis) {
+        // File already analyzed - show results and update timestamp
+        updateState({
+          analysis: existingAnalysis.analysis,
+          isAnalyzing: false,
+          error: null,
+          progress: 100,
+          stage: 'complete',
+          currentChunk: 0,
+          totalChunks: 0
+        });
+        processing.setShowResults(true);
+        storage.update(fileHash);
+        return;
+      }
+      
+      // Start new analysis
+      log.clearEntries();
+      log.addEntry('Starting contract analysis...');
+      processing.setIsProcessingNew(true);
+      
+      const result = await analyze(file);
+      
+      // Add to storage only after successful analysis
+      if (result) {
+        storage.add({
+          id: Date.now().toString(),
+          fileName: file.name,
+          fileHash,
+          analysis: result,
+          analyzedAt: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('Error in analysis:', error);
+      throw error;
+    }
+  }, [analyze, file, log, processing, updateState]);
 
   // Handle selecting stored analysis
   const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
@@ -84,6 +137,10 @@ export const useAnalyzerState = () => {
     });
     processing.setShowResults(true);
     resetFile();
+    setIsAnalyzed(true);
+
+    // Update timestamp and move to top
+    storage.update(stored.fileHash);
   }, [processing, resetFile, updateState]);
 
   return {
@@ -101,6 +158,7 @@ export const useAnalyzerState = () => {
     showResults: processing.showResults,
     hasStoredAnalyses: storage.get().length > 0,
     entries: log.entries,
+    isAnalyzed,
 
     // Actions
     handleFileSelect,
