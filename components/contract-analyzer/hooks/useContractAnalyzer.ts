@@ -35,12 +35,27 @@ export const useContractAnalyzer = () => {
   const log = useLogVisibility({ entries });
   const results = useResultsDisplay({ 
     onHide: () => {
+      console.log('Results hide callback triggered');
       resultIntentionallyHiddenRef.current = true;
     }
   });
 
+  // Debug effect
+  useEffect(() => {
+    console.log('State changed:', {
+      isAnalyzing,
+      stage,
+      analysisHandled: analysisHandledRef.current,
+      intentionallyHidden: resultIntentionallyHiddenRef.current,
+      hasFile: !!file,
+      hasAnalysis: !!analysis,
+      resultsVisible: results.isVisible
+    });
+  }, [isAnalyzing, stage, file, analysis, results.isVisible]);
+
   // Wrapped file select handler with cleanup
   const handleFileSelect = useCallback(async (newFile: File | null) => {
+    console.log('File select handler called');
     // Reset flags
     resultIntentionallyHiddenRef.current = false;
     analysisHandledRef.current = false;
@@ -55,26 +70,39 @@ export const useContractAnalyzer = () => {
 
   // Handle analysis completion
   const handleAnalysisComplete = useCallback(async () => {
+    console.log('Analysis complete handler called', {
+      hasAnalysis: !!analysis,
+      hasFile: !!file,
+      analysisHandled: analysisHandledRef.current,
+      intentionallyHidden: resultIntentionallyHiddenRef.current
+    });
+
     try {
-      if (analysis && file && !analysisHandledRef.current && !resultIntentionallyHiddenRef.current) {
+      if (!analysisHandledRef.current && !resultIntentionallyHiddenRef.current) {
+        console.log('Processing analysis completion...');
         // Set flag first to prevent duplicate processing
         analysisHandledRef.current = true;
         
-        // Generate file hash for storage
-        const fileHash = await generateFileHash(file);
-        
-        // Store in history with file identifiers
-        history.addAnalysis({
-          id: Date.now().toString(),
-          fileName: file.name,
-          fileHash,
-          fileSize: file.size,
-          analysis,
-          analyzedAt: new Date().toISOString()
-        });
-        
-        // Show results
-        results.show();
+        if (analysis && file) {
+          // Generate file hash for storage
+          const fileHash = await generateFileHash(file);
+          
+          // Store in history with file identifiers
+          history.addAnalysis({
+            id: Date.now().toString(),
+            fileName: file.name,
+            fileHash,
+            fileSize: file.size,
+            analysis,
+            analyzedAt: new Date().toISOString()
+          });
+          
+          // Show results
+          console.log('Showing results after completion');
+          results.show();
+        }
+      } else {
+        console.log('Analysis completion skipped due to flags');
       }
     } catch (error) {
       console.error('Error in handleAnalysisComplete:', error);
@@ -86,6 +114,7 @@ export const useContractAnalyzer = () => {
 
   // Reset handled flag when starting new analysis
   const wrappedHandleStartAnalysis = useCallback(async () => {
+    console.log('Starting new analysis');
     analysisHandledRef.current = false;
     resultIntentionallyHiddenRef.current = false;
     await handleStartAnalysis();
@@ -93,6 +122,7 @@ export const useContractAnalyzer = () => {
 
   // Wrap handleSelectStoredAnalysis to verify file match
   const handleSelectStoredAnalysis = useCallback(async (stored: StoredAnalysis) => {
+    console.log('Selecting stored analysis');
     if (!file) {
       return; // No file selected, don't show results
     }
@@ -115,6 +145,7 @@ export const useContractAnalyzer = () => {
   // Cleanup effect when file changes
   useEffect(() => {
     if (file) {
+      console.log('File changed, resetting state');
       // Reset state for new file
       analysisHandledRef.current = false;
       resultIntentionallyHiddenRef.current = false;
@@ -128,24 +159,10 @@ export const useContractAnalyzer = () => {
 
   // Trigger handleAnalysisComplete when analysis is complete
   useEffect(() => {
-    let mounted = true;
-
-    const triggerAnalysisComplete = async () => {
-      if (analysis && 
-          !isAnalyzing && 
-          stage === 'complete' && 
-          file && 
-          mounted && 
-          !resultIntentionallyHiddenRef.current) {
-        await handleAnalysisComplete();
-      }
-    };
-
-    triggerAnalysisComplete();
-
-    return () => {
-      mounted = false;
-    };
+    if (analysis && !isAnalyzing && stage === 'complete' && file) {
+      console.log('Analysis complete effect triggered');
+      handleAnalysisComplete();
+    }
   }, [analysis, isAnalyzing, stage, file, handleAnalysisComplete]);
 
   return {
@@ -184,7 +201,10 @@ export const useContractAnalyzer = () => {
       isVisible: results.isVisible,
       activeTab: results.activeTab,
       show: results.show,
-      hide: results.hide,
+      hide: () => {
+        console.log('Results hide called');
+        results.hide();
+      },
       setActiveTab: results.setActiveTab
     },
 
