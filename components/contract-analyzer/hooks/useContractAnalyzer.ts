@@ -54,24 +54,31 @@ export const useContractAnalyzer = () => {
 
   // Handle analysis completion
   const handleAnalysisComplete = useCallback(async () => {
-    if (analysis && file && !analysisHandledRef.current) {
-      analysisHandledRef.current = true;
-      
-      // Generate file hash for storage
-      const fileHash = await generateFileHash(file);
-      
-      // Store in history with file identifiers
-      history.addAnalysis({
-        id: Date.now().toString(),
-        fileName: file.name,
-        fileHash,
-        fileSize: file.size,
-        analysis,
-        analyzedAt: new Date().toISOString()
-      });
-      
-      // Show results
-      results.show();
+    try {
+      if (analysis && file && !analysisHandledRef.current) {
+        // Set flag first to prevent duplicate processing
+        analysisHandledRef.current = true;
+        
+        // Generate file hash for storage
+        const fileHash = await generateFileHash(file);
+        
+        // Store in history with file identifiers
+        history.addAnalysis({
+          id: Date.now().toString(),
+          fileName: file.name,
+          fileHash,
+          fileSize: file.size,
+          analysis,
+          analyzedAt: new Date().toISOString()
+        });
+        
+        // Show results
+        results.show();
+      }
+    } catch (error) {
+      console.error('Error in handleAnalysisComplete:', error);
+      // Reset flag on error
+      analysisHandledRef.current = false;
     }
   }, [analysis, file, history, results]);
 
@@ -111,6 +118,23 @@ export const useContractAnalyzer = () => {
       }
     }
   }, [file, analysis, results]);
+
+  // Trigger handleAnalysisComplete when analysis is complete
+  useEffect(() => {
+    let mounted = true;
+
+    const triggerAnalysisComplete = async () => {
+      if (analysis && !isAnalyzing && stage === 'complete' && file && mounted) {
+        await handleAnalysisComplete();
+      }
+    };
+
+    triggerAnalysisComplete();
+
+    return () => {
+      mounted = false;
+    };
+  }, [analysis, isAnalyzing, stage, file, handleAnalysisComplete]);
 
   return {
     // State
