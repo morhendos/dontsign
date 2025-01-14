@@ -36,7 +36,9 @@ export const useContractAnalyzer = () => {
   const log = useLogVisibility({ entries });
   const results = useResultsDisplay({ 
     onHide: () => {
+      // On hide, we only update the closed flag
       resultClosedByUserRef.current = true;
+      // Don't reset other flags or lastSelectedAnalysisId
     }
   });
 
@@ -80,43 +82,35 @@ export const useContractAnalyzer = () => {
     await handleStartAnalysis();
   }, [handleStartAnalysis]);
 
-  // Reset result flags
-  const resetResultFlags = useCallback(() => {
-    resultClosedByUserRef.current = false;
-    analysisHandledRef.current = true; // Prevent re-analysis of same content
-  }, []);
-
   // Verify file match before showing stored analysis
   const handleSelectStoredAnalysis = useCallback(async (stored: StoredAnalysis) => {
-    // First reset flags - we're explicitly selecting an analysis
-    resetResultFlags();
+    // When selecting stored analysis, always reset closed flag
+    resultClosedByUserRef.current = false;
     
-    if (!file) return;
-
-    // If we're selecting the same analysis again after closing
-    if (stored.id === lastSelectedAnalysisIdRef.current && resultClosedByUserRef.current) {
-      resultClosedByUserRef.current = false;
+    // No need to check file if we're viewing history
+    if (!file) {
+      lastSelectedAnalysisIdRef.current = stored.id;
       baseHandleSelectStoredAnalysis(stored);
       results.show();
       return;
     }
 
-    // For different analysis, verify match
+    // If we have a file, verify it matches
     if (file.size === stored.fileSize && await isFileMatchingHash(file, stored.fileHash)) {
       lastSelectedAnalysisIdRef.current = stored.id;
       baseHandleSelectStoredAnalysis(stored);
       results.show();
     }
-  }, [baseHandleSelectStoredAnalysis, results, file, resetResultFlags]);
+  }, [baseHandleSelectStoredAnalysis, results, file]);
 
   // Reset state when file changes
   useEffect(() => {
     if (file) {
       analysisHandledRef.current = false;
-      resultClosedByUserRef.current = false;
-      lastSelectedAnalysisIdRef.current = null;
+      // Don't reset resultClosedByUserRef here, as it should persist during file changes
       
       if (analysis?.metadata.documentName !== file.name) {
+        lastSelectedAnalysisIdRef.current = null;
         results.hide();
       }
     }
