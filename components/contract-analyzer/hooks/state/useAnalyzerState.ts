@@ -66,6 +66,7 @@ export const useAnalyzerState = () => {
     console.log('File selected:', newFile?.name);
     // Reset analyzed state when selecting new file
     setIsAnalyzed(false);
+    processing.setShowResults(false); // Always hide results on file select
 
     if (newFile) {
       try {
@@ -79,7 +80,7 @@ export const useAnalyzerState = () => {
 
         if (existingAnalysis) {
           console.log('Found existing analysis');
-          // File already analyzed - show existing results
+          // File already analyzed - but don't show results yet
           processing.setIsProcessingNew(false);
           updateState({
             analysis: existingAnalysis.analysis,
@@ -90,7 +91,6 @@ export const useAnalyzerState = () => {
             currentChunk: 0,
             totalChunks: 0
           });
-          processing.setShowResults(true);
           setIsAnalyzed(true);
           
           // Just update timestamp and move to top
@@ -140,7 +140,16 @@ export const useAnalyzerState = () => {
 
       if (existingAnalysis) {
         console.log('Found existing analysis, showing results');
-        // File already analyzed - just show results and update timestamp
+        // File already analyzed - show results and update timestamp
+        updateState({
+          analysis: existingAnalysis.analysis,
+          isAnalyzing: false,
+          error: null,
+          progress: 100,
+          stage: 'complete',
+          currentChunk: 0,
+          totalChunks: 0
+        });
         processing.setShowResults(true);
         storage.update(fileHash);
         return;
@@ -168,7 +177,7 @@ export const useAnalyzerState = () => {
       console.error('Error in analysis:', error);
       throw error;
     }
-  }, [analyze, file, isAnalyzed, log, processing, isAnalyzing]);
+  }, [analyze, file, isAnalyzed, log, processing, isAnalyzing, updateState]);
 
   // Handle selecting stored analysis
   const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
