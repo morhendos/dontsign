@@ -28,18 +28,25 @@ Next.js 14 app directory:
 Core analysis functionality:
 - `ContractAnalyzer.tsx` - Main orchestration component
 - `/components`
-  - `analysis/` - Analysis UI components (controls, progress, results)
+  - `analysis/` - Analysis UI components (progress, results, controls)
   - `layout/` - Layout components
   - `upload/` - File upload handling
 - `/hooks`
-  - `analysis/` - Analysis-related hooks
-  - `state/` - State management
-  - `storage/` - Local storage handling
-  - `ui/` - UI-related hooks
+  - `useContractAnalyzer.ts` - Main analysis orchestration hook
+  - `useAnalyzerState.ts` - Analysis state management
+  - `useAnalysisHistory.ts` - History management
+  - `useLogVisibility.ts` - Log visibility control
+  - `useResultsDisplay.ts` - Results display management
+- `/utils` - Utility functions
+- `/types` - TypeScript type definitions
 
 #### `analysis-history/`
 History management:
 - `AnalysisHistory.tsx` - Previous analyses interface
+
+#### `analysis-log/`
+Progress logging:
+- `AnalysisLog.tsx` - Analysis progress logging component
 
 #### `ui/`
 Reusable UI components (shadcn/ui):
@@ -93,7 +100,8 @@ const {
   stage,
   currentChunk,
   totalChunks,
-  analysis
+  analysis,
+  isAnalyzed,
 } = useAnalyzerState();
 ```
 
@@ -102,6 +110,7 @@ const {
 const {
   analyses,
   selectedAnalysis,
+  hasAnalyses,
   addAnalysis,
   removeAnalysis,
   clearHistory
