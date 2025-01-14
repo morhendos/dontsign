@@ -1,15 +1,9 @@
 import type { AnalysisResult } from '@/types/analysis';
-
-export interface StoredAnalysis {
-  id: string;
-  fileName: string;
-  analysis: AnalysisResult;
-  analyzedAt: string;
-}
+import type { StoredAnalysis } from '@/types/storage';
 
 const STORAGE_KEY = 'dontsign_analyses';
 
-export function saveAnalysis(fileName: string, analysis: AnalysisResult): StoredAnalysis {
+export function saveAnalysis(fileName: string, fileSize: number, fileHash: string, analysis: AnalysisResult): StoredAnalysis {
   try {
     // Get existing analyses
     const analyses = getStoredAnalyses();
@@ -18,6 +12,8 @@ export function saveAnalysis(fileName: string, analysis: AnalysisResult): Stored
     const newAnalysis: StoredAnalysis = {
       id: generateId(),
       fileName,
+      fileHash,
+      fileSize,
       analysis,
       analyzedAt: new Date().toISOString()
     };
