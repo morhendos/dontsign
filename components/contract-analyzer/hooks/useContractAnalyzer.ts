@@ -9,6 +9,7 @@ export const useContractAnalyzer = () => {
   const analysisHandledRef = useRef(false);
   const resultClosedByUserRef = useRef(false);
   const lastSelectedAnalysisIdRef = useRef<string | null>(null);
+  const currentAnalysisIdRef = useRef<string | null>(null);
 
   // Core state handlers
   const {
@@ -36,9 +37,10 @@ export const useContractAnalyzer = () => {
   const log = useLogVisibility({ entries });
   const results = useResultsDisplay({ 
     onHide: () => {
-      // On hide, we only update the closed flag
-      resultClosedByUserRef.current = true;
-      // Don't reset other flags or lastSelectedAnalysisId
+      // On hide, we only update the closed flag if we're still on the same analysis
+      if (lastSelectedAnalysisIdRef.current === currentAnalysisIdRef.current) {
+        resultClosedByUserRef.current = true;
+      }
     }
   });
 
@@ -48,12 +50,13 @@ export const useContractAnalyzer = () => {
     analysisHandledRef.current = false;
     resultClosedByUserRef.current = false;
     lastSelectedAnalysisIdRef.current = null;
+    currentAnalysisIdRef.current = null;
     await baseHandleFileSelect(newFile);
   }, [baseHandleFileSelect, results]);
 
   // Handle analysis completion
   const handleAnalysisComplete = useCallback(async () => {
-    if (!analysisHandledRef.current && !resultClosedByUserRef.current && analysis && file) {
+    if (!analysisHandledRef.current && analysis && file) {
       analysisHandledRef.current = true;
       
       const fileHash = await generateFileHash(file);
@@ -69,6 +72,8 @@ export const useContractAnalyzer = () => {
       
       history.addAnalysis(newAnalysis);
       lastSelectedAnalysisIdRef.current = newAnalysis.id;
+      currentAnalysisIdRef.current = newAnalysis.id;
+      resultClosedByUserRef.current = false; // Reset closed flag for new analysis
       
       results.show();
     }
@@ -79,17 +84,19 @@ export const useContractAnalyzer = () => {
     analysisHandledRef.current = false;
     resultClosedByUserRef.current = false;
     lastSelectedAnalysisIdRef.current = null;
+    // Don't reset currentAnalysisId until we have new results
     await handleStartAnalysis();
   }, [handleStartAnalysis]);
 
   // Verify file match before showing stored analysis
   const handleSelectStoredAnalysis = useCallback(async (stored: StoredAnalysis) => {
-    // When selecting stored analysis, always reset closed flag
+    // Reset flags for viewing stored analysis
     resultClosedByUserRef.current = false;
+    lastSelectedAnalysisIdRef.current = stored.id;
+    currentAnalysisIdRef.current = stored.id;
     
     // No need to check file if we're viewing history
     if (!file) {
-      lastSelectedAnalysisIdRef.current = stored.id;
       baseHandleSelectStoredAnalysis(stored);
       results.show();
       return;
@@ -97,7 +104,6 @@ export const useContractAnalyzer = () => {
 
     // If we have a file, verify it matches
     if (file.size === stored.fileSize && await isFileMatchingHash(file, stored.fileHash)) {
-      lastSelectedAnalysisIdRef.current = stored.id;
       baseHandleSelectStoredAnalysis(stored);
       results.show();
     }
@@ -107,10 +113,11 @@ export const useContractAnalyzer = () => {
   useEffect(() => {
     if (file) {
       analysisHandledRef.current = false;
-      // Don't reset resultClosedByUserRef here, as it should persist during file changes
+      // Don't reset resultClosedByUserRef here - it will be reset when analysis completes
       
       if (analysis?.metadata.documentName !== file.name) {
         lastSelectedAnalysisIdRef.current = null;
+        // Don't reset currentAnalysisId - we need it for comparison
         results.hide();
       }
     }
@@ -119,7 +126,6 @@ export const useContractAnalyzer = () => {
   // Only run completion logic when all conditions are met
   useEffect(() => {
     if (!analysisHandledRef.current && 
-        !resultClosedByUserRef.current && 
         analysis && 
         !isAnalyzing && 
         stage === 'complete' && 
