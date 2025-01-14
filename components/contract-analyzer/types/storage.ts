@@ -8,7 +8,8 @@ export interface StorageOptions {
 export interface StoredAnalysis {
   id: string;
   fileName: string;
-  fileHash: string;  // Added for file content comparison
+  fileHash: string;  // For content-based comparison
+  fileSize: number;  // Quick initial check before hash comparison
   analysis: AnalysisResult;
   analyzedAt: string;
 }

@@ -21,9 +21,10 @@ export const useContractAnalyzer = () => {
     analysis,
     entries,
     isAnalyzed,
-    handleFileSelect: baseHandleFileSelect,  // Renamed to baseHandleFileSelect
+    handleFileSelect: baseHandleFileSelect,
     handleStartAnalysis,
     handleSelectStoredAnalysis: baseHandleSelectStoredAnalysis,
+    getFileHash, // Assuming this exists in the state management
   } = useAnalyzerState();
 
   // Analysis history
@@ -52,15 +53,19 @@ export const useContractAnalyzer = () => {
   }, [baseHandleFileSelect, results]);
 
   // Handle analysis completion
-  const handleAnalysisComplete = useCallback(() => {
+  const handleAnalysisComplete = useCallback(async () => {
     if (analysis && file && !analysisHandledRef.current) {
       analysisHandledRef.current = true;
       
-      // Store in history with file identifier
+      // Get file hash for storage
+      const fileHash = await getFileHash(file);
+      
+      // Store in history with file identifiers
       history.addAnalysis({
         id: Date.now().toString(),
         fileName: file.name,
-        fileSize: file.size, // Add file size for better identification
+        fileHash,
+        fileSize: file.size,
         analysis,
         analyzedAt: new Date().toISOString()
       });
@@ -68,7 +73,7 @@ export const useContractAnalyzer = () => {
       // Show results
       results.show();
     }
-  }, [analysis, file, history, results]);
+  }, [analysis, file, getFileHash, history, results]);
 
   // Reset handled flag when starting new analysis
   const wrappedHandleStartAnalysis = useCallback(async () => {
@@ -77,17 +82,23 @@ export const useContractAnalyzer = () => {
   }, [handleStartAnalysis]);
 
   // Wrap handleSelectStoredAnalysis to verify file match
-  const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
+  const handleSelectStoredAnalysis = useCallback(async (stored: StoredAnalysis) => {
     if (!file) {
       return; // No file selected, don't show results
     }
     
-    // Verify the stored analysis matches current file
-    if (file.name === stored.fileName && file.size === stored.fileSize) {
+    // Quick check with file size first
+    if (file.size !== stored.fileSize) {
+      return;
+    }
+
+    // Then verify hash
+    const currentHash = await getFileHash(file);
+    if (currentHash === stored.fileHash) {
       baseHandleSelectStoredAnalysis(stored);
       results.show();
     }
-  }, [baseHandleSelectStoredAnalysis, results, file]);
+  }, [baseHandleSelectStoredAnalysis, results, file, getFileHash]);
 
   // Cleanup effect when file changes
   useEffect(() => {
@@ -144,7 +155,7 @@ export const useContractAnalyzer = () => {
 
     // Actions
     actions: {
-      handleFileSelect,  // Use wrapped version instead of base
+      handleFileSelect,
       handleStartAnalysis: wrappedHandleStartAnalysis,
       handleSelectStoredAnalysis,
       handleAnalysisComplete
