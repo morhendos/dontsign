@@ -31,36 +31,53 @@
 
 ### Real-World Lessons
 
-#### Progress Bar Example
+#### State Management Example
 
 A real case study from our development:
 
 Problem:
-- Progress bar was getting stuck at 5% even though server-side processing completed
-- Server logs showed correct progress updates
-- UI wasn't reflecting the updates
+- Previous analysis results were showing up for new files
+- State wasn't being properly cleaned up between file selections
+- User couldn't properly close and reopen results
 
 Initial Mistake:
-- Tried to "improve" the working stream handling code
-- Made multiple changes at once
-- Introduced new types without checking existing ones
+- Made multiple state changes at once
+- Didn't add proper logging
+- Tried to "fix" working code instead of understanding the issue
 
 Actual Issue:
-- Simple type mismatch between client and server
-- Server was sending 'progress' but client expected 'update'
-- Working code was modified without understanding it fully
+- State cleanup timing was incorrect
+- File selection and analysis state weren't properly coordinated
+- Flags weren't being reset at the right time
 
 Solution:
-1. Reverted changes to working code
-2. Added logging to understand the flow
-3. Maintained type consistency
-4. Made minimal necessary changes
+1. Added comprehensive logging
+2. Understood the state flow
+3. Made minimal, focused changes
+4. Verified each state transition
 
 Key Takeaways:
-1. Don't fix what isn't broken
-2. Understand before modifying
-3. Check type consistency
-4. Add logging first
+1. Add logging before making changes
+2. Understand state flow completely
+3. Make minimal, focused changes
+4. Test each state transition
+
+## State Management Guidelines
+
+1. **Clear Ownership**
+   - Each piece of state should have clear ownership
+   - Use appropriate scope for state (component vs. global)
+   - Document state dependencies
+
+2. **Clean Transitions**
+   - Clear state properly between operations
+   - Handle all edge cases
+   - Document state cleanup requirements
+
+3. **Proper Testing**
+   - Test all state transitions
+   - Verify cleanup happens correctly
+   - Test edge cases thoroughly
 
 ## Pull Request Process
 
