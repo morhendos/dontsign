@@ -6,7 +6,6 @@ import { generateFileHash, isFileMatchingHash } from '../utils/hash';
 import type { StoredAnalysis } from '../types/storage';
 
 export const useContractAnalyzer = () => {
-  // Refs to track state
   const analysisHandledRef = useRef(false);
   const resultClosedByUserRef = useRef(false);
   const lastSelectedAnalysisIdRef = useRef<string | null>(null);
@@ -37,33 +36,18 @@ export const useContractAnalyzer = () => {
   const log = useLogVisibility({ entries });
   const results = useResultsDisplay({ 
     onHide: () => {
-      console.log('🏁 Results HIDE callback triggered');
       resultClosedByUserRef.current = true;
     }
   });
 
   // File selection handler
   const handleFileSelect = useCallback(async (newFile: File | null) => {
-    console.log('🏁 handleFileSelect:', {
-      newFileName: newFile?.name,
-      wasAnalysisHandled: analysisHandledRef.current,
-      wasResultClosed: resultClosedByUserRef.current,
-      lastAnalysisId: lastSelectedAnalysisIdRef.current
-    });
-
     results.hide();
     await baseHandleFileSelect(newFile);
   }, [baseHandleFileSelect, results]);
 
   // Analysis completion handler
   const handleAnalysisComplete = useCallback(async () => {
-    console.log('🏁 handleAnalysisComplete:', {
-      hasAnalysis: !!analysis,
-      hasFile: !!file,
-      wasAnalysisHandled: analysisHandledRef.current,
-      wasResultClosed: resultClosedByUserRef.current
-    });
-
     if (analysis && file && !analysisHandledRef.current) {
       analysisHandledRef.current = true;
       
@@ -81,48 +65,27 @@ export const useContractAnalyzer = () => {
       lastSelectedAnalysisIdRef.current = newAnalysis.id;
       resultClosedByUserRef.current = false;
       
-      console.log('🏁 Showing results after analysis completion');
       results.show();
     }
   }, [analysis, file, history, results]);
 
-  // Handle starting analysis
+  // Reset handled flag when starting new analysis
   const wrappedHandleStartAnalysis = useCallback(async () => {
-    console.log('🏁 wrappedHandleStartAnalysis:', {
-      wasAnalysisHandled: analysisHandledRef.current,
-      wasResultClosed: resultClosedByUserRef.current
-    });
-    
     analysisHandledRef.current = false;
     resultClosedByUserRef.current = false;
     await handleStartAnalysis();
   }, [handleStartAnalysis]);
 
-  // Select stored analysis
+  // Verify file match before showing stored analysis
   const handleSelectStoredAnalysis = useCallback(async (stored: StoredAnalysis) => {
-    console.log('🏁 handleSelectStoredAnalysis:', {
-      storedFileName: stored.fileName,
-      currentFileName: file?.name,
-      wasResultClosed: resultClosedByUserRef.current
-    });
-
-    // Always allow viewing stored analysis
     resultClosedByUserRef.current = false;
     lastSelectedAnalysisIdRef.current = stored.id;
     baseHandleSelectStoredAnalysis(stored);
     results.show();
   }, [baseHandleSelectStoredAnalysis, results]);
 
-  // Effect for analysis completion
+  // Only run completion logic when all conditions are met
   useEffect(() => {
-    console.log('🏁 Analysis completion effect:', {
-      hasAnalysis: !!analysis,
-      isAnalyzing,
-      stage,
-      wasAnalysisHandled: analysisHandledRef.current,
-      wasResultClosed: resultClosedByUserRef.current
-    });
-
     if (!analysisHandledRef.current && 
         analysis && 
         !isAnalyzing && 
