@@ -6,9 +6,9 @@ import { generateFileHash, isFileMatchingHash } from '../utils/hash';
 import type { StoredAnalysis } from '../types/storage';
 
 export const useContractAnalyzer = () => {
-  // Use refs to track state without causing re-renders
   const analysisHandledRef = useRef(false);
   const resultClosedByUserRef = useRef(false);
+  const lastSelectedAnalysisIdRef = useRef<string | null>(null);
 
   // Core state handlers
   const {
@@ -45,6 +45,7 @@ export const useContractAnalyzer = () => {
     results.hide();
     analysisHandledRef.current = false;
     resultClosedByUserRef.current = false;
+    lastSelectedAnalysisIdRef.current = null;
     await baseHandleFileSelect(newFile);
   }, [baseHandleFileSelect, results]);
 
@@ -55,14 +56,17 @@ export const useContractAnalyzer = () => {
       
       const fileHash = await generateFileHash(file);
       
-      history.addAnalysis({
+      const newAnalysis = {
         id: Date.now().toString(),
         fileName: file.name,
         fileHash,
         fileSize: file.size,
         analysis,
         analyzedAt: new Date().toISOString()
-      });
+      };
+      
+      history.addAnalysis(newAnalysis);
+      lastSelectedAnalysisIdRef.current = newAnalysis.id;
       
       results.show();
     }
@@ -72,25 +76,45 @@ export const useContractAnalyzer = () => {
   const wrappedHandleStartAnalysis = useCallback(async () => {
     analysisHandledRef.current = false;
     resultClosedByUserRef.current = false;
+    lastSelectedAnalysisIdRef.current = null;
     await handleStartAnalysis();
   }, [handleStartAnalysis]);
 
+  // Reset result flags
+  const resetResultFlags = useCallback(() => {
+    resultClosedByUserRef.current = false;
+    analysisHandledRef.current = true; // Prevent re-analysis of same content
+  }, []);
+
   // Verify file match before showing stored analysis
   const handleSelectStoredAnalysis = useCallback(async (stored: StoredAnalysis) => {
-    if (!file || file.size !== stored.fileSize) return;
+    // First reset flags - we're explicitly selecting an analysis
+    resetResultFlags();
+    
+    if (!file) return;
 
-    if (await isFileMatchingHash(file, stored.fileHash)) {
+    // If we're selecting the same analysis again after closing
+    if (stored.id === lastSelectedAnalysisIdRef.current && resultClosedByUserRef.current) {
       resultClosedByUserRef.current = false;
       baseHandleSelectStoredAnalysis(stored);
       results.show();
+      return;
     }
-  }, [baseHandleSelectStoredAnalysis, results, file]);
+
+    // For different analysis, verify match
+    if (file.size === stored.fileSize && await isFileMatchingHash(file, stored.fileHash)) {
+      lastSelectedAnalysisIdRef.current = stored.id;
+      baseHandleSelectStoredAnalysis(stored);
+      results.show();
+    }
+  }, [baseHandleSelectStoredAnalysis, results, file, resetResultFlags]);
 
   // Reset state when file changes
   useEffect(() => {
     if (file) {
       analysisHandledRef.current = false;
       resultClosedByUserRef.current = false;
+      lastSelectedAnalysisIdRef.current = null;
       
       if (analysis?.metadata.documentName !== file.name) {
         results.hide();
