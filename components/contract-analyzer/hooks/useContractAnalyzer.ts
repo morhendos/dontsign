@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAnalyzerState } from './state';
 import { useAnalysisHistory } from './storage';
 import { useLogVisibility, useResultsDisplay } from './ui';
+import { generateFileHash, isFileMatchingHash } from '../utils/hash';
 import type { StoredAnalysis } from '../types/storage';
 
 export const useContractAnalyzer = () => {
@@ -24,7 +25,6 @@ export const useContractAnalyzer = () => {
     handleFileSelect: baseHandleFileSelect,
     handleStartAnalysis,
     handleSelectStoredAnalysis: baseHandleSelectStoredAnalysis,
-    getFileHash, // Assuming this exists in the state management
   } = useAnalyzerState();
 
   // Analysis history
@@ -57,8 +57,8 @@ export const useContractAnalyzer = () => {
     if (analysis && file && !analysisHandledRef.current) {
       analysisHandledRef.current = true;
       
-      // Get file hash for storage
-      const fileHash = await getFileHash(file);
+      // Generate file hash for storage
+      const fileHash = await generateFileHash(file);
       
       // Store in history with file identifiers
       history.addAnalysis({
@@ -73,7 +73,7 @@ export const useContractAnalyzer = () => {
       // Show results
       results.show();
     }
-  }, [analysis, file, getFileHash, history, results]);
+  }, [analysis, file, history, results]);
 
   // Reset handled flag when starting new analysis
   const wrappedHandleStartAnalysis = useCallback(async () => {
@@ -92,13 +92,12 @@ export const useContractAnalyzer = () => {
       return;
     }
 
-    // Then verify hash
-    const currentHash = await getFileHash(file);
-    if (currentHash === stored.fileHash) {
+    // Then verify hash using existing utility
+    if (await isFileMatchingHash(file, stored.fileHash)) {
       baseHandleSelectStoredAnalysis(stored);
       results.show();
     }
-  }, [baseHandleSelectStoredAnalysis, results, file, getFileHash]);
+  }, [baseHandleSelectStoredAnalysis, results, file]);
 
   // Cleanup effect when file changes
   useEffect(() => {
