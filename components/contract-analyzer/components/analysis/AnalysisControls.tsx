@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -15,18 +16,11 @@ interface AnalysisControlsProps {
   onSelectStoredAnalysis: (analysis: StoredAnalysis) => void;
 }
 
-export const AnalysisControls = ({
+const AnalysisControlsComponent = ({
   hasStoredAnalyses,
   onSelectStoredAnalysis,
 }: AnalysisControlsProps) => {
-  // Debug log
-  console.log(
-    'AnalysisControls rendering, hasStoredAnalyses:',
-    hasStoredAnalyses
-  );
-
-  // Temporarily remove the conditional return to see if it renders at all
-  // if (!hasStoredAnalyses) return null;
+  if (!hasStoredAnalyses) return null;
 
   return (
     <div className="flex justify-center mb-4">
@@ -59,3 +53,6 @@ export const AnalysisControls = ({
     </div>
   );
 };
+
+// Memoize the component to prevent unnecessary re-renders
+export const AnalysisControls = memo(AnalysisControlsComponent);
