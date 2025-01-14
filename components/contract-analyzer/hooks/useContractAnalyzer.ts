@@ -48,20 +48,22 @@ export const useContractAnalyzer = () => {
     resultClosedByUserRef.current = false;
     lastSelectedAnalysisIdRef.current = null;
     currentAnalysisIdRef.current = null;
-    results.hide();
-  }, [results]);
+  }, []);
 
   // Wrapped file select handler with cleanup
   const handleFileSelect = useCallback(async (newFile: File | null) => {
-    // Reset all state when selecting a new file
-    resetAnalysisState();
-    
-    // Track new file name
-    currentFileRef.current = newFile?.name || null;
+    // Always hide results first
+    results.hide();
+
+    // Only reset state if it's a new file
+    if (!newFile || newFile.name !== currentFileRef.current) {
+      resetAnalysisState();
+      currentFileRef.current = newFile?.name || null;
+    }
     
     // Call the base handler
     await baseHandleFileSelect(newFile);
-  }, [baseHandleFileSelect, resetAnalysisState]);
+  }, [baseHandleFileSelect, resetAnalysisState, results]);
 
   // Handle analysis completion
   const handleAnalysisComplete = useCallback(async () => {
@@ -101,6 +103,11 @@ export const useContractAnalyzer = () => {
 
   // Verify file match before showing stored analysis
   const handleSelectStoredAnalysis = useCallback(async (stored: StoredAnalysis) => {
+    // Don't show stored analysis if we're analyzing a different file
+    if (currentFileRef.current && currentFileRef.current !== stored.fileName) {
+      return;
+    }
+
     // Reset flags for viewing stored analysis
     resultClosedByUserRef.current = false;
     lastSelectedAnalysisIdRef.current = stored.id;
@@ -119,14 +126,6 @@ export const useContractAnalyzer = () => {
       results.show();
     }
   }, [baseHandleSelectStoredAnalysis, results, file]);
-
-  // Reset state when file changes
-  useEffect(() => {
-    if (file && file.name !== currentFileRef.current) {
-      resetAnalysisState();
-      currentFileRef.current = file.name;
-    }
-  }, [file, resetAnalysisState]);
 
   // Only run completion logic when all conditions are met
   useEffect(() => {
