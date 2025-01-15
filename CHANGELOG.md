@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- Major refactoring of contract analysis functionality
+- Improved state management in ContractAnalyzer component
+- Fixed duplicate analysis prevention
+- Enhanced history management
+- Added comprehensive architecture documentation
+
 ## [v1.1.0] - 2024-12-20
 
 ### Added

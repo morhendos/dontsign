@@ -13,168 +13,138 @@ DontSign is a web application that helps users analyze contracts using AI. It pr
 - Sentry for error tracking
 - Local storage for analysis history
 
-## Core Components Structure
+## Project Structure
 
-### `components/hero/`
-The main interface container that orchestrates all sub-components:
-- Manages global state (file, analysis results, errors)
-- Handles main analysis flow
-- Integrates with OpenAI API
-- Manages real-time progress updates and streaming
-- Handles analysis history and stored results
+### `/app`
+Next.js 14 app directory:
+- `page.tsx` - Main landing page
+- `layout.tsx` - Root layout with theme provider
+- `actions.ts` - Server actions for contract analysis
+- Route pages for `/contact`, `/privacy`, `/terms`
 
-### `components/contract-upload/`
-Handles file upload functionality:
-- Drag & drop support
-- File type validation (PDF/DOCX)
-- Error handling for invalid files
-- Analytics tracking for upload events
+### `/components`
 
-### `components/contract-analysis/`
-Manages the analysis process:
-- Analysis button with loading states
-- Integration with server-side analysis
-- Progress tracking visualization
-- Real-time status updates
+#### `contract-analyzer/`
+Core analysis functionality:
+- `ContractAnalyzer.tsx` - Main orchestration component
+- `/components`
+  - `analysis/` - Analysis UI components (progress, results, controls)
+  - `layout/` - Layout components
+  - `upload/` - File upload handling
+- `/hooks`
+  - `useContractAnalyzer.ts` - Main analysis orchestration hook
+  - `useAnalyzerState.ts` - Analysis state management
+  - `useAnalysisHistory.ts` - History management
+  - `useLogVisibility.ts` - Log visibility control
+  - `useResultsDisplay.ts` - Results display management
+- `/utils` - Utility functions
+- `/types` - TypeScript type definitions
 
-### `components/error/`
-Error display components:
-- Visual error feedback
-- Different styles for warnings vs errors
-- Clear error messaging
+#### `analysis-history/`
+History management:
+- `AnalysisHistory.tsx` - Previous analyses interface
 
-### `components/analysis-results/`
-Displays analysis results:
-- Modal presentation
-- Responsive layout
-- Animation transitions
-- Previous analyses history
+#### `analysis-log/`
+Progress logging:
+- `AnalysisLog.tsx` - Analysis progress logging component
 
-## Key Files and Their Purposes
+#### `ui/`
+Reusable UI components (shadcn/ui):
+- Buttons, Cards, Progress bars, etc.
 
-### `types/analysis.ts`
-Contains shared TypeScript interfaces:
-```typescript
-interface AnalysisResult {
-  summary: string;
-  keyTerms: string[];
-  potentialRisks: string[];
-  importantClauses: string[];
-  recommendations?: string[];
-  metadata?: {
-    analyzedAt: string;
-    documentName: string;
-    modelVersion: string;
-    totalChunks?: number;
-  };
-}
-```
+#### Other Components
+- `theme/` - Theme management
+- `logo/` - Logo components
+- `contact/` - Contact form
 
-### `lib/storage.ts`
-Handles analysis persistence:
-```typescript
-interface StoredAnalysis {
-  id: string;
-  fileName: string;
-  analysis: AnalysisResult;
-  analyzedAt: string;
-}
-```
+### `/lib`
+Core utilities and services:
+- `analytics.ts` - Analytics tracking
+- `errors.ts` - Error handling
+- `pdf-utils.ts` - PDF processing
+- `storage.ts` - Local storage management
+- `text-utils.ts` - Text processing
+- `/services/openai` - OpenAI integration
 
-### `app/api/analyze/route.ts`
-API endpoint for contract analysis:
-- Implements streaming response with progress updates
-- Handles OpenAI API integration
-- Processes text in chunks with real-time feedback
+## Key Features
 
-### `lib/pdf-utils.ts`
-PDF processing utilities:
-- Text extraction
-- Error handling for corrupt files
-- Worker configuration
-
-## Features
-
-### Real-time Analysis
-- Progress tracking
-- Status updates
-- Streaming response handling
+### Contract Analysis
+- Real-time analysis with progress tracking
+- Support for PDF and DOCX files
+- Chunked text processing for large documents
+- Comprehensive results with key terms, risks, and recommendations
 
 ### Analysis History
-- Local storage persistence
-- View previous analyses
-- Delete old analyses
+- Local storage of previous analyses
 - Quick access to recent results
+- History management interface
 
-### Error Handling
-Comprehensive error handling system:
-1. Custom error types
-2. Sentry integration
-3. User-friendly error messages
-4. Analytics tracking
+### User Interface
+- Dark/light mode support
+- Responsive design
+- Progress indicators
+- Error handling with user-friendly messages
 
 ## State Management
-Component state management using React hooks:
-```typescript
-// Analysis States
-const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-const [currentStoredAnalysis, setCurrentStoredAnalysis] = 
-  useState<StoredAnalysis | null>(null);
+Each major feature has its own state management:
 
-// UI States
-const [showResults, setShowResults] = useState(false);
-const [hasStoredAnalyses, setHasStoredAnalyses] = useState(false);
+### Analysis State
+```typescript
+const {
+  file,
+  error,
+  isProcessing,
+  isAnalyzing,
+  status,
+  progress,
+  stage,
+  currentChunk,
+  totalChunks,
+  analysis,
+  isAnalyzed,
+} = useAnalyzerState();
+```
+
+### History State
+```typescript
+const {
+  analyses,
+  selectedAnalysis,
+  hasAnalyses,
+  addAnalysis,
+  removeAnalysis,
+  clearHistory
+} = useAnalysisHistory();
 ```
 
 ## Development Guidelines
 
 ### Adding New Features
 1. Create components in appropriate directories
-2. Update types if needed
+2. Implement hooks for state management
 3. Add error handling
 4. Include analytics tracking
 5. Update documentation
 
 ### Code Style
-- Use TypeScript for all new components
+- Use TypeScript for all components
 - Follow existing component structure
-- Use shadcn/ui components where possible
+- Use shadcn/ui components
 - Implement proper error handling
 - Add analytics tracking
 
-### Testing
-Important areas to test:
-- File upload handling
-- Error scenarios
-- Analysis process
-- UI responsiveness
-- History functionality
-
 ### Deployment
-The project uses automatic deployment:
+Automatic deployment:
 - Production deploys from main branch
 - Create feature branches for new work
 - Use PR process for code review
-
-## Common Tasks
-
-### Adding New Analysis Types
-1. Update `AnalysisResult` interface
-2. Modify OpenAI prompt
-3. Add new section component
-4. Update result display
-
-### Modifying History Features
-1. Update storage interface
-2. Modify UI components
-3. Update state management
-4. Test persistence
 
 ## Environment Setup
 Required environment variables:
 ```env
 OPENAI_API_KEY=your_key_here
 SENTRY_DSN=your_sentry_dsn
+ANALYTICS_ID=your_analytics_id
 ```
 
 Development server:
