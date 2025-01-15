@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAnalyzerState } from './state';
 import { useAnalysisHistory } from './storage';
 import { useLogVisibility, useResultsDisplay } from './ui';
-import { generateFileHash, isFileMatchingHash } from '../utils/hash';
-import type { StoredAnalysis } from '../types/storage';
+import { generateFileHash } from '../utils/hash';
+import type { StoredAnalysis } from '@/types/storage';
 
 export const useContractAnalyzer = () => {
   const analysisHandledRef = useRef(false);
@@ -76,7 +76,7 @@ export const useContractAnalyzer = () => {
     await handleStartAnalysis();
   }, [handleStartAnalysis]);
 
-  // Verify file match before showing stored analysis
+  // Select stored analysis
   const handleSelectStoredAnalysis = useCallback(async (stored: StoredAnalysis) => {
     resultClosedByUserRef.current = false;
     lastSelectedAnalysisIdRef.current = stored.id;
@@ -84,7 +84,7 @@ export const useContractAnalyzer = () => {
     results.show();
   }, [baseHandleSelectStoredAnalysis, results]);
 
-  // Only run completion logic when all conditions are met
+  // Effect for analysis completion
   useEffect(() => {
     if (!analysisHandledRef.current && 
         analysis && 

@@ -6,7 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { History, Trash2, X, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getStoredAnalyses, deleteAnalysis, type StoredAnalysis } from '@/lib/storage';
+import { getStoredAnalyses, deleteAnalysis } from '@/lib/storage';
+import type { StoredAnalysis } from '@/types/storage';
 
 interface AnalysisHistoryProps {
   onSelect: (analysis: StoredAnalysis) => void;
