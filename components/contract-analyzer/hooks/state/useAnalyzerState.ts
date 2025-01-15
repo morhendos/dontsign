@@ -35,7 +35,8 @@ export const useAnalyzerState = () => {
     totalChunks,
     analyze,
     updateState,
-    setFile: setAnalysisFile
+    analysisFile,
+    setAnalysisFile
   } = useContractAnalysis({
     onStatusUpdate: updateStatus,
     onEntryComplete: () => {
@@ -69,8 +70,9 @@ export const useAnalyzerState = () => {
     processing.setIsProcessingNew(false);
     
     // Update file
+    setAnalysisFile(newFile);
     baseHandleFileSelect(newFile);
-  }, [baseHandleFileSelect, processing]);
+  }, [baseHandleFileSelect, processing, setAnalysisFile]);
 
   // Handle starting analysis
   const handleStartAnalysis = useCallback(async () => {
@@ -113,6 +115,7 @@ export const useAnalyzerState = () => {
           id: Date.now().toString(),
           fileName: file.name,
           fileHash,
+          fileSize: file.size,
           analysis: result,
           analyzedAt: new Date().toISOString()
         });
