@@ -1,4 +1,4 @@
-import { type StorageOptions, type StoredAnalysis } from '../types';
+import { type StorageOptions, type StoredAnalysis } from '@/types/storage';
 
 const DEFAULT_OPTIONS: Required<StorageOptions> = {
   maxItems: 10,
