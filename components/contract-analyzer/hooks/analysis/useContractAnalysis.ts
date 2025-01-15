@@ -14,6 +14,7 @@ export interface UseContractAnalysisOptions {
  * Hook for handling the contract analysis process
  */
 export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) => {
+  const [analysisFile, setAnalysisFile] = useState<File | null>(null);
   const [state, setState] = useState<AnalysisState>({
     analysis: null,
     isAnalyzing: false,
@@ -184,7 +185,7 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
               if (data.type === 'complete') {
                 const analysisTime = (Date.now() - startTime) / 1000;
                 trackAnalysis.complete(file.type, analysisTime);
-                break;
+                return data.result;
               }
             }
           }
@@ -230,6 +231,8 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
 
   return {
     ...state,
+    analysisFile,
+    setAnalysisFile,
     analyze,
     updateState
   };
