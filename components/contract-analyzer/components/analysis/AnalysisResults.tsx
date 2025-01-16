@@ -100,7 +100,6 @@ export const AnalysisResults = ({
               <section className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Analysis completed at {new Date(analysis.metadata.analyzedAt).toLocaleString()}
-                  {analysis.metadata.modelVersion && ` • Using ${analysis.metadata.modelVersion}`}
                   {analysis.metadata.sectionsAnalyzed && ` • ${analysis.metadata.sectionsAnalyzed} sections analyzed`}
                 </p>
               </section>
