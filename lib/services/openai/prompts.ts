@@ -19,6 +19,22 @@ Guidelines for analysis:
 - Highlight key dates and deadlines
 - Focus on actionable insights`;
 
+export const SYSTEM_SUMMARY_PROMPT = `You are an expert at writing clear, concise summaries of legal documents. Your role is to:
+
+1. Identify and state the type of contract
+2. Clearly describe its main purpose
+3. Name the key parties involved
+4. State ONLY the core obligations
+
+Do not include:
+- Analysis or opinions
+- Risks or concerns
+- Recommendations
+- Detailed breakdowns
+- Technical terms unless essential
+
+Keep it simple, direct, and factual.`;
+
 export const USER_PROMPT_TEMPLATE = (chunk: string, chunkIndex: number, totalChunks: number) => 
 `Section ${chunkIndex + 1}/${totalChunks}:
 
@@ -63,6 +79,7 @@ DO NOT:
 - List key terms or important clauses
 - Use phrases like "Executive Summary" or "The contract outlines"
 - Provide detailed breakdowns of terms
+- Use technical legal terminology unless essential
 - Exceed 3 sentences
 
 Example good summary:
@@ -71,6 +88,7 @@ Example good summary:
 Contract sections to summarize:
 ${sectionSummaries.join('\n')}`;
 
+// Core analysis configuration
 export const ANALYSIS_CONFIG = {
   model: "gpt-3.5-turbo-1106",
   temperature: 0.3,
@@ -78,6 +96,7 @@ export const ANALYSIS_CONFIG = {
   response_format: { type: "json_object" }
 } as const;
 
+// Summary specific configuration - more constrained
 export const SUMMARY_CONFIG = {
   model: "gpt-3.5-turbo-1106",
   temperature: 0.1,  // Lower temperature for more consistent, direct summaries
