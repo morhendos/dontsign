@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/nextjs";
 import { ContractAnalysisError } from "@/lib/errors";
 import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
+import { SYSTEM_PROMPT, USER_PROMPT_TEMPLATE, ANALYSIS_CONFIG } from "@/lib/services/openai/prompts";
 
 interface ProgressUpdate {
   type: 'update';
@@ -30,14 +31,11 @@ async function updateProgress(onProgress: ProgressCallback, data: ProgressUpdate
 
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
   const response = await openAIService.createChatCompletion({
-    model: "gpt-3.5-turbo-1106",
+    ...ANALYSIS_CONFIG,
     messages: [
-      { role: "system", content: "You are a legal expert. Analyze this contract section concisely." },
-      { role: "user", content: `Section ${chunkIndex + 1}/${totalChunks}:\n${chunk}\n\nProvide JSON with: summary (brief), keyTerms, potentialRisks, importantClauses, recommendations.` },
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: USER_PROMPT_TEMPLATE(chunk, chunkIndex, totalChunks) },
     ],
-    temperature: 0.3,
-    max_tokens: 1000,
-    response_format: { type: "json_object" },
   });
 
   const content = response.choices[0]?.message?.content;
@@ -151,14 +149,14 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
     // Prepare final analysis
     const finalAnalysis = {
       summary: `Analysis complete. Found ${results.length} key sections.\n\n${results.map(r => r.summary).join('\n')}`,
-      keyTerms: [...new Set(results.flatMap(r => r.keyTerms))],
-      potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))],
-      importantClauses: [...new Set(results.flatMap(r => r.importantClauses))],
-      recommendations: [...new Set(results.flatMap(r => r.recommendations || []))],
+      keyTerms: [...new Set(results.flatMap(r => r.keyTerms))].filter(Boolean),
+      potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))].filter(Boolean),
+      importantClauses: [...new Set(results.flatMap(r => r.importantClauses))].filter(Boolean),
+      recommendations: [...new Set(results.flatMap(r => r.recommendations || []))].filter(Boolean),
       metadata: {
         analyzedAt: new Date().toISOString(),
         documentName: filename,
-        modelVersion: "gpt-3.5-turbo-1106",
+        modelVersion: ANALYSIS_CONFIG.model,
         totalChunks: chunks.length,
         currentChunk: chunks.length
       }
