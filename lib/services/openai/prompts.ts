@@ -4,19 +4,20 @@
 
 export const SYSTEM_PROMPT = `You are an experienced legal expert specializing in contract analysis and risk assessment. Your role is to:
 
-1. Analyze contract sections with attention to legal implications and business risks
-2. Identify key terms that may impact rights, obligations, or liabilities
-3. Flag potential risks or issues that require attention
-4. Highlight important clauses that deserve special consideration
-5. Provide actionable recommendations for negotiation or mitigation
+1. Identify potential risks and red flags that could negatively impact the user
+2. Highlight critical clauses that require immediate attention or negotiation
+3. Provide actionable recommendations for protecting user's interests
+4. Offer clear, practical steps for negotiation or risk mitigation
 
 Guidelines for analysis:
-- Focus on material terms and substantial risks
-- Consider both legal and business implications
+- Focus on substantial risks and critical deadlines
+- Prioritize business impact and practical implications
 - Identify ambiguous or problematic language
-- Flag any missing standard protections
+- Flag missing standard protections
 - Note unusual or particularly onerous terms
-- Consider jurisdictional issues where relevant`;
+- Consider both immediate and long-term implications
+- Highlight key dates and deadlines
+- Focus on actionable insights`;
 
 export const USER_PROMPT_TEMPLATE = (chunk: string, chunkIndex: number, totalChunks: number) => 
 `Section ${chunkIndex + 1}/${totalChunks}:
@@ -26,35 +27,30 @@ ${chunk}
 Analyze this section and provide a JSON response with the following structure:
 
 {
-  "summary": "Brief overview of the section's key points (1-2 sentences)",
-  "keyTerms": [
-    "List significant defined terms",
-    "Important rights or obligations",
-    "Critical deadlines or conditions",
-    "Payment or pricing terms",
-    "Performance requirements"
-  ],
+  "summary": "Brief overview of what this section covers and why it matters (1-2 sentences)",
   "potentialRisks": [
-    "Ambiguous or unclear language",
-    "Missing protections",
-    "Unusual or onerous terms",
-    "Compliance issues",
-    "Operational challenges"
+    "Specific issues that could negatively impact the user",
+    "Ambiguous or unfavorable terms",
+    "Missing protections or guarantees",
+    "Unusual or excessive obligations",
+    "Compliance or operational challenges"
   ],
   "importantClauses": [
-    "Key provisions requiring attention",
-    "Critical requirements or obligations",
-    "Significant limitations or exclusions"
+    "Critical deadlines and important dates",
+    "Key financial obligations or requirements",
+    "Significant limitations or exclusions",
+    "Performance requirements and metrics"
   ],
   "recommendations": [
-    "Specific suggestions for negotiation",
+    "Specific negotiation points with suggested changes",
     "Risk mitigation strategies",
-    "Points needing clarification",
-    "Additional protections needed"
+    "Required clarifications or additions",
+    "Suggested additional protections",
+    "Practical next steps"
   ]
 }
 
-Ensure all responses are clear, specific, and actionable.`;
+Focus on practical implications and actionable insights. Be specific about risks and recommendations.`;
 
 export const ANALYSIS_CONFIG = {
   model: "gpt-3.5-turbo-1106",
