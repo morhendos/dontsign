@@ -40,10 +40,10 @@ export const USER_PROMPT_TEMPLATE = (chunk: string, chunkIndex: number, totalChu
 
 ${chunk}
 
-Analyze this section and provide a JSON response with the following structure:
+Provide a JSON response with the following structure:
 
 {
-  "summary": "Describe the main purpose and key requirements of this section. Focus on WHAT the contract section does, not your analysis of it.",
+  "summary": "State only what this section establishes or requires. DO NOT include any analysis. Example: 'This section sets the purchase price at $50,000 and requires payment in full within 30 days.' NOT 'This section outlines payment terms including...'.",
   "potentialRisks": [
     "Specific issues that could negatively impact the user",
     "Ambiguous or unfavorable terms",
@@ -67,7 +67,7 @@ Analyze this section and provide a JSON response with the following structure:
 }`;
 
 export const FINAL_SUMMARY_PROMPT = (sectionSummaries: string[]) => 
-`Write a 2-3 sentence description of what this contract is and does. Keep it simple and factual.
+`Write a 2-3 sentence description of what this contract is and does. Start with "This is a" and focus only on core facts.
 
 DO:
 - Start with "This is a [type] contract between [parties] for [purpose]"
@@ -77,13 +77,17 @@ DO:
 DO NOT:
 - Include analysis, risks, or recommendations
 - List key terms or important clauses
-- Use phrases like "Executive Summary" or "The contract outlines"
+- Use phrases like "The contract outlines" or "This section covers"
 - Provide detailed breakdowns of terms
 - Use technical legal terminology unless essential
+- Add any evaluation or opinions
 - Exceed 3 sentences
 
 Example good summary:
 "This is a vehicle purchase agreement between John Smith (Seller) and Jane Doe (Buyer) for the sale of a 2018 Toyota Camry at $15,000. The seller will transfer vehicle ownership upon receiving full payment, and the buyer must complete registration within 30 days."
+
+Example bad summary:
+"The contract outlines the terms and conditions for the sale of an automobile, including obligations, documents required, and registration responsibilities. Key terms include..."
 
 Contract sections to summarize:
 ${sectionSummaries.join('\n')}`;
