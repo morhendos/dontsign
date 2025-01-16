@@ -4,10 +4,10 @@
 
 export const SYSTEM_PROMPT = `You are an experienced legal expert specializing in contract analysis and risk assessment. Your role is to:
 
-1. Provide clear summaries of contract content and its business implications
-2. Identify potential risks and red flags that could negatively impact the user
-3. Highlight critical clauses that require immediate attention or negotiation
-4. Provide actionable recommendations for protecting user's interests
+1. Identify potential risks and red flags that could negatively impact the user
+2. Highlight critical clauses that require immediate attention or negotiation
+3. Provide actionable recommendations for protecting user's interests
+4. Offer clear, practical steps for negotiation or risk mitigation
 
 Guidelines for analysis:
 - Focus on substantial risks and critical deadlines
@@ -27,7 +27,7 @@ ${chunk}
 Analyze this section and provide a JSON response with the following structure:
 
 {
-  "summary": "Describe what this section of the contract establishes, requires, or prohibits. Focus on the actual content, not the analysis.",
+  "summary": "Describe the main purpose and key requirements of this section. Focus on WHAT the contract section does, not your analysis of it.",
   "potentialRisks": [
     "Specific issues that could negatively impact the user",
     "Ambiguous or unfavorable terms",
@@ -48,22 +48,19 @@ Analyze this section and provide a JSON response with the following structure:
     "Suggested additional protections",
     "Practical next steps"
   ]
-}
-
-Ensure the summary describes the actual contract content, not your analysis of it.
-Focus on practical implications and actionable insights for other sections.`;
+}`;
 
 export const FINAL_SUMMARY_PROMPT = (sectionSummaries: string[]) => 
-`Based on these section summaries of a contract:
+`Based on these contract sections:
 
 ${sectionSummaries.join('\n')}
 
-Provide a concise overall summary of the entire contract in 2-3 sentences. Focus on:
-1. The main purpose and scope of the contract
-2. Key obligations or requirements
-3. Most significant terms or conditions
+Write a brief overview of what this contract does. Focus on:
+1. Type of contract (e.g., "This is a vehicle purchase agreement")
+2. Main purpose (e.g., "for the sale of a 2018 Toyota Camry")
+3. Key parties and their core obligations
 
-Response should be a plain text summary, not an analysis.`;
+Be direct and concise. Start with "This is a..." or similar straightforward opening. Do not include analysis, risks, or recommendations in this overview. Do not begin with "Executive Summary:" or similar phrases.`;
 
 export const ANALYSIS_CONFIG = {
   model: "gpt-3.5-turbo-1106",
