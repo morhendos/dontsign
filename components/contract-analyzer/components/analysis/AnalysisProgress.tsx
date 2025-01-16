@@ -1,7 +1,7 @@
 import { Progress } from '@/components/ui/progress';
 
 interface AnalysisProgressProps {
-  currentChunk: number;
+  sectionsAnalyzed: number;
   totalChunks: number;
   isAnalyzing: boolean;
   stage: 'preprocessing' | 'analyzing' | 'complete';
@@ -10,7 +10,7 @@ interface AnalysisProgressProps {
 }
 
 export const AnalysisProgress = ({
-  currentChunk,
+  sectionsAnalyzed,
   totalChunks,
   isAnalyzing,
   stage,
@@ -37,9 +37,9 @@ export const AnalysisProgress = ({
           : 'bg-blue-600 dark:bg-blue-500'}
       />
 
-      {stage === 'analyzing' && currentChunk > 0 && totalChunks > 0 && (
+      {stage === 'analyzing' && sectionsAnalyzed > 0 && totalChunks > 0 && (
         <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
-          Processing section {currentChunk} of {totalChunks}
+          Processing section {sectionsAnalyzed} of {totalChunks}
         </div>
       )}
     </div>
