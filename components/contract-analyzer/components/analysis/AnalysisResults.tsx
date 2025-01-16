@@ -65,7 +65,7 @@ export const AnalysisResults = ({
 
             {/* Potential Risks */}
             <section className="bg-red-50 dark:bg-red-950/30 p-6 rounded-lg">
-              <h2 className="text-2xl font-bold mb-4 text-red-700 dark:text-red-400">⚠️ Watch Out For These</h2>
+              <h2 className="text-2xl font-bold mb-4 text-red-700 dark:text-red-400">Potential Risks</h2>
               <ul className="list-disc pl-5 space-y-2">
                 {analysis.potentialRisks.map((risk, index) => (
                   <li key={index} className="text-gray-700 dark:text-gray-300">{risk}</li>
