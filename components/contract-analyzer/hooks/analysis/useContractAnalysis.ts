@@ -21,7 +21,7 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
     error: null,
     progress: 0,
     stage: 'preprocessing',
-    currentChunk: 0,
+    sectionsAnalyzed: 0,
     totalChunks: 0
   });
 
@@ -53,7 +53,7 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
 
       if (data.progress) next.progress = data.progress;
       if (data.stage) next.stage = data.stage;
-      if (data.currentChunk) next.currentChunk = data.currentChunk;
+      if (data.currentChunk) next.sectionsAnalyzed = data.currentChunk;
       if (data.totalChunks) next.totalChunks = data.totalChunks;
 
       // Show most detailed message available
@@ -66,7 +66,7 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
           ...next.analysis,
           metadata: {
             ...next.analysis.metadata!,
-            currentChunk: data.currentChunk || next.analysis.metadata!.currentChunk,
+            sectionsAnalyzed: data.currentChunk || next.analysis.metadata!.sectionsAnalyzed,
             totalChunks: data.totalChunks || next.analysis.metadata!.totalChunks,
             stage: data.stage || next.analysis.metadata!.stage,
             progress: data.progress || next.analysis.metadata!.progress
@@ -107,7 +107,7 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
       analysis: null,
       progress: 2,
       stage: 'preprocessing',
-      currentChunk: 0,
+      sectionsAnalyzed: 0,
       totalChunks: 0
     }));
 
@@ -124,7 +124,6 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
         ...prev,
         analysis: {
           summary: "Starting analysis...",
-          keyTerms: [],
           potentialRisks: [],
           importantClauses: [],
           recommendations: [],
@@ -134,7 +133,7 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
             modelVersion: "gpt-3.5-turbo-1106",
             stage: 'preprocessing',
             progress: 5,
-            currentChunk: 0,
+            sectionsAnalyzed: 0,
             totalChunks: 0,
           }
         }
@@ -210,7 +209,7 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
         },
         progress: 0,
         stage: 'preprocessing',
-        currentChunk: 0,
+        sectionsAnalyzed: 0,
         totalChunks: 0,
         isAnalyzing: false
       }));
