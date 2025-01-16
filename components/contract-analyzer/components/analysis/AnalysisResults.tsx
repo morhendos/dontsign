@@ -57,23 +57,13 @@ export const AnalysisResults = ({
           <div className="space-y-8">
             {/* Summary */}
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Summary</h2>
+              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Contract Overview</h2>
               <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{analysis.summary}</p>
-            </section>
-
-            {/* Key Terms */}
-            <section>
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Key Terms</h2>
-              <ul className="list-disc pl-5 space-y-2">
-                {analysis.keyTerms.map((term, index) => (
-                  <li key={index} className="text-gray-700 dark:text-gray-300">{term}</li>
-                ))}
-              </ul>
             </section>
 
             {/* Potential Risks */}
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Potential Risks</h2>
+              <h2 className="text-2xl font-bold mb-4 text-red-600 dark:text-red-400">Potential Risks</h2>
               <ul className="list-disc pl-5 space-y-2">
                 {analysis.potentialRisks.map((risk, index) => (
                   <li key={index} className="text-gray-700 dark:text-gray-300">{risk}</li>
@@ -83,7 +73,7 @@ export const AnalysisResults = ({
 
             {/* Important Clauses */}
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Important Clauses</h2>
+              <h2 className="text-2xl font-bold mb-4 text-blue-600 dark:text-blue-400">Critical Terms & Deadlines</h2>
               <ul className="list-disc pl-5 space-y-2">
                 {analysis.importantClauses.map((clause, index) => (
                   <li key={index} className="text-gray-700 dark:text-gray-300">{clause}</li>
@@ -94,12 +84,23 @@ export const AnalysisResults = ({
             {/* Recommendations */}
             {analysis.recommendations && analysis.recommendations.length > 0 && (
               <section>
-                <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Recommendations</h2>
+                <h2 className="text-2xl font-bold mb-4 text-green-600 dark:text-green-400">Recommendations</h2>
                 <ul className="list-disc pl-5 space-y-2">
                   {analysis.recommendations.map((rec, index) => (
                     <li key={index} className="text-gray-700 dark:text-gray-300">{rec}</li>
                   ))}
                 </ul>
+              </section>
+            )}
+
+            {/* Analysis Info */}
+            {analysis.metadata && (
+              <section className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Analysis completed at {new Date(analysis.metadata.analyzedAt).toLocaleString()}
+                  {analysis.metadata.modelVersion && ` • Using ${analysis.metadata.modelVersion}`}
+                  {analysis.metadata.sectionsAnalyzed && ` • ${analysis.metadata.sectionsAnalyzed} sections analyzed`}
+                </p>
               </section>
             )}
           </div>
