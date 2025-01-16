@@ -6,6 +6,7 @@ import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
 import { 
   SYSTEM_PROMPT, 
+  SYSTEM_SUMMARY_PROMPT,
   USER_PROMPT_TEMPLATE, 
   FINAL_SUMMARY_PROMPT,
   ANALYSIS_CONFIG,
@@ -53,7 +54,7 @@ async function generateOverallSummary(sectionSummaries: string[]) {
   const response = await openAIService.createChatCompletion({
     ...SUMMARY_CONFIG,
     messages: [
-      { role: "system", content: "You are an expert at summarizing legal documents clearly and concisely." },
+      { role: "system", content: SYSTEM_SUMMARY_PROMPT },
       { role: "user", content: FINAL_SUMMARY_PROMPT(sectionSummaries) },
     ],
   });
