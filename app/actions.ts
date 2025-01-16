@@ -130,8 +130,8 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
     // Results processing phase
     const finalSteps = [
       { progress: 80, activity: "Processing section summaries..." },
-      { progress: 85, activity: "Analyzing key terms..." },
-      { progress: 90, activity: "Evaluating potential risks..." },
+      { progress: 85, activity: "Evaluating potential risks..." },
+      { progress: 90, activity: "Identifying critical clauses..." },
       { progress: 95, activity: "Preparing recommendations..." }
     ];
 
@@ -149,7 +149,6 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
     // Prepare final analysis
     const finalAnalysis = {
       summary: `Analysis complete. Found ${results.length} key sections.\n\n${results.map(r => r.summary).join('\n')}`,
-      keyTerms: [...new Set(results.flatMap(r => r.keyTerms))].filter(Boolean),
       potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))].filter(Boolean),
       importantClauses: [...new Set(results.flatMap(r => r.importantClauses))].filter(Boolean),
       recommendations: [...new Set(results.flatMap(r => r.recommendations || []))].filter(Boolean),
