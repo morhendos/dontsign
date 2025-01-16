@@ -24,7 +24,7 @@ export const ContractAnalyzer = () => {
     status,
     progress,
     stage,
-    currentChunk,
+    sectionsAnalyzed,
     totalChunks,
     analysis,
     isAnalyzed,
@@ -70,7 +70,7 @@ export const ContractAnalyzer = () => {
         {isAnalyzing && (
           <div className="w-full max-w-md mx-auto">
             <AnalysisProgress
-              currentChunk={currentChunk}
+              sectionsAnalyzed={sectionsAnalyzed}
               totalChunks={totalChunks}
               isAnalyzing={isAnalyzing}
               stage={stage}
