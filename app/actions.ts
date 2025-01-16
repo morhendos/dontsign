@@ -4,7 +4,13 @@ import * as Sentry from "@sentry/nextjs";
 import { ContractAnalysisError } from "@/lib/errors";
 import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
-import { SYSTEM_PROMPT, USER_PROMPT_TEMPLATE, ANALYSIS_CONFIG } from "@/lib/services/openai/prompts";
+import { 
+  SYSTEM_PROMPT, 
+  USER_PROMPT_TEMPLATE, 
+  FINAL_SUMMARY_PROMPT,
+  ANALYSIS_CONFIG,
+  SUMMARY_CONFIG 
+} from "@/lib/services/openai/prompts";
 
 interface ProgressUpdate {
   type: 'update';
@@ -43,6 +49,20 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
   return JSON.parse(content);
 }
 
+async function generateOverallSummary(sectionSummaries: string[]) {
+  const response = await openAIService.createChatCompletion({
+    ...SUMMARY_CONFIG,
+    messages: [
+      { role: "system", content: "You are an expert at summarizing legal documents clearly and concisely." },
+      { role: "user", content: FINAL_SUMMARY_PROMPT(sectionSummaries) },
+    ],
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
+  return content;
+}
+
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
   try {
     // Input validation
@@ -78,8 +98,6 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       activity: "Processing document..."
     });
 
-    await sleep(MIN_STEP_TIME); // Extra wait to show preprocessing
-
     const chunks = splitIntoChunks(text);
     if (chunks.length === 0) {
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
@@ -92,8 +110,6 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       stage: 'preprocessing',
       activity: "Preparing AI model..."
     });
-
-    await sleep(MIN_STEP_TIME); // Extra wait for model init
 
     await updateProgress(onProgress, {
       type: 'update',
@@ -122,9 +138,6 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
 
       results.push(await analyzeChunk(chunks[i], i, chunks.length));
       currentProgress += progressPerChunk;
-
-      // Small delay after each chunk
-      await sleep(500);
     }
 
     // Results processing phase
@@ -146,9 +159,14 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       });
     }
 
+    // Generate overall summary from section summaries
+    const summary = await generateOverallSummary(
+      results.map(r => r.summary)
+    );
+
     // Prepare final analysis
     const finalAnalysis = {
-      summary: `Analysis complete. Found ${results.length} key sections.\n\n${results.map(r => r.summary).join('\n')}`,
+      summary,
       potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))].filter(Boolean),
       importantClauses: [...new Set(results.flatMap(r => r.importantClauses))].filter(Boolean),
       recommendations: [...new Set(results.flatMap(r => r.recommendations || []))].filter(Boolean),
@@ -157,7 +175,7 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
         documentName: filename,
         modelVersion: ANALYSIS_CONFIG.model,
         totalChunks: chunks.length,
-        currentChunk: chunks.length
+        sectionsAnalyzed: chunks.length
       }
     };
 
