@@ -51,16 +51,25 @@ Analyze this section and provide a JSON response with the following structure:
 }`;
 
 export const FINAL_SUMMARY_PROMPT = (sectionSummaries: string[]) => 
-`Based on these contract sections:
+`Write a 2-3 sentence description of what this contract is and does. Keep it simple and factual.
 
-${sectionSummaries.join('\n')}
+DO:
+- Start with "This is a [type] contract between [parties] for [purpose]"
+- State only the core purpose and main obligations
+- Use plain, direct language
 
-Write a brief overview of what this contract does. Focus on:
-1. Type of contract (e.g., "This is a vehicle purchase agreement")
-2. Main purpose (e.g., "for the sale of a 2018 Toyota Camry")
-3. Key parties and their core obligations
+DO NOT:
+- Include analysis, risks, or recommendations
+- List key terms or important clauses
+- Use phrases like "Executive Summary" or "The contract outlines"
+- Provide detailed breakdowns of terms
+- Exceed 3 sentences
 
-Be direct and concise. Start with "This is a..." or similar straightforward opening. Do not include analysis, risks, or recommendations in this overview. Do not begin with "Executive Summary:" or similar phrases.`;
+Example good summary:
+"This is a vehicle purchase agreement between John Smith (Seller) and Jane Doe (Buyer) for the sale of a 2018 Toyota Camry at $15,000. The seller will transfer vehicle ownership upon receiving full payment, and the buyer must complete registration within 30 days."
+
+Contract sections to summarize:
+${sectionSummaries.join('\n')}`;
 
 export const ANALYSIS_CONFIG = {
   model: "gpt-3.5-turbo-1106",
@@ -70,6 +79,8 @@ export const ANALYSIS_CONFIG = {
 } as const;
 
 export const SUMMARY_CONFIG = {
-  ...ANALYSIS_CONFIG,
+  model: "gpt-3.5-turbo-1106",
+  temperature: 0.1,  // Lower temperature for more consistent, direct summaries
+  max_tokens: 200,   // Limit length to encourage conciseness
   response_format: { type: "text" }
 } as const;
