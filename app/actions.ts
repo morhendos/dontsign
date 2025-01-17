@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/nextjs";
 import { ContractAnalysisError } from "@/lib/errors";
 import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
+import type { ChatCompletionMessageParam } from 'openai/resources/chat';
 import { 
   SYSTEM_PROMPT, 
   SYSTEM_SUMMARY_PROMPT,
@@ -37,12 +38,12 @@ async function updateProgress(onProgress: ProgressCallback, data: ProgressUpdate
 }
 
 // Add cache buster to each request
-function addCacheBuster(messages: Array<{ role: string; content: string }>) {
+function addCacheBuster(messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>) {
   const timestamp = Date.now();
   return messages.map(msg => ({
     ...msg,
     content: msg.content + `\n\n[Cache buster: ${timestamp}]`
-  }));
+  })) as ChatCompletionMessageParam[];
 }
 
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
