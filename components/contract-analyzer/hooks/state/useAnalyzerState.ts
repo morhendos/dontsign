@@ -31,7 +31,7 @@ export const useAnalyzerState = () => {
     error: analysisError,
     progress,
     stage,
-    currentChunk,
+    sectionsAnalyzed,
     totalChunks,
     analyze,
     updateState,
@@ -94,7 +94,7 @@ export const useAnalyzerState = () => {
           error: null,
           progress: 100,
           stage: 'complete',
-          currentChunk: 0,
+          sectionsAnalyzed: 0,
           totalChunks: 0
         });
         processing.setShowResults(true);
@@ -135,7 +135,7 @@ export const useAnalyzerState = () => {
       error: null,
       progress: 100,
       stage: 'complete',
-      currentChunk: 0,
+      sectionsAnalyzed: 0,
       totalChunks: 0
     });
     processing.setShowResults(true);
@@ -155,7 +155,7 @@ export const useAnalyzerState = () => {
     status: status.message,
     progress,
     stage,
-    currentChunk,
+    sectionsAnalyzed,
     totalChunks,
     analysis,
     showResults: processing.showResults,

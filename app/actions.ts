@@ -4,6 +4,15 @@ import * as Sentry from "@sentry/nextjs";
 import { ContractAnalysisError } from "@/lib/errors";
 import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
+import type OpenAI from 'openai';
+import { 
+  SYSTEM_PROMPT, 
+  SYSTEM_SUMMARY_PROMPT,
+  USER_PROMPT_TEMPLATE, 
+  FINAL_SUMMARY_PROMPT,
+  ANALYSIS_CONFIG,
+  SUMMARY_CONFIG 
+} from "@/lib/services/openai/prompts";
 
 interface ProgressUpdate {
   type: 'update';
@@ -28,21 +37,46 @@ async function updateProgress(onProgress: ProgressCallback, data: ProgressUpdate
   await sleep(MIN_STEP_TIME);
 }
 
+// Add cache buster to each request
+function addCacheBuster(messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>) {
+  const timestamp = Date.now();
+  return messages.map(msg => ({
+    ...msg,
+    content: msg.content + `\n\n[Cache buster: ${timestamp}]`
+  })) as OpenAI.Chat.ChatCompletionMessageParam[];
+}
+
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
   const response = await openAIService.createChatCompletion({
-    model: "gpt-3.5-turbo-1106",
-    messages: [
-      { role: "system", content: "You are a legal expert. Analyze this contract section concisely." },
-      { role: "user", content: `Section ${chunkIndex + 1}/${totalChunks}:\n${chunk}\n\nProvide JSON with: summary (brief), keyTerms, potentialRisks, importantClauses, recommendations.` },
-    ],
-    temperature: 0.3,
-    max_tokens: 1000,
-    response_format: { type: "json_object" },
+    ...ANALYSIS_CONFIG,
+    messages: addCacheBuster([
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: USER_PROMPT_TEMPLATE(chunk, chunkIndex, totalChunks) },
+    ]),
   });
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No analysis generated', 'API_ERROR');
-  return JSON.parse(content);
+  
+  // Remove cache buster from JSON before parsing
+  const cleanContent = content.replace(/\[Cache buster: \d+\]/g, '');
+  return JSON.parse(cleanContent);
+}
+
+async function generateOverallSummary(sectionSummaries: string[]) {
+  const response = await openAIService.createChatCompletion({
+    ...SUMMARY_CONFIG,
+    messages: addCacheBuster([
+      { role: "system", content: SYSTEM_SUMMARY_PROMPT },
+      { role: "user", content: FINAL_SUMMARY_PROMPT(sectionSummaries) },
+    ]),
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
+  
+  // Remove cache buster before returning
+  return content.replace(/\[Cache buster: \d+\]/g, '').trim();
 }
 
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
@@ -80,8 +114,6 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       activity: "Processing document..."
     });
 
-    await sleep(MIN_STEP_TIME); // Extra wait to show preprocessing
-
     const chunks = splitIntoChunks(text);
     if (chunks.length === 0) {
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
@@ -94,8 +126,6 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       stage: 'preprocessing',
       activity: "Preparing AI model..."
     });
-
-    await sleep(MIN_STEP_TIME); // Extra wait for model init
 
     await updateProgress(onProgress, {
       type: 'update',
@@ -124,16 +154,13 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
 
       results.push(await analyzeChunk(chunks[i], i, chunks.length));
       currentProgress += progressPerChunk;
-
-      // Small delay after each chunk
-      await sleep(500);
     }
 
     // Results processing phase
     const finalSteps = [
       { progress: 80, activity: "Processing section summaries..." },
-      { progress: 85, activity: "Analyzing key terms..." },
-      { progress: 90, activity: "Evaluating potential risks..." },
+      { progress: 85, activity: "Evaluating potential risks..." },
+      { progress: 90, activity: "Identifying critical clauses..." },
       { progress: 95, activity: "Preparing recommendations..." }
     ];
 
@@ -148,19 +175,23 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       });
     }
 
+    // Generate overall summary from section summaries
+    const summary = await generateOverallSummary(
+      results.map(r => r.summary)
+    );
+
     // Prepare final analysis
     const finalAnalysis = {
-      summary: `Analysis complete. Found ${results.length} key sections.\n\n${results.map(r => r.summary).join('\n')}`,
-      keyTerms: [...new Set(results.flatMap(r => r.keyTerms))],
-      potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))],
-      importantClauses: [...new Set(results.flatMap(r => r.importantClauses))],
-      recommendations: [...new Set(results.flatMap(r => r.recommendations || []))],
+      summary,
+      potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))].filter(Boolean),
+      importantClauses: [...new Set(results.flatMap(r => r.importantClauses))].filter(Boolean),
+      recommendations: [...new Set(results.flatMap(r => r.recommendations || []))].filter(Boolean),
       metadata: {
         analyzedAt: new Date().toISOString(),
         documentName: filename,
-        modelVersion: "gpt-3.5-turbo-1106",
+        modelVersion: ANALYSIS_CONFIG.model,
         totalChunks: chunks.length,
-        currentChunk: chunks.length
+        sectionsAnalyzed: chunks.length
       }
     };
 

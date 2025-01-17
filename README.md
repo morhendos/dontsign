@@ -1,7 +1,7 @@
 # DontSign - Contract Analysis Application
 
 ## Project Overview
-DontSign is a web application that helps users analyze contracts using AI. It processes PDF and DOCX files, extracting text and using OpenAI's GPT API to provide detailed analysis including key terms, potential risks, and recommendations.
+DontSign is a web application that helps users analyze contracts using AI. It processes PDF and DOCX files, extracting text and using OpenAI's GPT API to provide detailed analysis including potential risks, critical requirements, and actionable recommendations.
 
 ## Technical Stack
 - Next.js 14 with App Router
@@ -11,140 +11,192 @@ DontSign is a web application that helps users analyze contracts using AI. It pr
 - OpenAI API (GPT-3.5-turbo-1106)
 - PDF.js for PDF parsing
 - Sentry for error tracking
-- Local storage for analysis history
 
-## Project Structure
+## Core Components Structure
 
-### `/app`
-Next.js 14 app directory:
-- `page.tsx` - Main landing page
-- `layout.tsx` - Root layout with theme provider
-- `actions.ts` - Server actions for contract analysis
-- Route pages for `/contact`, `/privacy`, `/terms`
+### `components/hero/`
+The main interface container that orchestrates all sub-components:
+- Manages global state (file, analysis results, errors)
+- Handles main analysis flow
+- Integrates with OpenAI API
 
-### `/components`
+### `components/contract-upload/`
+Handles file upload functionality:
+- Drag & drop support
+- File type validation (PDF/DOCX)
+- Error handling for invalid files
+- Analytics tracking for upload events
 
-#### `contract-analyzer/`
-Core analysis functionality:
-- `ContractAnalyzer.tsx` - Main orchestration component
-- `/components`
-  - `analysis/` - Analysis UI components (progress, results, controls)
-  - `layout/` - Layout components
-  - `upload/` - File upload handling
-- `/hooks`
-  - `useContractAnalyzer.ts` - Main analysis orchestration hook
-  - `useAnalyzerState.ts` - Analysis state management
-  - `useAnalysisHistory.ts` - History management
-  - `useLogVisibility.ts` - Log visibility control
-  - `useResultsDisplay.ts` - Results display management
-- `/utils` - Utility functions
-- `/types` - TypeScript type definitions
+### `components/contract-analysis/`
+Manages the analysis process:
+- Analysis button with loading states
+- Integration with server-side analysis
+- Error handling for analysis process
 
-#### `analysis-history/`
-History management:
-- `AnalysisHistory.tsx` - Previous analyses interface
+### `components/error/`
+Error display components:
+- Visual error feedback
+- Different styles for warnings vs errors
+- Clear error messaging
 
-#### `analysis-log/`
-Progress logging:
-- `AnalysisLog.tsx` - Analysis progress logging component
+### `components/analysis-results/`
+Displays analysis results in a clear, structured format:
+- Contract overview
+- Potential risks with color-coded warnings
+- Critical dates and requirements
+- Next steps and recommendations
+- Progress tracking and metadata
 
-#### `ui/`
-Reusable UI components (shadcn/ui):
-- Buttons, Cards, Progress bars, etc.
+## Key Files and Their Purposes
 
-#### Other Components
-- `theme/` - Theme management
-- `logo/` - Logo components
-- `contact/` - Contact form
-
-### `/lib`
-Core utilities and services:
-- `analytics.ts` - Analytics tracking
-- `errors.ts` - Error handling
-- `pdf-utils.ts` - PDF processing
-- `storage.ts` - Local storage management
-- `text-utils.ts` - Text processing
-- `/services/openai` - OpenAI integration
-
-## Key Features
-
-### Contract Analysis
-- Real-time analysis with progress tracking
-- Support for PDF and DOCX files
-- Chunked text processing for large documents
-- Comprehensive results with key terms, risks, and recommendations
-
-### Analysis History
-- Local storage of previous analyses
-- Quick access to recent results
-- History management interface
-
-### User Interface
-- Dark/light mode support
-- Responsive design
-- Progress indicators
-- Error handling with user-friendly messages
-
-## State Management
-Each major feature has its own state management:
-
-### Analysis State
+### `types/analysis.ts`
+Contains shared TypeScript interfaces:
 ```typescript
-const {
-  file,
-  error,
-  isProcessing,
-  isAnalyzing,
-  status,
-  progress,
-  stage,
-  currentChunk,
-  totalChunks,
-  analysis,
-  isAnalyzed,
-} = useAnalyzerState();
+interface AnalysisResult {
+  summary: string;
+  potentialRisks: string[];
+  importantClauses: string[];
+  recommendations?: string[];
+  metadata?: {
+    analyzedAt: string;
+    documentName: string;
+    modelVersion: string;
+    totalChunks?: number;
+    sectionsAnalyzed?: number;
+    stage?: 'preprocessing' | 'analyzing' | 'complete';
+    progress?: number;
+  };
+}
 ```
 
-### History State
+### `lib/services/openai/prompts.ts`
+Manages AI analysis prompts:
+- System instructions for legal analysis
+- User prompts for section analysis
+- Final summary generation
+- Analysis configuration
+
+### `app/actions.ts`
+Server-side actions:
+- Contract analysis using OpenAI
+- Text chunking
+- Error handling
+- Analytics integration
+
+### `lib/pdf-utils.ts`
+PDF processing utilities:
+- Text extraction
+- Error handling for corrupt files
+- Worker configuration
+
+## Error Handling
+The application uses a comprehensive error handling system:
+1. Custom error types:
+   - `PDFProcessingError`
+   - `ContractAnalysisError`
+2. Sentry integration for tracking
+3. User-friendly error messages
+4. Analytics tracking for errors
+
+## Analytics
+Events tracked:
+- File uploads
+- Analysis starts/completions
+- Errors
+- User interactions
+
+## State Management
+Component state management using React hooks:
 ```typescript
-const {
-  analyses,
-  selectedAnalysis,
-  hasAnalyses,
-  addAnalysis,
-  removeAnalysis,
-  clearHistory
-} = useAnalysisHistory();
+const [state, setState] = useState<AnalysisState>({
+  analysis: null,
+  isAnalyzing: false,
+  error: null,
+  progress: 0,
+  stage: 'preprocessing',
+  sectionsAnalyzed: 0,
+  totalChunks: 0
+});
 ```
 
 ## Development Guidelines
 
 ### Adding New Features
 1. Create components in appropriate directories
-2. Implement hooks for state management
+2. Update types if needed
 3. Add error handling
 4. Include analytics tracking
 5. Update documentation
 
 ### Code Style
-- Use TypeScript for all components
+- Use TypeScript for all new components
 - Follow existing component structure
-- Use shadcn/ui components
+- Use shadcn/ui components where possible
 - Implement proper error handling
-- Add analytics tracking
+- Add analytics tracking for new features
+
+### Testing
+Important areas to test:
+- File upload handling
+- Error scenarios
+- Analysis process
+- UI responsiveness
 
 ### Deployment
-Automatic deployment:
+The project uses automatic deployment:
 - Production deploys from main branch
 - Create feature branches for new work
 - Use PR process for code review
+
+## Common Tasks
+
+### Modifying Analysis Output
+1. Update prompts in `lib/services/openai/prompts.ts`
+2. Modify types in `types/analysis.ts`
+3. Update UI components to reflect changes
+4. Test with various contract types
+
+### Modifying Error Handling
+1. Add new error type if needed
+2. Update error handling in relevant components
+3. Add Sentry tracking
+4. Update error display component
+
+### Adding UI Components
+1. Follow existing component structure
+2. Use Tailwind for styling
+3. Implement proper TypeScript interfaces
+4. Add error handling where needed
+
+## Future Improvements
+Potential areas for enhancement:
+1. Support for more file types
+2. Batch processing
+3. Enhanced analysis features
+4. Improved error recovery
+5. Offline capabilities
+6. User accounts and history
+
+## Troubleshooting
+Common issues and solutions:
+1. PDF Processing Issues
+   - Check file corruption
+   - Verify PDF.js worker
+   - Check file size limits
+2. Analysis Errors
+   - Verify OpenAI API key
+   - Check text chunking
+   - Monitor rate limits
+3. UI Issues
+   - Clear browser cache
+   - Check console errors
+   - Verify component props
 
 ## Environment Setup
 Required environment variables:
 ```env
 OPENAI_API_KEY=your_key_here
 SENTRY_DSN=your_sentry_dsn
-ANALYTICS_ID=your_analytics_id
 ```
 
 Development server:

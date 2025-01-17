@@ -1,15 +1,14 @@
 export interface AnalysisResult {
   summary: string;
-  keyTerms: string[];
   potentialRisks: string[];
   importantClauses: string[];
-  recommendations?: string[];
+  recommendations: string[];
   metadata?: {
     analyzedAt: string;
     documentName: string;
     modelVersion: string;
     totalChunks?: number;
-    currentChunk?: number;
+    sectionsAnalyzed?: number;
     stage?: 'preprocessing' | 'analyzing' | 'complete';
     progress?: number;
   };

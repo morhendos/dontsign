@@ -8,7 +8,7 @@ export interface AnalysisState {
   error: ErrorDisplay | null;
   progress: number;
   stage: AnalysisStage;
-  currentChunk: number;
+  sectionsAnalyzed: number;
   totalChunks: number;
 }
 
@@ -19,7 +19,7 @@ export interface AnalysisStreamResponse {
   type: 'update' | 'complete' | 'error';
   progress?: number;
   stage?: AnalysisStage;
-  currentChunk?: number;
+  currentChunk?: number;  // Keep this for backwards compatibility with API
   totalChunks?: number;
   result?: SharedAnalysisResult;
   error?: string;

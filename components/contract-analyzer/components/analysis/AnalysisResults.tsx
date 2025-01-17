@@ -55,25 +55,17 @@ export const AnalysisResults = ({
 
         <ScrollArea className="h-[80vh] p-6 touch-auto">
           <div className="space-y-8">
-            {/* Summary */}
-            <section>
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Summary</h2>
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{analysis.summary}</p>
-            </section>
-
-            {/* Key Terms */}
-            <section>
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Key Terms</h2>
-              <ul className="list-disc pl-5 space-y-2">
-                {analysis.keyTerms.map((term, index) => (
-                  <li key={index} className="text-gray-700 dark:text-gray-300">{term}</li>
-                ))}
-              </ul>
+            {/* What is this contract? */}
+            <section className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg">
+              <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">What is this contract?</h2>
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line text-lg">
+                {analysis.summary}
+              </p>
             </section>
 
             {/* Potential Risks */}
-            <section>
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Potential Risks</h2>
+            <section className="bg-red-50 dark:bg-red-950/30 p-6 rounded-lg">
+              <h2 className="text-2xl font-bold mb-4 text-red-700 dark:text-red-400">Potential Risks</h2>
               <ul className="list-disc pl-5 space-y-2">
                 {analysis.potentialRisks.map((risk, index) => (
                   <li key={index} className="text-gray-700 dark:text-gray-300">{risk}</li>
@@ -82,8 +74,8 @@ export const AnalysisResults = ({
             </section>
 
             {/* Important Clauses */}
-            <section>
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Important Clauses</h2>
+            <section className="bg-blue-50 dark:bg-blue-950/30 p-6 rounded-lg">
+              <h2 className="text-2xl font-bold mb-4 text-blue-700 dark:text-blue-400">📅 Key Dates & Requirements</h2>
               <ul className="list-disc pl-5 space-y-2">
                 {analysis.importantClauses.map((clause, index) => (
                   <li key={index} className="text-gray-700 dark:text-gray-300">{clause}</li>
@@ -93,13 +85,23 @@ export const AnalysisResults = ({
 
             {/* Recommendations */}
             {analysis.recommendations && analysis.recommendations.length > 0 && (
-              <section>
-                <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Recommendations</h2>
+              <section className="bg-green-50 dark:bg-green-950/30 p-6 rounded-lg">
+                <h2 className="text-2xl font-bold mb-4 text-green-700 dark:text-green-400">💡 Next Steps</h2>
                 <ul className="list-disc pl-5 space-y-2">
                   {analysis.recommendations.map((rec, index) => (
                     <li key={index} className="text-gray-700 dark:text-gray-300">{rec}</li>
                   ))}
                 </ul>
+              </section>
+            )}
+
+            {/* Analysis Info */}
+            {analysis.metadata && (
+              <section className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Analysis completed at {new Date(analysis.metadata.analyzedAt).toLocaleString()}
+                  {analysis.metadata.sectionsAnalyzed && ` • ${analysis.metadata.sectionsAnalyzed} sections analyzed`}
+                </p>
               </section>
             )}
           </div>
