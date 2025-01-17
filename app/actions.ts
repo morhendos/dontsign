@@ -37,46 +37,32 @@ async function updateProgress(onProgress: ProgressCallback, data: ProgressUpdate
   await sleep(MIN_STEP_TIME);
 }
 
-// Add cache buster to each request
-function addCacheBuster(messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>) {
-  const timestamp = Date.now();
-  return messages.map(msg => ({
-    ...msg,
-    content: msg.content + `\n\n[Cache buster: ${timestamp}]`
-  })) as OpenAI.Chat.ChatCompletionMessageParam[];
-}
-
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
   const response = await openAIService.createChatCompletion({
     ...ANALYSIS_CONFIG,
-    messages: addCacheBuster([
+    messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: USER_PROMPT_TEMPLATE(chunk, chunkIndex, totalChunks) },
-    ]),
+    ],
   });
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No analysis generated', 'API_ERROR');
-  
-  // Remove cache buster from JSON before parsing
-  const cleanContent = content.replace(/\[Cache buster: \d+\]/g, '');
-  return JSON.parse(cleanContent);
+  return JSON.parse(content);
 }
 
 async function generateOverallSummary(sectionSummaries: string[]) {
   const response = await openAIService.createChatCompletion({
     ...SUMMARY_CONFIG,
-    messages: addCacheBuster([
+    messages: [
       { role: "system", content: SYSTEM_SUMMARY_PROMPT },
       { role: "user", content: FINAL_SUMMARY_PROMPT(sectionSummaries) },
-    ]),
+    ],
   });
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
-  
-  // Remove cache buster before returning
-  return content.replace(/\[Cache buster: \d+\]/g, '').trim();
+  return content.trim();
 }
 
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
