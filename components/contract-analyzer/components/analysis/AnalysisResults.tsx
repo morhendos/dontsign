@@ -56,7 +56,7 @@ export const AnalysisResults = ({
         <ScrollArea className="h-[80vh] p-6 touch-auto">
           <div className="space-y-8">
             {/* What is this contract? */}
-            <section className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg">
+            <section className="mb-8">
               <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">What is this contract?</h2>
               <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line text-lg">
                 {analysis.summary}
@@ -75,7 +75,7 @@ export const AnalysisResults = ({
 
             {/* Important Clauses */}
             <section className="bg-blue-50 dark:bg-blue-950/30 p-6 rounded-lg">
-              <h2 className="text-2xl font-bold mb-4 text-blue-700 dark:text-blue-400">📅 Key Dates & Requirements</h2>
+              <h2 className="text-2xl font-bold mb-4 text-blue-700 dark:text-blue-400">Key Dates & Requirements</h2>
               <ul className="list-disc pl-5 space-y-2">
                 {analysis.importantClauses.map((clause, index) => (
                   <li key={index} className="text-gray-700 dark:text-gray-300">{clause}</li>
@@ -86,7 +86,7 @@ export const AnalysisResults = ({
             {/* Recommendations */}
             {analysis.recommendations && analysis.recommendations.length > 0 && (
               <section className="bg-green-50 dark:bg-green-950/30 p-6 rounded-lg">
-                <h2 className="text-2xl font-bold mb-4 text-green-700 dark:text-green-400">💡 Next Steps</h2>
+                <h2 className="text-2xl font-bold mb-4 text-green-700 dark:text-green-400">Next Steps</h2>
                 <ul className="list-disc pl-5 space-y-2">
                   {analysis.recommendations.map((rec, index) => (
                     <li key={index} className="text-gray-700 dark:text-gray-300">{rec}</li>

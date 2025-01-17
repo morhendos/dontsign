@@ -19,7 +19,7 @@ export default function Footer() {
             "
           >
             <MessageSquare className="h-4 w-4" />
-            <span>Give Feedback</span>
+            <span>Suggest Improvements</span>
           </a>
         </div>
         <div className="space-x-4 text-sm text-gray-600 dark:text-gray-400">
