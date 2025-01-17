@@ -5,9 +5,7 @@ import { createErrorStream } from './progress-handler';
 
 const RESPONSE_HEADERS = {
   'Content-Type': 'text/event-stream',
-  'Cache-Control': 'no-cache, no-store, must-revalidate',
-  'Pragma': 'no-cache',
-  'Expires': '0',
+  'Cache-Control': 'no-cache',
   'Connection': 'keep-alive',
 } as const;
 
