@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, Clock, Ban, AlertTriangle, ServerCrash } from 'lucide-react';
+import { AlertCircle, Clock, Ban, AlertTriangle, ServerCrash, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ErrorDisplayProps {
@@ -50,6 +50,20 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
       description = error.message || 'Please check your input and try again.';
       icon = AlertTriangle;
       variant = 'default';
+      break;
+
+    case 'TEXT_PROCESSING_ERROR':
+      title = 'Summary Generation Error';
+      description = error.message || 'Unable to generate a concise summary. Retrying with alternative approach...';
+      icon = FileText;
+      variant = 'default';
+      break;
+
+    case 'API_ERROR':
+      title = 'Analysis Error';
+      description = error.message || 'Unable to complete the analysis. Please try again.';
+      icon = ServerCrash;
+      variant = 'destructive';
       break;
   }
 
