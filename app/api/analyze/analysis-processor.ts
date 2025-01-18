@@ -1,7 +1,7 @@
 import { splitIntoChunks } from '@/lib/text-utils';
 import { ContractAnalysisError } from '@/lib/errors';
 import { ANALYSIS_PROGRESS, progressMessages } from '@/lib/constants';
-import { analyzeChunk, generateFinalSummary } from './chunk-analyzer';
+import { analyzeChunk, generateDocumentSummary } from './chunk-analyzer';
 import type { ProgressHandler, AnalysisResult } from './types';
 
 // Short delay to keep steps visible while maintaining responsiveness
@@ -49,17 +49,23 @@ export async function processDocument(
       progressMessages.MODEL_READY);
     await wait();
 
+    // Start with document summary
+    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.SUMMARY_START, 0, chunks.length,
+      "Generating document summary...");
+    await wait();
+
+    const documentSummary = await generateDocumentSummary(text);
+    console.log('[Server] Generated document summary:', documentSummary);
+
     // Start analysis phase
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.ANALYSIS_START, 0, chunks.length,
       progressMessages.ANALYSIS_START);
     await wait();
 
     // Initialize result arrays
-    let allKeyTerms: string[] = [];
     let allPotentialRisks: string[] = [];
     let allImportantClauses: string[] = [];
     let allRecommendations: string[] = [];
-    let chunkSummaries: string[] = [];
 
     // For single chunk, show intermediate progress
     if (chunks.length === 1) {
@@ -86,26 +92,20 @@ export async function processDocument(
           (ANALYSIS_PROGRESS.CHUNK_ANALYSIS - ANALYSIS_PROGRESS.ANALYSIS_START)),
         chunkNumber,
         chunks.length,
-        `Analyzing section ${chunkNumber} of ${chunks.length}: Identifying key terms and clauses...`
+        `Analyzing section ${chunkNumber} of ${chunks.length}: Identifying risks and important clauses...`
       );
       
       const chunkAnalysis = await analyzeChunk(chunks[i], i, chunks.length);
       
       // Aggregate results
-      allKeyTerms = [...allKeyTerms, ...chunkAnalysis.keyTerms];
       allPotentialRisks = [...allPotentialRisks, ...chunkAnalysis.potentialRisks];
       allImportantClauses = [...allImportantClauses, ...chunkAnalysis.importantClauses];
       allRecommendations = [...allRecommendations, ...(chunkAnalysis.recommendations || [])];
-      chunkSummaries.push(chunkAnalysis.summary);
       
       await wait(CHUNK_STEP_TIME); // Shorter wait between chunks
     }
 
-    // Summary phase
-    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.SUMMARY_START, chunks.length, chunks.length,
-      progressMessages.SUMMARY_START);
-    await wait();
-
+    // Process results
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.RISKS, chunks.length, chunks.length,
       progressMessages.RISKS);
     await wait();
@@ -114,24 +114,13 @@ export async function processDocument(
       progressMessages.RECOMMENDATIONS);
     await wait();
 
-    // Generate final summary
-    const summaryContent = await generateFinalSummary(
-      chunkSummaries,
-      allKeyTerms,
-      allPotentialRisks,
-      allImportantClauses,
-      allRecommendations
-    );
-
-    // Final steps
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.RESULT_PREPARATION, chunks.length, chunks.length,
       progressMessages.RESULT_PREPARATION);
     await wait();
     
     // Prepare final result
     const result = {
-      summary: summaryContent,
-      keyTerms: Array.from(new Set(allKeyTerms)),
+      summary: documentSummary,
       potentialRisks: Array.from(new Set(allPotentialRisks)),
       importantClauses: Array.from(new Set(allImportantClauses)),
       recommendations: Array.from(new Set(allRecommendations)),
