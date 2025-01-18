@@ -1,27 +1,26 @@
 import OpenAI from 'openai';
 import { ContractAnalysisError } from '@/lib/errors';
+import { DOCUMENT_SUMMARY_PROMPT, SUMMARY_CONFIG } from '@/lib/services/openai/prompts';
 import type { AnalysisResult } from './types';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export function validateAnalysisResult(result: any): result is AnalysisResult {
+export function validateAnalysisResult(result: any): result is Omit<AnalysisResult, 'summary'> {
   const hasArrayProperty = (obj: any, prop: string): boolean => 
     Array.isArray(obj[prop]) && obj[prop].every(item => typeof item === 'string');
 
   return (
     result &&
     typeof result === 'object' &&
-    typeof result.summary === 'string' &&
-    hasArrayProperty(result, 'keyTerms') &&
     hasArrayProperty(result, 'potentialRisks') &&
     hasArrayProperty(result, 'importantClauses') &&
     (!result.recommendations || hasArrayProperty(result, 'recommendations'))
   );
 }
 
-export async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number): Promise<AnalysisResult> {
+export async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number): Promise<Omit<AnalysisResult, 'summary'>> {
   console.log(`[Server] Analyzing chunk ${chunkIndex + 1}/${totalChunks}`);
   
   const prompt = `Analyze the following contract text and provide a structured analysis in JSON format. 
@@ -32,21 +31,19 @@ ${chunk}
 
 You must respond with a valid JSON object containing these fields:
 {
-  "summary": "A brief summary of this section's content",
-  "keyTerms": ["term 1", "term 2", ...],
   "potentialRisks": ["risk 1", "risk 2", ...],
   "importantClauses": ["clause 1", "clause 2", ...],
   "recommendations": ["recommendation 1", "recommendation 2", ...]
 }
 
-The summary should be a string, and all other fields must be arrays of strings. Even if you find nothing relevant, return empty arrays, but maintain the structure.`;
+All fields must be arrays of strings. Even if you find nothing relevant, return empty arrays, but maintain the structure.`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-3.5-turbo-1106",
     messages: [
       {
         role: "system",
-        content: "You are a legal analysis assistant specialized in contract review. Analyze the contract and return results in JSON format. Focus on identifying key terms, potential risks, and important clauses. Be concise and precise. Always return arrays for all fields, even if empty. Include a brief summary of the analyzed section."
+        content: "You are a legal analysis assistant specialized in contract review. Analyze the contract and return results in JSON format. Focus on identifying potential risks, important clauses, and recommendations. Be concise and precise. Always return arrays for all fields, even if empty."
       },
       {
         role: "user",
@@ -85,43 +82,68 @@ The summary should be a string, and all other fields must be arrays of strings. 
   }
 
   return {
-    summary: parsedContent.summary || 'No summary available for this section',
-    keyTerms: parsedContent.keyTerms || [],
     potentialRisks: parsedContent.potentialRisks || [],
     importantClauses: parsedContent.importantClauses || [],
     recommendations: parsedContent.recommendations || []
   };
 }
 
-export async function generateFinalSummary(
-  chunkSummaries: string[],
-  allKeyTerms: string[],
-  allPotentialRisks: string[],
-  allImportantClauses: string[],
-  allRecommendations: string[]
-): Promise<string> {
-  const summaryResponse = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo-1106",
+export async function generateDocumentSummary(text: string): Promise<string> {
+  // Take a decent chunk of text for summary generation
+  const summaryText = text.slice(0, 6000);
+  
+  const response = await openai.chat.completions.create({
+    ...SUMMARY_CONFIG,
     messages: [
       {
         role: "system",
-        content: "You are a legal analysis assistant. Provide a concise executive summary of the contract analysis."
+        content: DOCUMENT_SUMMARY_PROMPT
       },
       {
         role: "user",
-        content: `Based on the following findings, provide a concise executive summary of the contract:\n\nSection Summaries:\n${chunkSummaries.map((summary, i) => `Section ${i + 1}: ${summary}`).join('\n')}\n\nKey Terms:\n${allKeyTerms.map(term => `- ${term}`).join('\n')}\n\nPotential Risks:\n${allPotentialRisks.map(risk => `- ${risk}`).join('\n')}\n\nImportant Clauses:\n${allImportantClauses.map(clause => `- ${clause}`).join('\n')}\n\nRecommendations:\n${allRecommendations.map(rec => `- ${rec}`).join('\n')}`
+        content: summaryText
       }
     ],
-    temperature: 0.3
   });
 
-  const summaryContent = summaryResponse.choices[0]?.message?.content;
-  if (!summaryContent) {
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
     throw new ContractAnalysisError(
       'No summary generated by AI model',
       'API_ERROR'
     );
   }
 
-  return summaryContent;
+  const summary = content.trim();
+  
+  // Validate summary format
+  if (!summary.startsWith('This is a')) {
+    console.error('[Server] Invalid summary format:', summary);
+    throw new ContractAnalysisError(
+      'Summary must start with "This is a"',
+      'PROCESSING_ERROR'
+    );
+  }
+
+  if (summary.includes('outlines') || summary.includes('contains') ||
+      summary.includes('establishes') || summary.includes('This contract') ||
+      summary.includes('The agreement')) {
+    console.error('[Server] Summary contains forbidden terms:', summary);
+    throw new ContractAnalysisError(
+      'Summary contains forbidden terms',
+      'PROCESSING_ERROR'
+    );
+  }
+
+  // Count sentences by splitting on .!? and filtering empty strings
+  const sentences = summary.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  if (sentences.length > 2) {
+    console.error('[Server] Summary too long:', summary);
+    throw new ContractAnalysisError(
+      'Summary must not exceed 2 sentences',
+      'PROCESSING_ERROR'
+    );
+  }
+
+  return summary;
 }
