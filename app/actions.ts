@@ -51,9 +51,10 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
 }
 
 async function generateDocumentSummary(text: string) {
-  console.log('Generating document summary with prompt:', DOCUMENT_SUMMARY_PROMPT);
+  console.log('Starting document summary generation with strict format requirements');
   
-  const summaryText = text.slice(0, 4000);
+  // Take slightly more text to ensure we get all important details
+  const summaryText = text.slice(0, 6000);
   
   const response = await openAIService.createChatCompletion({
     ...SUMMARY_CONFIG,
@@ -66,17 +67,39 @@ async function generateDocumentSummary(text: string) {
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
   
-  console.log('Generated summary:', content.trim());
+  const summary = content.trim();
+  console.log('Generated summary:', summary);
   
-  // Force the format if not already correct
-  if (!content.trim().startsWith('This is a')) {
+  // Strict format validation
+  if (!summary.startsWith('This is a')) {
+    console.error('Invalid summary format received:', summary);
     throw new ContractAnalysisError(
-      'Summary format invalid - must start with "This is a"', 
+      'Summary must start with "This is a"', 
       'PROCESSING_ERROR'
     );
   }
   
-  return content.trim();
+  if (summary.includes('outlines') || summary.includes('contains') || 
+      summary.includes('establishes') || summary.includes('This contract') || 
+      summary.includes('The agreement')) {
+    console.error('Summary contains forbidden terms:', summary);
+    throw new ContractAnalysisError(
+      'Summary contains forbidden terms', 
+      'PROCESSING_ERROR'
+    );
+  }
+  
+  // Count sentences by splitting on .!? and filtering empty strings
+  const sentences = summary.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  if (sentences.length > 2) {
+    console.error('Summary too long:', summary);
+    throw new ContractAnalysisError(
+      'Summary must not exceed 2 sentences', 
+      'PROCESSING_ERROR'
+    );
+  }
+  
+  return summary;
 }
 
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
@@ -128,7 +151,7 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
     });
 
     const documentSummary = await generateDocumentSummary(text);
-    console.log('Using document summary:', documentSummary); // Debug log
+    console.log('Validated summary:', documentSummary);
 
     // Start detailed analysis
     await updateProgress(onProgress, {
@@ -194,7 +217,7 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       }
     };
 
-    console.log('Final analysis summary:', finalAnalysis.summary); // Debug log
+    console.log('Final analysis summary:', finalAnalysis.summary);
 
     // Complete
     await updateProgress(onProgress, {
