@@ -51,9 +51,8 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
 }
 
 async function generateDocumentSummary(text: string) {
-  // Create a shorter version of the text for summary generation
-  // We'll take the first ~4000 chars which typically contain the most relevant info
-  // for identifying document type, parties, and main purpose
+  console.log('Generating document summary with prompt:', DOCUMENT_SUMMARY_PROMPT);
+  
   const summaryText = text.slice(0, 4000);
   
   const response = await openAIService.createChatCompletion({
@@ -66,6 +65,17 @@ async function generateDocumentSummary(text: string) {
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
+  
+  console.log('Generated summary:', content.trim());
+  
+  // Force the format if not already correct
+  if (!content.trim().startsWith('This is a')) {
+    throw new ContractAnalysisError(
+      'Summary format invalid - must start with "This is a"', 
+      'PROCESSING_ERROR'
+    );
+  }
+  
   return content.trim();
 }
 
@@ -118,6 +128,7 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
     });
 
     const documentSummary = await generateDocumentSummary(text);
+    console.log('Using document summary:', documentSummary); // Debug log
 
     // Start detailed analysis
     await updateProgress(onProgress, {
@@ -182,6 +193,8 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
         sectionsAnalyzed: chunks.length
       }
     };
+
+    console.log('Final analysis summary:', finalAnalysis.summary); // Debug log
 
     // Complete
     await updateProgress(onProgress, {
