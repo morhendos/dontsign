@@ -151,7 +151,7 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
 
     // Results processing phase
     const finalSteps = [
-      { progress: 80, activity: "Processing section summaries..." },
+      { progress: 80, activity: "Processing results..." },
       { progress: 85, activity: "Evaluating potential risks..." },
       { progress: 90, activity: "Identifying critical clauses..." },
       { progress: 95, activity: "Preparing recommendations..." }
