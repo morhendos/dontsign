@@ -50,11 +50,14 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
   return JSON.parse(content);
 }
 
-async function generateDocumentSummary(text: string) {
-  // Create a shorter version of the text for summary generation
-  // We'll take the first ~4000 chars which typically contain the most relevant info
-  // for identifying document type, parties, and main purpose
-  const summaryText = text.slice(0, 4000);
+async function generateDocumentSummary(text: string, attempt: number = 1) {
+  console.log(`[Server] Attempting document summary generation (attempt ${attempt})`);
+  
+  // If this is our first attempt, try with strict validation
+  const isStrictMode = attempt === 1;
+  console.log(`[Server] Running in ${isStrictMode ? 'strict' : 'relaxed'} mode`);
+  
+  const summaryText = text.slice(0, isStrictMode ? 4000 : 8000);
   
   const response = await openAIService.createChatCompletion({
     ...SUMMARY_CONFIG,
@@ -62,40 +65,52 @@ async function generateDocumentSummary(text: string) {
       { role: "system", content: DOCUMENT_SUMMARY_PROMPT },
       { role: "user", content: summaryText },
     ],
+    temperature: isStrictMode ? 0.1 : 0.3  // Increase temperature on retry
   });
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
   
   const summary = content.trim();
+  console.log(`[Server] Generated summary (attempt ${attempt}):`, summary);
   
-  // Validate summary format
-  if (!summary.startsWith('This is a')) {
-    throw new ContractAnalysisError(
-      'Summary must start with "This is a"', 
-      'TEXT_PROCESSING_ERROR'
-    );
+  try {
+    // Validate summary format
+    if (!summary.startsWith('This is a')) {
+      throw new ContractAnalysisError(
+        'Summary must start with "This is a"', 
+        'TEXT_PROCESSING_ERROR'
+      );
+    }
+    
+    if (summary.includes('outlines') || summary.includes('contains') || 
+        summary.includes('establishes') || summary.includes('This contract') || 
+        summary.includes('The agreement')) {
+      throw new ContractAnalysisError(
+        'Summary contains forbidden terms', 
+        'TEXT_PROCESSING_ERROR'
+      );
+    }
+    
+    // Count sentences by splitting on .!? and filtering empty strings
+    const sentences = summary.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    if (sentences.length > 2) {
+      throw new ContractAnalysisError(
+        'Summary must not exceed 2 sentences', 
+        'TEXT_PROCESSING_ERROR'
+      );
+    }
+    
+    return summary;
+    
+  } catch (error) {
+    // If validation failed and we haven't tried too many times, retry with relaxed settings
+    if (attempt < 3) {
+      console.log(`[Server] Validation failed, retrying (attempt ${attempt + 1})`);
+      return generateDocumentSummary(text, attempt + 1);
+    }
+    throw error;
   }
-  
-  if (summary.includes('outlines') || summary.includes('contains') || 
-      summary.includes('establishes') || summary.includes('This contract') || 
-      summary.includes('The agreement')) {
-    throw new ContractAnalysisError(
-      'Summary contains forbidden terms', 
-      'TEXT_PROCESSING_ERROR'
-    );
-  }
-  
-  // Count sentences by splitting on .!? and filtering empty strings
-  const sentences = summary.split(/[.!?]+/).filter(s => s.trim().length > 0);
-  if (sentences.length > 2) {
-    throw new ContractAnalysisError(
-      'Summary must not exceed 2 sentences', 
-      'TEXT_PROCESSING_ERROR'
-    );
-  }
-  
-  return summary;
 }
 
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
