@@ -6,7 +6,7 @@ import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
 import type OpenAI from 'openai';
 import { 
-  SYSTEM_PROMPT, 
+  SYSTEM_PROMPT,
   DOCUMENT_SUMMARY_PROMPT,
   USER_PROMPT_TEMPLATE, 
   ANALYSIS_CONFIG,
