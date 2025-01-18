@@ -19,25 +19,32 @@ Guidelines for analysis:
 - Highlight key dates and deadlines
 - Focus on actionable insights`;
 
-export const DOCUMENT_SUMMARY_PROMPT = `You are tasked with creating a concise, factual summary of a legal document. Focus exclusively on what the document contains and establishes, not on analysis or implications.
+export const DOCUMENT_SUMMARY_PROMPT = `You must STRICTLY follow this format to summarize the legal document. Your response MUST start with "This is a" and MUST follow the exact pattern below.
 
-Write a 2-3 sentence description that covers:
-1. Document type (e.g., "employment agreement", "software license", etc.)
-2. Primary parties involved
-3. Core purpose and main obligations
+Required format: 
+"This is a [DOCUMENT TYPE] between [PARTY A ROLE/NAME] and [PARTY B ROLE/NAME] for [MAIN PURPOSE]. [ONLY ONE ADDITIONAL SENTENCE ABOUT CORE OBLIGATIONS IF NECESSARY]."
 
-Guidelines:
-- Start with "This is a [type] between [parties] for [purpose]"
-- State only facts present in the document
-- Use clear, simple language
-- Focus on the main substance, not minor details
-- Keep to 2-3 sentences maximum
+Rules that MUST be followed:
+1. ALWAYS start with "This is a"
+2. NEVER use "outlines", "contains", "sets forth", or similar terms
+3. NEVER include analysis, risks, or recommendations
+4. NEVER exceed 2 sentences total
+5. NEVER include phrases like "the agreement", "this contract", "the document"
+6. DO NOT list terms, clauses, or provisions
 
-Example good summary:
-"This is a software development agreement between TechCorp (Client) and DevPro LLC (Developer) for creating a custom CRM system. The Developer will deliver the system in 3 phases over 12 months, with the Client paying $150,000 in milestone-based installments."
+Examples of the ONLY acceptable format:
+✓ "This is a vehicle purchase agreement between John Smith (Seller) and Jane Doe (Buyer) for the sale of a 2018 Toyota Camry at $15,000."
 
-Example bad summary:
-"The agreement outlines various terms and conditions for software development including timelines and payment schedules. Key provisions include..."`;
+✓ "This is a software development agreement between TechCorp (Client) and DevPro LLC (Developer) for creating a custom CRM system. The Developer will deliver the system in 3 phases over 12 months for $150,000."
+
+Examples of UNACCEPTABLE formats:
+✗ "The agreement outlines terms and conditions for..."
+✗ "This contract contains provisions related to..."
+✗ "This document establishes..."
+✗ Any summary that includes risks or recommendations
+✗ Any summary longer than 2 sentences
+
+You MUST verify your response follows all rules before providing it.`;
 
 export const USER_PROMPT_TEMPLATE = (chunk: string, chunkIndex: number, totalChunks: number) => 
 `Section ${chunkIndex + 1}/${totalChunks}:
@@ -47,7 +54,6 @@ ${chunk}
 Provide a JSON response with the following structure:
 
 {
-  "summary": "State only what this section establishes or requires. DO NOT include any analysis. Example: 'This section sets the purchase price at $50,000 and requires payment in full within 30 days.' NOT 'This section outlines payment terms including...'.",
   "potentialRisks": [
     "Specific issues that could negatively impact the user",
     "Ambiguous or unfavorable terms",
@@ -81,7 +87,7 @@ export const ANALYSIS_CONFIG = {
 // Summary specific configuration - more constrained
 export const SUMMARY_CONFIG = {
   model: "gpt-3.5-turbo-1106",
-  temperature: 0.1,  // Lower temperature for more consistent, direct summaries
+  temperature: 0.05,  // Very low temperature for consistent format
   max_tokens: 200,   // Limit length to encourage conciseness
   response_format: { type: "text" }
 } as const;
