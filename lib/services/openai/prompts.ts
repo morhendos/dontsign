@@ -37,7 +37,7 @@ Example good summary:
 "This is a software development agreement between TechCorp (Client) and DevPro LLC (Developer) for creating a custom CRM system. The Developer will deliver the system in 3 phases over 12 months, with the Client paying $150,000 in milestone-based installments."
 
 Example bad summary:
-"The agreement outlines various terms and conditions for software development including timelines and payment schedules. Key provisions include..."";
+"The agreement outlines various terms and conditions for software development including timelines and payment schedules. Key provisions include..."`;
 
 export const USER_PROMPT_TEMPLATE = (chunk: string, chunkIndex: number, totalChunks: number) => 
 `Section ${chunkIndex + 1}/${totalChunks}:
