@@ -119,7 +119,7 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
 
     const documentSummary = await generateDocumentSummary(text);
 
-    // Model initialization
+    // Start detailed analysis
     await updateProgress(onProgress, {
       type: 'update',
       progress: 45,
