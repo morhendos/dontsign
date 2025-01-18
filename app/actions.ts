@@ -7,9 +7,8 @@ import { openAIService } from "@/lib/services/openai/openai-service";
 import type OpenAI from 'openai';
 import { 
   SYSTEM_PROMPT, 
-  SYSTEM_SUMMARY_PROMPT,
+  DOCUMENT_SUMMARY_PROMPT,
   USER_PROMPT_TEMPLATE, 
-  FINAL_SUMMARY_PROMPT,
   ANALYSIS_CONFIG,
   SUMMARY_CONFIG 
 } from "@/lib/services/openai/prompts";
@@ -51,12 +50,17 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
   return JSON.parse(content);
 }
 
-async function generateOverallSummary(sectionSummaries: string[]) {
+async function generateDocumentSummary(text: string) {
+  // Create a shorter version of the text for summary generation
+  // We'll take the first ~4000 chars which typically contain the most relevant info
+  // for identifying document type, parties, and main purpose
+  const summaryText = text.slice(0, 4000);
+  
   const response = await openAIService.createChatCompletion({
     ...SUMMARY_CONFIG,
     messages: [
-      { role: "system", content: SYSTEM_SUMMARY_PROMPT },
-      { role: "user", content: FINAL_SUMMARY_PROMPT(sectionSummaries) },
+      { role: "system", content: DOCUMENT_SUMMARY_PROMPT },
+      { role: "user", content: summaryText },
     ],
   });
 
@@ -105,19 +109,22 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    // Model initialization
+    // Generate document summary first
     await updateProgress(onProgress, {
       type: 'update',
       progress: 35,
-      stage: 'preprocessing',
-      activity: "Preparing AI model..."
+      stage: 'analyzing',
+      activity: "Generating document summary..."
     });
 
+    const documentSummary = await generateDocumentSummary(text);
+
+    // Model initialization
     await updateProgress(onProgress, {
       type: 'update',
       progress: 45,
       stage: 'analyzing',
-      activity: "Starting document analysis...",
+      activity: "Starting detailed analysis...",
       currentChunk: 0,
       totalChunks: chunks.length
     });
@@ -161,14 +168,9 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       });
     }
 
-    // Generate overall summary from section summaries
-    const summary = await generateOverallSummary(
-      results.map(r => r.summary)
-    );
-
     // Prepare final analysis
     const finalAnalysis = {
-      summary,
+      summary: documentSummary,
       potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))].filter(Boolean),
       importantClauses: [...new Set(results.flatMap(r => r.importantClauses))].filter(Boolean),
       recommendations: [...new Set(results.flatMap(r => r.recommendations || []))].filter(Boolean),
