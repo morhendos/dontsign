@@ -44,7 +44,7 @@ Examples of UNACCEPTABLE formats:
 ✗ Any summary that includes risks or recommendations
 ✗ Any summary longer than 2 sentences
 
-You MUST verify your response follows all rules before providing it.`;
+Failure to follow this exact format will result in rejection. You MUST verify your response follows all rules before providing it.`;
 
 export const USER_PROMPT_TEMPLATE = (chunk: string, chunkIndex: number, totalChunks: number) => 
 `Section ${chunkIndex + 1}/${totalChunks}:
@@ -91,3 +91,6 @@ export const SUMMARY_CONFIG = {
   max_tokens: 200,   // Limit length to encourage conciseness
   response_format: { type: "text" }
 } as const;
+
+// The current version of summary format - used to invalidate old cached analyses
+export const SUMMARY_VERSION = 'v2';
