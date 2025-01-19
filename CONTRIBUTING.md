@@ -29,6 +29,52 @@
    - Use structured logging with context
    - Keep existing logging when adding new features
 
+## Analytics Integration
+
+When adding new features:
+1. Add appropriate analytics events
+2. Respect user consent settings
+3. Include proper error tracking
+4. Document new events
+
+Example:
+```typescript
+// Good analytics implementation
+trackEvent('contract_upload_start', {
+  fileType: file.type,
+  fileSize: file.size,
+});
+
+try {
+  // Feature implementation
+} catch (error) {
+  Sentry.captureException(error);
+  trackEvent('contract_upload_error', {
+    error: error.message,
+  });
+}
+```
+
+## Error Handling Best Practices
+
+1. Use Sentry for all errors:
+   ```typescript
+   try {
+     // Feature code
+   } catch (error) {
+     Sentry.captureException(error, {
+       extra: {
+         // Relevant context
+       },
+     });
+   }
+   ```
+
+2. Implement rate limiting:
+   - Check rate limits before operations
+   - Handle rate limit errors gracefully
+   - Provide clear user feedback
+
 ### Real-World Lessons
 
 #### State Management Example

@@ -2,12 +2,24 @@
 
 ## [Unreleased]
 
+### Added
+- Custom analytics system with consent management
+- Rate limiting for API calls
+- Enhanced error tracking with detailed logging
+- Session management improvements
+- Progress tracking notifications
+
 ### Changed
-- Major refactoring of contract analysis functionality
-- Improved state management in ContractAnalyzer component
-- Fixed duplicate analysis prevention
-- Enhanced history management
-- Added comprehensive architecture documentation
+- Refactored contract analysis to use Server Actions
+- Improved state management across components
+- Enhanced error handling with better user feedback
+- Updated OpenAI integration for better reliability
+
+### Fixed
+- State cleanup issues during file selection
+- Progress tracking accuracy
+- Analysis history management
+- Error boundary handling
 
 ## [v1.1.0] - 2024-12-20
 
