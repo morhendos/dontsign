@@ -1,20 +1,12 @@
 import path from 'path';
 import { promises as fs } from 'fs';
 import * as Sentry from '@sentry/nextjs';
-
-type ModelConfig = {
-  model: string;
-  temperature: number;
-  max_tokens: number;
-  response_format: { type: string };
-};
-
-type PromptType = 'system' | 'summary' | 'analysis';
+import { modelConfigs } from './config';
+import type { PromptType, ModelConfig, AnalysisType } from './types';
 
 export class PromptManager {
   private static instance: PromptManager;
   private promptCache = new Map<string, string>();
-  private configCache: Record<string, ModelConfig> | null = null;
 
   private constructor() {}
 
@@ -40,15 +32,6 @@ export class PromptManager {
     }
   }
 
-  private async loadConfig(): Promise<Record<string, ModelConfig>> {
-    if (this.configCache) return this.configCache;
-
-    const configPath = path.join(process.cwd(), 'prompts', 'config', 'models.json');
-    const configContent = await this.readFile(configPath);
-    this.configCache = JSON.parse(configContent);
-    return this.configCache;
-  }
-
   async getPrompt(type: PromptType, variables?: Record<string, string>): Promise<string> {
     const cacheKey = `${type}${JSON.stringify(variables) || ''}`;
     if (this.promptCache.has(cacheKey)) {
@@ -68,14 +51,16 @@ export class PromptManager {
     return prompt;
   }
 
-  async getModelConfig(type: 'analysis' | 'summary'): Promise<ModelConfig> {
-    const config = await this.loadConfig();
-    return config[type];
+  getModelConfig(type: AnalysisType): ModelConfig {
+    const config = modelConfigs[type];
+    if (!config) {
+      throw new Error(`No configuration found for type: ${type}`);
+    }
+    return config;
   }
 
   clearCache(): void {
     this.promptCache.clear();
-    this.configCache = null;
   }
 }
 
