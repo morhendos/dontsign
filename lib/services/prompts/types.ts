@@ -19,15 +19,25 @@ export interface PromptVariables {
   [key: string]: string | undefined;
 }
 
-export type AnalysisType = 'analysis' | 'summary' | 'documentType';
+export interface LegalElements {
+  hasTitle: boolean;
+  hasParties: boolean;
+  hasNumberedSections: boolean;
+  hasSignatureBlocks: boolean;
+  hasLegalTerminology: boolean;
+  hasRightsObligations: boolean;
+}
 
 export interface DocumentTypeResponse {
   isLegalDocument: boolean;
   documentType: string;
   confidence: number;
+  identifiedElements: LegalElements;
   explanation: string;
   recommendedAction: 'proceed_with_analysis' | 'stop_analysis';
 }
+
+export type AnalysisType = 'analysis' | 'summary' | 'documentType';
 
 export interface PromptManager {
   getPrompt(type: PromptType, variables?: PromptVariables): Promise<string>;
