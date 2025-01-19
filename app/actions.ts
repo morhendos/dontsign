@@ -5,6 +5,7 @@ import { ContractAnalysisError } from "@/lib/errors";
 import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
 import { promptManager } from "@/lib/services/prompts";
+import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 
 interface ProgressUpdate {
   type: 'update';
@@ -40,13 +41,15 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
   ]);
 
   const config = await promptManager.getModelConfig('analysis');
-  const response = await openAIService.createChatCompletion({
+  const params: ChatCompletionCreateParamsNonStreaming = {
     ...config,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: analysisPrompt },
-    ],
-  });
+    ]
+  };
+  
+  const response = await openAIService.createChatCompletion(params);
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No analysis generated', 'API_ERROR');
@@ -57,15 +60,19 @@ async function generateDocumentSummary(text: string) {
   // Take a decent amount of text from the start of the document
   const summaryText = text.slice(0, 6000);
   
-  const summaryPrompt = await promptManager.getPrompt('summary');
-  const config = await promptManager.getModelConfig('summary');
+  const [summaryPrompt, config] = await Promise.all([
+    promptManager.getPrompt('summary'),
+    promptManager.getModelConfig('summary')
+  ]);
 
-  const response = await openAIService.createChatCompletion({
+  const params: ChatCompletionCreateParamsNonStreaming = {
     ...config,
     messages: [
       { role: "user", content: `${summaryPrompt}\n\n${summaryText}` }
     ]
-  });
+  };
+
+  const response = await openAIService.createChatCompletion(params);
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
@@ -172,9 +179,6 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       });
     }
 
-    // Get the model version for metadata
-    const analysisConfig = await promptManager.getModelConfig('analysis');
-
     // Prepare final analysis
     const finalAnalysis = {
       summary: documentSummary,
@@ -184,7 +188,7 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       metadata: {
         analyzedAt: new Date().toISOString(),
         documentName: filename,
-        modelVersion: analysisConfig.model,
+        modelVersion: config.model,
         totalChunks: chunks.length,
         sectionsAnalyzed: chunks.length
       }
