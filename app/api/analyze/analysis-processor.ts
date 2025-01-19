@@ -1,14 +1,12 @@
 import { splitIntoChunks } from '@/lib/text-utils';
 import { ContractAnalysisError } from '@/lib/errors';
-import { ANALYSIS_PROGRESS, progressMessages } from '@/lib/constants';
-import { analyzeChunk, generateFinalSummary } from './chunk-analyzer';
+import { analyzeChunk, generateDocumentSummary } from './chunk-analyzer';
 import type { ProgressHandler, AnalysisResult } from './types';
 
-// Short delay to keep steps visible while maintaining responsiveness
-const MIN_STEP_TIME = 300; // 300ms for main steps
-const CHUNK_STEP_TIME = 150; // 150ms between chunks
+// Delay to keep UI responsive
+const STEP_TIME = 300;
 
-async function wait(ms: number = MIN_STEP_TIME) {
+async function wait(ms: number = STEP_TIME) {
   await new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -18,21 +16,8 @@ export async function processDocument(
   progress: ProgressHandler
 ): Promise<AnalysisResult> {
   try {
-    // Initialize phase
-    progress.sendProgress('preprocessing', ANALYSIS_PROGRESS.STARTED, 0, 0, 
-      progressMessages.STARTED);
-    await wait();
-    
-    progress.sendProgress('preprocessing', ANALYSIS_PROGRESS.FILE_READ, 0, 0,
-      progressMessages.FILE_READ);
-    await wait();
-
-    progress.sendProgress('preprocessing', ANALYSIS_PROGRESS.INPUT_VALIDATION, 0, 0,
-      progressMessages.INPUT_VALIDATION);
-    await wait();
-
-    progress.sendProgress('preprocessing', ANALYSIS_PROGRESS.PREPROCESSING_START, 0, 0,
-      progressMessages.PREPROCESSING_START);
+    // Input validation
+    progress.sendProgress('preprocessing', 10, 0, 0, "Validating document...");
     await wait();
 
     const chunks = splitIntoChunks(text);
@@ -40,101 +25,42 @@ export async function processDocument(
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    // Model initialization
-    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.MODEL_INIT, 0, chunks.length,
-      progressMessages.MODEL_INIT);
+    // Generate document summary
+    progress.sendProgress('analyzing', 30, 0, chunks.length, "Generating document summary...");
     await wait();
     
-    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.MODEL_READY, 0, chunks.length,
-      progressMessages.MODEL_READY);
+    const documentSummary = await generateDocumentSummary(text);
+
+    // Analyze document sections
+    progress.sendProgress('analyzing', 40, 0, chunks.length, "Starting detailed analysis...");
     await wait();
 
-    // Start analysis phase
-    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.ANALYSIS_START, 0, chunks.length,
-      progressMessages.ANALYSIS_START);
-    await wait();
+    const results = [];
+    const progressPerChunk = 40 / chunks.length; // Progress from 40% to 80%
 
-    // Initialize result arrays
-    let allKeyTerms: string[] = [];
-    let allPotentialRisks: string[] = [];
-    let allImportantClauses: string[] = [];
-    let allRecommendations: string[] = [];
-    let chunkSummaries: string[] = [];
-
-    // For single chunk, show intermediate progress
-    if (chunks.length === 1) {
-      progress.sendProgress('analyzing', ANALYSIS_PROGRESS.ANALYSIS_PROCESSING, 0, 1,
-        progressMessages.ANALYSIS_PROCESSING);
-      await wait();
-      
-      progress.sendProgress('analyzing', ANALYSIS_PROGRESS.ANALYSIS_MIDPOINT, 0, 1,
-        progressMessages.ANALYSIS_MIDPOINT);
-      await wait();
-      
-      progress.sendProgress('analyzing', ANALYSIS_PROGRESS.ANALYSIS_FINALIZING, 0, 1,
-        progressMessages.ANALYSIS_FINALIZING);
-      await wait();
-    }
-
-    // Process each chunk
     for (let i = 0; i < chunks.length; i++) {
       const chunkNumber = i + 1;
-      
       progress.sendProgress(
-        'analyzing', 
-        ANALYSIS_PROGRESS.ANALYSIS_START + ((chunkNumber / chunks.length) * 
-          (ANALYSIS_PROGRESS.CHUNK_ANALYSIS - ANALYSIS_PROGRESS.ANALYSIS_START)),
+        'analyzing',
+        40 + (progressPerChunk * i),
         chunkNumber,
         chunks.length,
-        `Analyzing section ${chunkNumber} of ${chunks.length}: Identifying key terms and clauses...`
+        `Analyzing section ${chunkNumber} of ${chunks.length}...`
       );
       
-      const chunkAnalysis = await analyzeChunk(chunks[i], i, chunks.length);
-      
-      // Aggregate results
-      allKeyTerms = [...allKeyTerms, ...chunkAnalysis.keyTerms];
-      allPotentialRisks = [...allPotentialRisks, ...chunkAnalysis.potentialRisks];
-      allImportantClauses = [...allImportantClauses, ...chunkAnalysis.importantClauses];
-      allRecommendations = [...allRecommendations, ...(chunkAnalysis.recommendations || [])];
-      chunkSummaries.push(chunkAnalysis.summary);
-      
-      await wait(CHUNK_STEP_TIME); // Shorter wait between chunks
+      results.push(await analyzeChunk(chunks[i], i, chunks.length));
+      await wait(STEP_TIME / 2); // Shorter wait between chunks
     }
 
-    // Summary phase
-    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.SUMMARY_START, chunks.length, chunks.length,
-      progressMessages.SUMMARY_START);
-    await wait();
-
-    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.RISKS, chunks.length, chunks.length,
-      progressMessages.RISKS);
-    await wait();
-
-    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.RECOMMENDATIONS, chunks.length, chunks.length,
-      progressMessages.RECOMMENDATIONS);
-    await wait();
-
-    // Generate final summary
-    const summaryContent = await generateFinalSummary(
-      chunkSummaries,
-      allKeyTerms,
-      allPotentialRisks,
-      allImportantClauses,
-      allRecommendations
-    );
-
-    // Final steps
-    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.RESULT_PREPARATION, chunks.length, chunks.length,
-      progressMessages.RESULT_PREPARATION);
+    // Compile results
+    progress.sendProgress('analyzing', 90, chunks.length, chunks.length, "Finalizing analysis...");
     await wait();
     
-    // Prepare final result
     const result = {
-      summary: summaryContent,
-      keyTerms: Array.from(new Set(allKeyTerms)),
-      potentialRisks: Array.from(new Set(allPotentialRisks)),
-      importantClauses: Array.from(new Set(allImportantClauses)),
-      recommendations: Array.from(new Set(allRecommendations)),
+      summary: documentSummary,
+      potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))].filter(Boolean),
+      importantClauses: [...new Set(results.flatMap(r => r.importantClauses))].filter(Boolean),
+      recommendations: [...new Set(results.flatMap(r => r.recommendations || []))].filter(Boolean),
       metadata: {
         analyzedAt: new Date().toISOString(),
         documentName: filename,
@@ -144,8 +70,7 @@ export async function processDocument(
     };
 
     // Complete
-    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.COMPLETE, chunks.length, chunks.length,
-      progressMessages.COMPLETE);
+    progress.sendProgress('complete', 100, chunks.length, chunks.length, "Analysis complete!");
 
     return result;
   } catch (error) {

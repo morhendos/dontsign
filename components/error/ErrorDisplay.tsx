@@ -33,7 +33,7 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
 
     case 'AI_SERVICE_ERROR':
       title = 'AI Service Error';
-      description = error.clientMessage || 'Our AI service is currently unavailable. Please try again later.';
+      description = error.clientMessage || 'Unable to complete the analysis. Please try again later.';
       icon = ServerCrash;
       variant = 'destructive';
       break;
@@ -50,6 +50,20 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
       description = error.message || 'Please check your input and try again.';
       icon = AlertTriangle;
       variant = 'default';
+      break;
+
+    case 'TEXT_PROCESSING_ERROR':
+      title = 'Processing Error';
+      description = error.message || 'Unable to process the document. Please try again.';
+      icon = AlertTriangle;
+      variant = 'default';
+      break;
+
+    case 'API_ERROR':
+      title = 'API Error';
+      description = error.message || 'Unable to complete the request. Please try again.';
+      icon = ServerCrash;
+      variant = 'destructive';
       break;
   }
 

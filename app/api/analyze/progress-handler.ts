@@ -1,7 +1,7 @@
 import { ANALYSIS_PROGRESS } from '@/lib/constants';
-import type { StreamController, ProgressHandler } from './types';
+import type { ProgressHandler } from './types';
 
-export function createProgressHandler(controller: StreamController): ProgressHandler {
+export function createProgressHandler(controller: ReadableStreamDefaultController): ProgressHandler {
   const sendEvent = (data: any) => {
     console.log('[Server Progress]', JSON.stringify(data));
     controller.enqueue(`data: ${JSON.stringify(data)}\n\n`);

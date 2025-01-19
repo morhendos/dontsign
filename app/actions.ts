@@ -6,10 +6,9 @@ import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
 import type OpenAI from 'openai';
 import { 
-  SYSTEM_PROMPT, 
-  SYSTEM_SUMMARY_PROMPT,
+  SYSTEM_PROMPT,
+  DOCUMENT_SUMMARY_PROMPT,
   USER_PROMPT_TEMPLATE, 
-  FINAL_SUMMARY_PROMPT,
   ANALYSIS_CONFIG,
   SUMMARY_CONFIG 
 } from "@/lib/services/openai/prompts";
@@ -51,17 +50,21 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
   return JSON.parse(content);
 }
 
-async function generateOverallSummary(sectionSummaries: string[]) {
+async function generateDocumentSummary(text: string) {
+  // Take a decent amount of text from the start of the document
+  const summaryText = text.slice(0, 6000);
+  
   const response = await openAIService.createChatCompletion({
     ...SUMMARY_CONFIG,
     messages: [
-      { role: "system", content: SYSTEM_SUMMARY_PROMPT },
-      { role: "user", content: FINAL_SUMMARY_PROMPT(sectionSummaries) },
-    ],
+      { role: "system", content: DOCUMENT_SUMMARY_PROMPT },
+      { role: "user", content: summaryText },
+    ]
   });
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
+  
   return content.trim();
 }
 
@@ -105,19 +108,22 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       throw new ContractAnalysisError("Document too short", "INVALID_INPUT");
     }
 
-    // Model initialization
+    // Generate document summary first
     await updateProgress(onProgress, {
       type: 'update',
       progress: 35,
-      stage: 'preprocessing',
-      activity: "Preparing AI model..."
+      stage: 'analyzing',
+      activity: "Generating document summary..."
     });
 
+    const documentSummary = await generateDocumentSummary(text);
+
+    // Start detailed analysis
     await updateProgress(onProgress, {
       type: 'update',
       progress: 45,
       stage: 'analyzing',
-      activity: "Starting document analysis...",
+      activity: "Starting detailed analysis...",
       currentChunk: 0,
       totalChunks: chunks.length
     });
@@ -144,7 +150,7 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
 
     // Results processing phase
     const finalSteps = [
-      { progress: 80, activity: "Processing section summaries..." },
+      { progress: 80, activity: "Processing results..." },
       { progress: 85, activity: "Evaluating potential risks..." },
       { progress: 90, activity: "Identifying critical clauses..." },
       { progress: 95, activity: "Preparing recommendations..." }
@@ -161,14 +167,9 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
       });
     }
 
-    // Generate overall summary from section summaries
-    const summary = await generateOverallSummary(
-      results.map(r => r.summary)
-    );
-
     // Prepare final analysis
     const finalAnalysis = {
-      summary,
+      summary: documentSummary,
       potentialRisks: [...new Set(results.flatMap(r => r.potentialRisks))].filter(Boolean),
       importantClauses: [...new Set(results.flatMap(r => r.importantClauses))].filter(Boolean),
       recommendations: [...new Set(results.flatMap(r => r.recommendations || []))].filter(Boolean),

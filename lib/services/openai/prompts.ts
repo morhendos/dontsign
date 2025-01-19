@@ -19,21 +19,20 @@ Guidelines for analysis:
 - Highlight key dates and deadlines
 - Focus on actionable insights`;
 
-export const SYSTEM_SUMMARY_PROMPT = `You are an expert at writing clear, concise summaries of legal documents. Your role is to:
+export const DOCUMENT_SUMMARY_PROMPT = `Provide a factual description of the legal document, formatted as specified below.
 
-1. Identify and state the type of contract
-2. Clearly describe its main purpose
-3. Name the key parties involved
-4. State ONLY the core obligations
+Begin with:
+"This is a [type] between [parties] for [purpose]."
 
-Do not include:
-- Analysis or opinions
-- Risks or concerns
-- Recommendations
-- Detailed breakdowns
-- Technical terms unless essential
+Include:
+- Document type
+- Primary parties
+- Core purpose
+- Key terms if significant
 
-Keep it simple, direct, and factual.`;
+Example:
+"This is a software development agreement between TechCorp (Client) and DevPro LLC (Developer) for creating a custom CRM system. The Developer will deliver the system in 3 phases over 12 months, with the Client paying $150,000 in milestone-based installments."
+`;
 
 export const USER_PROMPT_TEMPLATE = (chunk: string, chunkIndex: number, totalChunks: number) => 
 `Section ${chunkIndex + 1}/${totalChunks}:
@@ -43,7 +42,6 @@ ${chunk}
 Provide a JSON response with the following structure:
 
 {
-  "summary": "State only what this section establishes or requires. DO NOT include any analysis. Example: 'This section sets the purchase price at $50,000 and requires payment in full within 30 days.' NOT 'This section outlines payment terms including...'.",
   "potentialRisks": [
     "Specific issues that could negatively impact the user",
     "Ambiguous or unfavorable terms",
@@ -66,33 +64,7 @@ Provide a JSON response with the following structure:
   ]
 }`;
 
-export const FINAL_SUMMARY_PROMPT = (sectionSummaries: string[]) => 
-`Write a 2-3 sentence description of what this contract is and does. Start with "This is a" and focus only on core facts.
-
-DO:
-- Start with "This is a [type] contract between [parties] for [purpose]"
-- State only the core purpose and main obligations
-- Use plain, direct language
-
-DO NOT:
-- Include analysis, risks, or recommendations
-- List key terms or important clauses
-- Use phrases like "The contract outlines" or "This section covers"
-- Provide detailed breakdowns of terms
-- Use technical legal terminology unless essential
-- Add any evaluation or opinions
-- Exceed 3 sentences
-
-Example good summary:
-"This is a vehicle purchase agreement between John Smith (Seller) and Jane Doe (Buyer) for the sale of a 2018 Toyota Camry at $15,000. The seller will transfer vehicle ownership upon receiving full payment, and the buyer must complete registration within 30 days."
-
-Example bad summary:
-"The contract outlines the terms and conditions for the sale of an automobile, including obligations, documents required, and registration responsibilities. Key terms include..."
-
-Contract sections to summarize:
-${sectionSummaries.join('\n')}`;
-
-// Core analysis configuration
+// OpenAI API configurations
 export const ANALYSIS_CONFIG = {
   model: "gpt-3.5-turbo-1106",
   temperature: 0.3,
@@ -100,10 +72,9 @@ export const ANALYSIS_CONFIG = {
   response_format: { type: "json_object" }
 } as const;
 
-// Summary specific configuration - more constrained
 export const SUMMARY_CONFIG = {
   model: "gpt-3.5-turbo-1106",
-  temperature: 0.1,  // Lower temperature for more consistent, direct summaries
-  max_tokens: 200,   // Limit length to encourage conciseness
+  temperature: 0.3,
+  max_tokens: 300,
   response_format: { type: "text" }
 } as const;
