@@ -1,129 +1,142 @@
-# Project Structure
+# DontSign Project Structure
 
-## Directory Layout
+## Directory Structure
 
 ```
-dontsign/
-├── app/
-│   ├── actions.ts              # Server actions
-│   ├── api/
-│   │   └── analyze/            # Analysis API endpoint
-│   │       ├── route.ts
-│   │       ├── chunk-analyzer.ts
-│   │       └── analysis-processor.ts
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/
-│   ├── contract-analyzer/      # Main application components
-│   │   ├── ContractAnalyzer.tsx
-│   │   ├── components/
-│   │   │   ├── analysis/       # Analysis-related components
-│   │   │   │   ├── AnalysisResults.tsx
-│   │   │   │   ├── AnalysisControls.tsx
-│   │   │   │   └── AnalysisProgress.tsx
-│   │   │   ├── layout/         # Layout components
-│   │   │   └── upload/         # File upload components
-│   │   └── hooks/
-│   │       ├── state/          # State management
-│   │       │   ├── useAnalyzerState.ts
-│   │       │   └── useStatusManager.ts
-│   │       ├── analysis/       # Analysis logic
-│   │       └── storage/        # Storage management
-│   └── ui/                     # Shared UI components
-├── lib/
-│   ├── services/
-│   │   └── openai/
-│   │       ├── openai-service.ts
-│   │       └── prompts.ts      # AI prompts
-│   ├── text-utils.ts           # Text processing utilities
-│   └── errors.ts               # Error handling
-├── types/                      # TypeScript type definitions
-└── docs/                       # Documentation
-    ├── PROJECT_STRUCTURE.md
-    ├── SUMMARY_GENERATION.md
-    └── TROUBLESHOOTING.md
+📦 dontsign
+├── 📂 app/                      # Next.js App Router
+│   ├── 📂 (legal)/              # Legal pages route group
+│   │   ├── privacy/             # Privacy policy page
+│   │   └── terms/               # Terms of service page
+│   ├── 📂 api/                  # API routes
+│   ├── 📂 contact/              # Contact page
+│   ├── 📄 actions.ts            # Server Actions
+│   ├── 📄 error.tsx             # Error page
+│   ├── 📄 global-error.tsx      # Global error handler
+│   ├── 📄 layout.tsx            # Root layout
+│   ├── 📄 page.tsx              # Home page
+│   └── 📄 not-found.tsx         # 404 page
+├── 📂 components/               # React components
+│   ├── 📂 analysis-history/     # Analysis history components
+│   │   ├── 📄 index.tsx         # Main history component
+│   │   └── 📄 history-item.tsx  # Individual history item
+│   ├── 📂 analysis-log/         # Analysis logging components
+│   │   ├── 📄 index.tsx         # Main log component
+│   │   └── 📄 log-entry.tsx     # Individual log entry
+│   ├── 📂 contract-analyzer/    # Main analyzer components
+│   │   ├── 📄 index.tsx         # Main analyzer
+│   │   └── 📄 progress.tsx      # Progress tracking
+│   ├── 📂 contract-upload/      # File upload components
+│   │   ├── 📄 index.tsx         # Upload container
+│   │   └── 📄 dropzone.tsx      # Drag & drop zone
+│   ├── 📂 error/                # Error components
+│   │   ├── 📄 index.tsx         # Error container
+│   │   └── 📄 display.tsx       # Error display
+│   ├── 📂 ui/                   # Shared UI components
+│   │   ├── 📄 button.tsx
+│   │   ├── 📄 card.tsx
+│   │   └── 📄 [...others]
+│   ├── 📄 Analytics.tsx         # Analytics wrapper
+│   ├── 📄 CookieConsent.tsx     # Cookie consent banner
+│   ├── 📄 header.tsx            # Site header
+│   └── 📄 footer.tsx            # Site footer
+├── 📂 lib/                      # Utility functions
+│   ├── 📂 services/             # External services
+│   │   ├── 📂 openai/           # OpenAI integration
+│   │   │   ├── 📄 openai-service.ts
+│   │   │   └── 📄 prompts.ts
+│   │   └── 📂 analytics/        # Analytics service
+│   ├── 📄 pdf-utils.ts          # PDF processing
+│   ├── 📄 text-utils.ts         # Text processing
+│   ├── 📄 rate-limit.ts         # Rate limiting
+│   ├── 📄 errors.ts             # Error handling
+│   └── 📄 storage.ts            # Local storage
+├── 📂 types/                    # TypeScript types
+│   ├── 📄 analysis.ts           # Analysis types
+│   └── 📄 common.ts             # Shared types
+├── 📂 hooks/                    # React hooks
+│   ├── 📄 useAnalysis.ts        # Analysis hook
+│   └── 📄 useStorage.ts         # Storage hook
+└── 📂 public/                   # Static assets
+
 ```
 
-## Key Components
+## Key Files and Their Purposes
 
-### Contract Analysis
-Main functionality for analyzing contracts is in:
-- `components/contract-analyzer/`: UI components and logic
-- `app/api/analyze/`: Server-side analysis
-- `lib/services/openai/`: AI integration
+### Core Application
 
-### State Management
-Application state is managed in:
-- `components/contract-analyzer/hooks/state/`
-- Uses React hooks pattern
-- Integrates with local storage for caching
+- `app/page.tsx`: Main entry point, renders primary components
+- `app/actions.ts`: Server Actions for contract analysis
+- `app/layout.tsx`: Root layout with providers and global components
 
-### File Processing
-File handling occurs in:
-- `components/contract-analyzer/components/upload/`
-- `lib/text-utils.ts`
-- Uses PDF.js for PDF parsing
+### Components
 
-### Analysis Results
-Results display and processing:
-- `components/contract-analyzer/components/analysis/`
-- Uses shadcn/ui components
-- Responsive layout
+#### Analysis Components
+- `components/contract-analyzer/index.tsx`: Main analysis orchestrator
+- `components/contract-upload/index.tsx`: File upload handling
+- `components/analysis-history/index.tsx`: Analysis history management
+- `components/analysis-log/index.tsx`: Real-time analysis logging
 
-## Common Tasks
+#### UI Components
+- `components/ui/*`: Shared UI components using shadcn/ui
+- `components/error/*`: Error handling and display
+- `components/Analytics.tsx`: Analytics wrapper
+- `components/CookieConsent.tsx`: GDPR cookie consent
 
-### Adding New Features
-Place new components in appropriate directories:
-1. UI Components → `components/contract-analyzer/components/`
-2. Server Logic → `app/api/analyze/`
-3. Shared Logic → `lib/`
-4. Type Definitions → `types/`
+### Services and Utilities
 
-### Modifying Analysis
-Key files to modify:
-1. AI Prompts → `lib/services/openai/prompts.ts`
-2. Analysis Logic → `app/api/analyze/chunk-analyzer.ts`
-3. Result Processing → `app/api/analyze/analysis-processor.ts`
+#### OpenAI Integration
+- `lib/services/openai/openai-service.ts`: OpenAI API client
+- `lib/services/openai/prompts.ts`: Analysis prompts
 
-### UI Changes
-Main locations:
-1. Results Display → `components/contract-analyzer/components/analysis/`
-2. Upload Interface → `components/contract-analyzer/components/upload/`
-3. Layout → `components/contract-analyzer/components/layout/`
+#### File Processing
+- `lib/pdf-utils.ts`: PDF processing utilities
+- `lib/text-utils.ts`: Text processing and chunking
 
-## File Name Conventions
+#### Error Handling
+- `lib/errors.ts`: Custom error types
+- `app/error.tsx`: Error boundary component
+- `app/global-error.tsx`: Global error handler
 
-1. Components:
-   - Main component files: PascalCase.tsx
-   - Index files: index.tsx
-   - Types: types.ts
+#### State and Storage
+- `lib/storage.ts`: Local storage utilities
+- `hooks/useStorage.ts`: Storage management hook
+- `hooks/useAnalysis.ts`: Analysis state management
 
-2. Utilities:
-   - Hyphenated-lowercase.ts
-   - Descriptive suffixes: -utils.ts, -service.ts
+## Component Dependencies
 
-3. Documentation:
-   - UPPERCASE.md
-   - Descriptive and specific
+### Main Flow
+1. User interacts with `contract-upload`
+2. `contract-analyzer` orchestrates analysis
+3. `analysis-log` shows progress
+4. Results displayed through analyzer
+5. History saved via `analysis-history`
 
-## Best Practices
+### Error Flow
+1. Errors caught in components or actions
+2. Processed through error boundaries
+3. Displayed via error components
+4. Logged to Sentry
+5. Tracked in analytics
 
-1. **Component Organization**
-   - Group related components
-   - Keep components small and focused
-   - Use index.ts for exports
+### Analytics Flow
+1. User actions tracked via Analytics wrapper
+2. Consent managed by CookieConsent
+3. Events processed by analytics service
+4. Error tracking integrated with Sentry
 
-2. **State Management**
-   - Use hooks for complex state
-   - Keep state close to usage
-   - Document state interactions
+## Configuration Files
 
-3. **File Structure**
-   - Maintain consistent naming
-   - Group by feature when possible
-   - Keep nesting reasonable (max 3-4 levels)
+- `next.config.js`: Next.js configuration
+- `tailwind.config.js`: Tailwind CSS configuration
+- `components.json`: shadcn/ui configuration
+- `sentry.*.config.js`: Sentry configuration files
 
-4. **Documentation**
-   - Update docs with structure changes
-   - Keep readme files current
-   - Document complex interactions
+## Environment Variables
+
+```env
+OPENAI_API_KEY=          # OpenAI API key
+SENTRY_DSN=              # Sentry DSN
+ANALYTICS_KEY=           # Analytics API key
+NEXT_PUBLIC_APP_URL=     # Application URL
+```
