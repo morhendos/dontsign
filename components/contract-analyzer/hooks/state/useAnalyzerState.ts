@@ -9,7 +9,7 @@ import { generateFileHash } from '../../utils/hash';
 import type { StoredAnalysis } from '../../types/storage';
 
 export const useAnalyzerState = () => {
-  // Track if current file is already analyzed
+  // State
   const [isAnalyzed, setIsAnalyzed] = useState(false);
   const [error, setError] = useState<{ message: string; type: string } | null>(null);
 
@@ -18,21 +18,17 @@ export const useAnalyzerState = () => {
   const status = useStatusManager();
   const log = useAnalysisLog();
 
-  // Status update helper that also manages log entries
-  const updateStatus = useCallback((message: string) => {
-    status.setMessage(message);
-    log.updateLastEntry('complete');
-    log.addEntry(message);
-  }, [status, log]);
-
-  // Effect to handle errors from file and analysis
-  useEffect(() => {
-    if (fileError) {
-      setError(fileError);
-    } else if (analysisError) {
-      setError(analysisError);
-    }
-  }, [fileError, analysisError]);
+  // File handling
+  const {
+    file,
+    error: fileError,
+    isProcessing,
+    handleFileSelect: baseHandleFileSelect,
+    resetFile
+  } = useFileUpload({
+    onStatusUpdate: updateStatus,
+    onEntryComplete: () => log.updateLastEntry('complete')
+  });
 
   // Contract analysis
   const {
@@ -60,17 +56,21 @@ export const useAnalyzerState = () => {
     }
   });
 
-  // File handling
-  const {
-    file,
-    error: fileError,
-    isProcessing,
-    handleFileSelect: baseHandleFileSelect,
-    resetFile
-  } = useFileUpload({
-    onStatusUpdate: updateStatus,
-    onEntryComplete: () => log.updateLastEntry('complete')
-  });
+  // Status update helper that also manages log entries
+  const updateStatus = useCallback((message: string) => {
+    status.setMessage(message);
+    log.updateLastEntry('complete');
+    log.addEntry(message);
+  }, [status, log]);
+
+  // Effect to handle errors from file and analysis
+  useEffect(() => {
+    if (fileError) {
+      setError(fileError);
+    } else if (analysisError) {
+      setError(analysisError);
+    }
+  }, [fileError, analysisError]);
 
   // Handle file selection - ONLY handles file selection, nothing else
   const handleFileSelect = useCallback(async (newFile: File | null) => {
