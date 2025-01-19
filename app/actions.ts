@@ -57,7 +57,7 @@ async function generateDocumentSummary(text: string, attempt: number = 1) {
   const isStrictMode = attempt === 1;
   console.log(`[Server] Running in ${isStrictMode ? 'strict' : 'relaxed'} mode`);
   
-  const summaryText = text.slice(0, isStrictMode ? 4000 : 8000);
+  const summaryText = text.slice(0, isStrictMode ? 6000 : 8000);
   
   const response = await openAIService.createChatCompletion({
     ...SUMMARY_CONFIG,
@@ -88,15 +88,6 @@ async function generateDocumentSummary(text: string, attempt: number = 1) {
         summary.includes('The agreement')) {
       throw new ContractAnalysisError(
         'Summary contains forbidden terms', 
-        'TEXT_PROCESSING_ERROR'
-      );
-    }
-    
-    // Count sentences by splitting on .!? and filtering empty strings
-    const sentences = summary.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    if (sentences.length > 2) {
-      throw new ContractAnalysisError(
-        'Summary must not exceed 2 sentences', 
         'TEXT_PROCESSING_ERROR'
       );
     }
