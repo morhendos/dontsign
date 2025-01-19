@@ -19,32 +19,36 @@ Guidelines for analysis:
 - Highlight key dates and deadlines
 - Focus on actionable insights`;
 
-export const DOCUMENT_SUMMARY_PROMPT = `You must STRICTLY follow this format to summarize the legal document. Your response MUST start with "This is a" and MUST follow the exact pattern below.
+export const DOCUMENT_SUMMARY_PROMPT = `You are tasked with creating a clear and factual summary of a legal document. Focus exclusively on what the document contains and establishes, not on analysis or implications.
 
-Required format: 
-"This is a [DOCUMENT TYPE] between [PARTY A ROLE/NAME] and [PARTY B ROLE/NAME] for [MAIN PURPOSE]. [ONLY ONE ADDITIONAL SENTENCE ABOUT CORE OBLIGATIONS IF NECESSARY]."
+Your summary must:
+1. Start with "This is a [type] between [parties] for [purpose]"
+2. State the core facts about the contract
+3. Include key obligations if relevant
+4. Use clear, simple language
 
-Rules that MUST be followed:
-1. ALWAYS start with "This is a"
-2. NEVER use "outlines", "contains", "sets forth", or similar terms
-3. NEVER include analysis, risks, or recommendations
-4. NEVER exceed 2 sentences total
-5. NEVER include phrases like "the agreement", "this contract", "the document"
-6. DO NOT list terms, clauses, or provisions
+Guidelines:
+- ALWAYS start with "This is a"
+- Focus on substance, not structure
+- Use plain language
+- Keep it concise but complete
+- Include critical facts 
 
-Examples of the ONLY acceptable format:
-✓ "This is a vehicle purchase agreement between John Smith (Seller) and Jane Doe (Buyer) for the sale of a 2018 Toyota Camry at $15,000."
+NEVER use phrases like:
+- "The agreement outlines..."
+- "This contract contains..."
+- "The document sets forth..."
+- "This agreement establishes..."
 
-✓ "This is a software development agreement between TechCorp (Client) and DevPro LLC (Developer) for creating a custom CRM system. The Developer will deliver the system in 3 phases over 12 months for $150,000."
+Example good summaries:
+"This is a software development agreement between TechCorp (Client) and DevPro LLC (Developer) for creating a custom CRM system. The Developer will deliver the system in 3 phases over 12 months, with the Client paying $150,000 in milestone-based installments. The agreement includes standard warranties and maintenance support for 24 months after completion."
 
-Examples of UNACCEPTABLE formats:
-✗ "The agreement outlines terms and conditions for..."
-✗ "This contract contains provisions related to..."
-✗ "This document establishes..."
-✗ Any summary that includes risks or recommendations
-✗ Any summary longer than 2 sentences
+"This is a commercial lease agreement between Metro Properties Ltd (Landlord) and Quick Bites Inc (Tenant) for the retail space at 123 Main Street. The lease term is 5 years with a monthly rent of $5,000, increasing by 3% annually. The Tenant is responsible for utilities, interior maintenance, and must maintain $2M in liability insurance."
 
-Failure to follow this exact format will result in rejection. You MUST verify your response follows all rules before providing it.`;
+Example bad summaries:
+"The agreement outlines terms and conditions for software development including timelines and payment schedules."
+
+"This contract contains various provisions related to the lease of commercial property."`;
 
 export const USER_PROMPT_TEMPLATE = (chunk: string, chunkIndex: number, totalChunks: number) => 
 `Section ${chunkIndex + 1}/${totalChunks}:
@@ -87,10 +91,7 @@ export const ANALYSIS_CONFIG = {
 // Summary specific configuration - more constrained
 export const SUMMARY_CONFIG = {
   model: "gpt-3.5-turbo-1106",
-  temperature: 0.05,  // Very low temperature for consistent format
-  max_tokens: 200,   // Limit length to encourage conciseness
+  temperature: 0.1,  // Lower temperature for consistent format
+  max_tokens: 400,   // Increased to allow for more complete summaries
   response_format: { type: "text" }
 } as const;
-
-// The current version of summary format - used to invalidate old cached analyses
-export const SUMMARY_VERSION = 'v2';
