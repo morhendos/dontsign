@@ -2,9 +2,11 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { ContractAnalysisError } from "@/lib/errors";
+import { detectDocumentType } from "@/lib/document-type";
 import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
 import { promptManager } from "@/lib/services/prompts";
+import type { DocumentTypeResponse } from "@/lib/services/prompts/types";
 import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 
 interface ProgressUpdate {
@@ -14,6 +16,21 @@ interface ProgressUpdate {
   totalChunks?: number;
   stage: string;
   activity: string;
+}
+
+interface AnalysisResult {
+  summary: string;
+  potentialRisks: string[];
+  importantClauses: string[];
+  recommendations: string[];
+  metadata: {
+    analyzedAt: string;
+    documentName: string;
+    modelVersion: string;
+    totalChunks: number;
+    sectionsAnalyzed: number;
+    documentType?: DocumentTypeResponse;
+  };
 }
 
 type ProgressCallback = (data: ProgressUpdate) => void;
@@ -88,7 +105,7 @@ async function generateDocumentSummary(text: string) {
   return content.trim();
 }
 
-export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
+export async function analyzeContract(formData: FormData, onProgress: ProgressCallback): Promise<AnalysisResult> {
   try {
     // Input validation
     await updateProgress(onProgress, {
@@ -113,6 +130,23 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
 
     if (!text.trim()) {
       throw new ContractAnalysisError("Document appears to be empty", "INVALID_INPUT");
+    }
+
+    // Document type detection
+    await updateProgress(onProgress, {
+      type: 'update',
+      progress: 20,
+      stage: 'preprocessing',
+      activity: "Detecting document type..."
+    });
+
+    const documentType = await detectDocumentType(text);
+    
+    if (!documentType.isLegalDocument || documentType.recommendedAction === 'stop_analysis') {
+      throw new ContractAnalysisError(
+        `This appears to be a ${documentType.documentType.toLowerCase()}. ${documentType.explanation}`,
+        "INVALID_DOCUMENT_TYPE"
+      );
     }
 
     // Document preprocessing phase
@@ -201,7 +235,8 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
         documentName: filename,
         modelVersion: config.model,
         totalChunks: chunks.length,
-        sectionsAnalyzed: chunks.length
+        sectionsAnalyzed: chunks.length,
+        documentType
       }
     };
 
