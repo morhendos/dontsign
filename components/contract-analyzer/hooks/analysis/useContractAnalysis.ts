@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { trackAnalysis, startAnalyticsTransaction, captureError } from '../../utils/analytics';
 import { processFile } from '../../utils/text-processing';
-import { detectDocumentType } from '@/lib/document-type';
+import { detectDocumentType } from '@/app/actions/detectDocumentType';
 import type { AnalysisState, AnalysisStreamResponse } from '../../types';
 
 export interface UseContractAnalysisOptions {
