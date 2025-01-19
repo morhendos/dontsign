@@ -50,58 +50,22 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
   return JSON.parse(content);
 }
 
-async function generateDocumentSummary(text: string, attempt: number = 1) {
-  console.log(`[Server] Attempting document summary generation (attempt ${attempt})`);
-  
-  // If this is our first attempt, try with strict validation
-  const isStrictMode = attempt === 1;
-  console.log(`[Server] Running in ${isStrictMode ? 'strict' : 'relaxed'} mode`);
-  
-  const summaryText = text.slice(0, isStrictMode ? 6000 : 8000);
+async function generateDocumentSummary(text: string) {
+  // Take a decent amount of text from the start of the document
+  const summaryText = text.slice(0, 6000);
   
   const response = await openAIService.createChatCompletion({
     ...SUMMARY_CONFIG,
     messages: [
       { role: "system", content: DOCUMENT_SUMMARY_PROMPT },
       { role: "user", content: summaryText },
-    ],
-    temperature: isStrictMode ? 0.1 : 0.3  // Increase temperature on retry
+    ]
   });
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
   
-  const summary = content.trim();
-  console.log(`[Server] Generated summary (attempt ${attempt}):`, summary);
-  
-  try {
-    // Only validate the essential format requirements
-    if (!summary.startsWith('This is a')) {
-      throw new ContractAnalysisError(
-        'Summary must start with "This is a"', 
-        'TEXT_PROCESSING_ERROR'
-      );
-    }
-    
-    if (summary.includes('outlines') || summary.includes('contains') || 
-        summary.includes('establishes') || summary.includes('This contract') || 
-        summary.includes('The agreement')) {
-      throw new ContractAnalysisError(
-        'Summary contains forbidden terms', 
-        'TEXT_PROCESSING_ERROR'
-      );
-    }
-    
-    return summary;
-    
-  } catch (error) {
-    // If validation failed and we haven't tried too many times, retry with relaxed settings
-    if (attempt < 3) {
-      console.log(`[Server] Validation failed, retrying (attempt ${attempt + 1})`);
-      return generateDocumentSummary(text, attempt + 1);
-    }
-    throw error;
-  }
+  return content.trim();
 }
 
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
