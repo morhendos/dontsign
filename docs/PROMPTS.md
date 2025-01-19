@@ -1,168 +1,228 @@
-# Prompts System Documentation
+# DontSign AI Prompts Documentation
 
-## Overview
-The DontSign application uses OpenAI's GPT models to analyze contracts through a system of carefully crafted prompts. Each prompt serves a specific purpose in the analysis pipeline.
+## Current Prompt Structure
 
-## Prompt Locations
-All prompts are centralized in `/lib/services/openai/prompts.ts`. This centralization ensures:
-- Easy maintenance and updates
-- Consistent prompt usage across the application
-- Version control for prompt changes
+### 1. System Prompt
+Used to set the AI's role and general guidelines.
 
-## Core Prompts
-
-### 1. Document Summary Prompt
 ```typescript
-export const DOCUMENT_SUMMARY_PROMPT = `...`
-```
-**Purpose**: Creates a concise, factual description of what the contract is.
-
-**Format Requirements**:
-- Must start with "This is a [type] between [parties] for [purpose]"
-- Focuses on document facts only
-- No analysis or recommendations
-- Clear, simple language
-
-**Example Good Output**:
-```
-"This is a software development agreement between TechCorp (Client) and DevPro LLC (Developer) for creating a custom CRM system. The Developer will deliver the system in 3 phases over 12 months, with the Client paying $150,000 in milestone-based installments."
+SYSTEM_PROMPT = `You are an experienced legal expert...`
 ```
 
-### 2. Analysis Prompt
+**Purpose**: Establishes the AI as a legal expert for contract analysis
+**Used in**: Main analysis for each chunk of text
+**Config**:
+- Model: gpt-3.5-turbo-1106
+- Temperature: 0.3
+- Max tokens: 1000
+- Format: JSON
+
+### 2. Document Summary Prompt
+Used to generate an initial document overview.
+
 ```typescript
-export const SYSTEM_PROMPT = `...`
+DOCUMENT_SUMMARY_PROMPT = `Provide a factual description...`
 ```
-**Purpose**: Identifies risks, clauses, and recommendations from contract sections.
 
-**Areas of Focus**:
-- Potential risks and red flags
-- Critical clauses needing attention
-- Actionable recommendations
-- Negotiation guidance
+**Purpose**: Creates a concise summary of the document
+**Used in**: Initial document processing
+**Config**:
+- Model: gpt-3.5-turbo-1106
+- Temperature: 0.3
+- Max tokens: 300
+- Format: Text
 
-### 3. Section Analysis Template
+### 3. User Prompt Template
+Template for analyzing individual document chunks.
+
 ```typescript
-export const USER_PROMPT_TEMPLATE = `...`
+USER_PROMPT_TEMPLATE = (chunk, index, total) => `Section ${index + 1}/${total}...`
 ```
-**Purpose**: Formats each section's analysis into structured JSON.
 
+**Purpose**: Analyzes document sections for risks and recommendations
+**Used in**: Detailed chunk analysis
 **Output Structure**:
-```json
+- potentialRisks[]
+- importantClauses[]
+- recommendations[]
+
+## Prompt Usage Flow
+
+1. Initial Processing:
+   - Document is received
+   - Summary prompt is used on the first ~6000 characters
+   - Generates document overview
+
+2. Detailed Analysis:
+   - Document is split into chunks
+   - Each chunk processed with system prompt + user prompt template
+   - Results aggregated
+
+## Suggested Improvements
+
+### 1. Centralized Prompt Management
+
+Create a `prompts` directory with the following structure:
+
+```
+prompts/
+├── config/
+│   ├── models.json        # Model configurations
+│   └── parameters.json    # Temperature, tokens, etc.
+├── templates/
+│   ├── system.txt        # System prompts
+│   ├── analysis.txt      # Analysis templates
+│   └── summary.txt       # Summary templates
+└── index.ts              # Prompt management code
+```
+
+Example management code:
+
+```typescript
+// prompts/index.ts
+import { promises as fs } from 'fs';
+import path from 'path';
+
+class PromptManager {
+  private cache = new Map<string, string>();
+  private configCache = new Map<string, any>();
+
+  async getPrompt(name: string, variables?: Record<string, string>): Promise<string> {
+    let prompt = this.cache.get(name);
+    
+    if (!prompt) {
+      prompt = await fs.readFile(
+        path.join(process.cwd(), 'prompts', 'templates', `${name}.txt`),
+        'utf-8'
+      );
+      this.cache.set(name, prompt);
+    }
+
+    if (variables) {
+      return this.replaceVariables(prompt, variables);
+    }
+
+    return prompt;
+  }
+
+  async getConfig(name: string): Promise<any> {
+    let config = this.configCache.get(name);
+    
+    if (!config) {
+      config = JSON.parse(
+        await fs.readFile(
+          path.join(process.cwd(), 'prompts', 'config', `${name}.json`),
+          'utf-8'
+        )
+      );
+      this.configCache.set(name, config);
+    }
+
+    return config;
+  }
+
+  private replaceVariables(text: string, variables: Record<string, string>): string {
+    return text.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] || '');
+  }
+}
+
+export const promptManager = new PromptManager();
+```
+
+### 2. Version Control for Prompts
+
+Prompts should be versioned and tracked:
+
+```typescript
+// prompts/config/versions.json
 {
-  "potentialRisks": [...],
-  "importantClauses": [...],
-  "recommendations": [...]
+  "system": {
+    "current": "1.2.0",
+    "history": [
+      {
+        "version": "1.2.0",
+        "date": "2024-01-19",
+        "changes": "Improved risk assessment guidelines"
+      }
+    ]
+  }
 }
 ```
 
-## OpenAI Configurations
+### 3. A/B Testing Support
 
-### Analysis Config
+Add capability to test different prompt versions:
+
 ```typescript
-export const ANALYSIS_CONFIG = {
-  model: "gpt-3.5-turbo-1106",
-  temperature: 0.3,
-  max_tokens: 1000,
-  response_format: { type: "json_object" }
+interface PromptTest {
+  id: string;
+  promptA: string;
+  promptB: string;
+  metrics: {
+    accuracy: number;
+    completeness: number;
+    userSatisfaction: number;
+  };
 }
 ```
-- Uses structured JSON output
-- Higher temperature for varied analysis
-- Generous token limit for detailed responses
 
-### Summary Config
+### 4. Environment-Specific Prompts
+
+Support different prompts for development/production:
+
 ```typescript
-export const SUMMARY_CONFIG = {
-  model: "gpt-3.5-turbo-1106",
-  temperature: 0.3,
-  max_tokens: 300,
-  response_format: { type: "text" }
+// prompts/config/environments.json
+{
+  "development": {
+    "model": "gpt-3.5-turbo-1106",
+    "maxTokens": 500
+  },
+  "production": {
+    "model": "gpt-3.5-turbo-1106",
+    "maxTokens": 1000
+  }
 }
 ```
-- Text output format
-- Balanced temperature for consistent yet natural summaries
-- Limited tokens to encourage conciseness
 
-## Modifying Prompts
+## Migration Plan
 
-### Guidelines for Changes
-1. **Summary Changes**:
-   - Keep the "This is a..." format
-   - Focus on factual content
-   - Test with various contract types
-   - Update examples if format changes
-
-2. **Analysis Changes**:
-   - Maintain JSON structure
-   - Keep field names consistent
-   - Consider impact on UI display
-   - Test with complex contracts
-
-### Testing Process
-1. Test new prompts with various contract types:
-   - Employment agreements
-   - Service contracts
-   - License agreements
-   - Purchase agreements
-
-2. Verify outputs:
-   - Summary format compliance
-   - Analysis completeness
-   - Response consistency
-   - Error handling
-
-### Implementation Steps
-1. Update prompt in `prompts.ts`
-2. Test locally with sample documents
-3. Review outputs for consistency
-4. Update documentation if format changes
-5. Create PR with examples of before/after
-
-## Common Issues and Solutions
-
-### Summary Generation
-- **Issue**: Summary too long/detailed
-  - Solution: Adjust max_tokens or strengthen prompt constraints
-
-- **Issue**: Missing key information
-  - Solution: Expand the initial text chunk (currently 6000 chars)
-
-### Analysis Generation
-- **Issue**: Inconsistent structure
-  - Solution: Ensure `response_format` is set to `json_object`
-
-- **Issue**: Missing recommendations
-  - Solution: Check temperature setting or add examples
+1. Create new prompt management structure
+2. Move existing prompts to text files
+3. Update service to use PromptManager
+4. Add version tracking
+5. Implement A/B testing
 
 ## Best Practices
 
-1. **Prompt Updates**:
-   - Document changes in PR
-   - Include example outputs
-   - Consider UI impact
-   - Test with edge cases
+1. Keep prompts in separate files for easy editing
+2. Version control all prompt changes
+3. Use templates with variables for dynamic content
+4. Maintain separate development/production configs
+5. Document prompt changes and their impacts
+6. Test prompt changes thoroughly before deployment
 
-2. **Configuration**:
-   - Keep temperatures consistent
-   - Balance token limits
-   - Match response formats to use case
+## Testing Guidelines
 
-3. **Maintenance**:
-   - Regularly review prompts
-   - Update examples as needed
-   - Monitor API updates
-   - Track model versions
+1. Create test suite for prompt variations
+2. Compare results between prompt versions
+3. Track metrics for prompt performance
+4. Use real-world examples for testing
+5. Maintain test documents for consistency
 
-## Future Improvements
+## Monitoring and Analytics
 
-1. **Potential Enhancements**:
-   - Dynamic temperature adjustment
-   - Context-aware prompting
-   - Multi-model approach
-   - More detailed error guidance
+Add prompt performance tracking:
 
-2. **Monitoring Ideas**:
-   - Response quality metrics
-   - Performance tracking
-   - Error rate analysis
-   - Token usage optimization
+```typescript
+interface PromptMetrics {
+  promptVersion: string;
+  responseTime: number;
+  tokenCount: number;
+  completionRate: number;
+  userFeedback?: {
+    helpful: boolean;
+    accurate: boolean;
+    comments?: string;
+  };
+}
+```

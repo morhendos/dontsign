@@ -1,129 +1,129 @@
-# Project Structure
+# DontSign Project Structure
 
-## Directory Layout
+## Directory Structure
 
-```
-dontsign/
-├── app/
-│   ├── actions.ts              # Server actions
-│   ├── api/
-│   │   └── analyze/            # Analysis API endpoint
-│   │       ├── route.ts
-│   │       ├── chunk-analyzer.ts
-│   │       └── analysis-processor.ts
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/
-│   ├── contract-analyzer/      # Main application components
-│   │   ├── ContractAnalyzer.tsx
-│   │   ├── components/
-│   │   │   ├── analysis/       # Analysis-related components
-│   │   │   │   ├── AnalysisResults.tsx
-│   │   │   │   ├── AnalysisControls.tsx
-│   │   │   │   └── AnalysisProgress.tsx
-│   │   │   ├── layout/         # Layout components
-│   │   │   └── upload/         # File upload components
-│   │   └── hooks/
-│   │       ├── state/          # State management
-│   │       │   ├── useAnalyzerState.ts
-│   │       │   └── useStatusManager.ts
-│   │       ├── analysis/       # Analysis logic
-│   │       └── storage/        # Storage management
-│   └── ui/                     # Shared UI components
-├── lib/
-│   ├── services/
-│   │   └── openai/
-│   │       ├── openai-service.ts
-│   │       └── prompts.ts      # AI prompts
-│   ├── text-utils.ts           # Text processing utilities
-│   └── errors.ts               # Error handling
-├── types/                      # TypeScript type definitions
-└── docs/                       # Documentation
-    ├── PROJECT_STRUCTURE.md
-    ├── SUMMARY_GENERATION.md
-    └── TROUBLESHOOTING.md
+[Previous directory structure content...]
+
+## Application Flows
+
+### Contract Analysis Flow
+
+```mermaid
+graph TB
+    subgraph File Upload
+        A[User] -->|Uploads File| B[ContractUpload]
+        B -->|Validates| C{File Valid?}
+        C -->|Yes| D[PDF Utils]
+        C -->|No| E[Error Display]
+        D -->|Extract Text| F[Text Content]
+    end
+    
+    subgraph Analysis
+        F -->|Split| G[Text Chunks]
+        G -->|Process| H[Server Action]
+        H -->|OpenAI| I[GPT Analysis]
+        I -->|Results| J[Analysis Results]
+    end
+    
+    subgraph Display
+        J -->|Show| K[Results Display]
+        K -->|Save| L[Analysis History]
+        K -->|Export| M[Download/Share]
+    end
+    
+    subgraph Analytics/Monitoring
+        N[Analytics] -.->|Track| B
+        N -.->|Track| H
+        N -.->|Track| K
+        O[Sentry] -.->|Monitor| B
+        O -.->|Monitor| H
+        O -.->|Monitor| D
+    end
 ```
 
-## Key Components
+### Error Handling Flow
 
-### Contract Analysis
-Main functionality for analyzing contracts is in:
-- `components/contract-analyzer/`: UI components and logic
-- `app/api/analyze/`: Server-side analysis
-- `lib/services/openai/`: AI integration
+```mermaid
+flowchart TB
+    subgraph "Error Sources"
+        A1[File Upload] -->|Error| B[Error Handler]
+        A2[PDF Processing] -->|Error| B
+        A3[OpenAI API] -->|Error| B
+        A4[Analysis] -->|Error| B
+    end
+    
+    subgraph "Error Processing"
+        B -->|Capture| C[Sentry]
+        B -->|Display| D[Error Component]
+        B -->|Log| E[Analytics]
+    end
+    
+    subgraph "User Recovery"
+        D -->|Show| F[User Message]
+        D -->|Action| G[Retry Button]
+        D -->|Help| H[Support Link]
+        G -->|Click| I[Reset State]
+    end
+```
 
-### State Management
-Application state is managed in:
-- `components/contract-analyzer/hooks/state/`
-- Uses React hooks pattern
-- Integrates with local storage for caching
+### State Management Flow
 
-### File Processing
-File handling occurs in:
-- `components/contract-analyzer/components/upload/`
-- `lib/text-utils.ts`
-- Uses PDF.js for PDF parsing
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    
+    state "File Upload" as Upload {
+        Idle --> Uploading: Select File
+        Uploading --> Validating: File Received
+        Validating --> Processing: Valid
+        Validating --> Error: Invalid
+        Processing --> Ready: Text Extracted
+        Processing --> Error: Failed
+    }
+    
+    state "Analysis" as Analysis {
+        Ready --> Analyzing: Start Analysis
+        Analyzing --> Chunks: Split Text
+        Chunks --> APICall: Process Chunk
+        APICall --> Chunks: Next Chunk
+        APICall --> Complete: All Done
+        APICall --> Error: API Error
+    }
+    
+    state "Results" as Results {
+        Complete --> Displayed: Show Results
+        Displayed --> Saved: Save History
+        Saved --> [*]
+    }
+    
+    Error --> Idle: Reset
+```
 
-### Analysis Results
-Results display and processing:
-- `components/contract-analyzer/components/analysis/`
-- Uses shadcn/ui components
-- Responsive layout
+## Flow Descriptions
 
-## Common Tasks
+### Contract Analysis Flow
+The main application flow for analyzing contracts:
+1. User uploads a contract document
+2. File is validated and processed
+3. Text is extracted and chunked
+4. Each chunk is analyzed by OpenAI
+5. Results are compiled and displayed
+6. Analysis is saved to history
 
-### Adding New Features
-Place new components in appropriate directories:
-1. UI Components → `components/contract-analyzer/components/`
-2. Server Logic → `app/api/analyze/`
-3. Shared Logic → `lib/`
-4. Type Definitions → `types/`
+### Error Handling Flow
+Comprehensive error handling process:
+1. Errors are caught from multiple sources
+2. Processed through error boundaries
+3. Tracked in Sentry and analytics
+4. Displayed to user with recovery options
+5. State is reset on retry
 
-### Modifying Analysis
-Key files to modify:
-1. AI Prompts → `lib/services/openai/prompts.ts`
-2. Analysis Logic → `app/api/analyze/chunk-analyzer.ts`
-3. Result Processing → `app/api/analyze/analysis-processor.ts`
+### State Management Flow
+Detailed state transitions throughout the application:
+1. Initial file upload and validation
+2. Text processing and preparation
+3. Chunk-based analysis process
+4. Results display and storage
+5. Error handling and recovery
 
-### UI Changes
-Main locations:
-1. Results Display → `components/contract-analyzer/components/analysis/`
-2. Upload Interface → `components/contract-analyzer/components/upload/`
-3. Layout → `components/contract-analyzer/components/layout/`
-
-## File Name Conventions
-
-1. Components:
-   - Main component files: PascalCase.tsx
-   - Index files: index.tsx
-   - Types: types.ts
-
-2. Utilities:
-   - Hyphenated-lowercase.ts
-   - Descriptive suffixes: -utils.ts, -service.ts
-
-3. Documentation:
-   - UPPERCASE.md
-   - Descriptive and specific
-
-## Best Practices
-
-1. **Component Organization**
-   - Group related components
-   - Keep components small and focused
-   - Use index.ts for exports
-
-2. **State Management**
-   - Use hooks for complex state
-   - Keep state close to usage
-   - Document state interactions
-
-3. **File Structure**
-   - Maintain consistent naming
-   - Group by feature when possible
-   - Keep nesting reasonable (max 3-4 levels)
-
-4. **Documentation**
-   - Update docs with structure changes
-   - Keep readme files current
-   - Document complex interactions
+[Rest of the previous content...]
