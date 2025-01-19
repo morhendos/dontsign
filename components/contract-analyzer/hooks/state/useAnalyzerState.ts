@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useContractAnalysis } from '../analysis';
 import { useFileUpload } from '../file';
 import { useAnalysisLog } from '../ui';
@@ -11,6 +11,7 @@ import type { StoredAnalysis } from '../../types/storage';
 export const useAnalyzerState = () => {
   // Track if current file is already analyzed
   const [isAnalyzed, setIsAnalyzed] = useState(false);
+  const [error, setError] = useState<{ message: string; type: string } | null>(null);
 
   // Core state handlers
   const processing = useProcessingState();
@@ -23,6 +24,15 @@ export const useAnalyzerState = () => {
     log.updateLastEntry('complete');
     log.addEntry(message);
   }, [status, log]);
+
+  // Effect to handle errors from file and analysis
+  useEffect(() => {
+    if (fileError) {
+      setError(fileError);
+    } else if (analysisError) {
+      setError(analysisError);
+    }
+  }, [fileError, analysisError]);
 
   // Contract analysis
   const {
@@ -66,6 +76,7 @@ export const useAnalyzerState = () => {
   const handleFileSelect = useCallback(async (newFile: File | null) => {
     // Reset state
     setIsAnalyzed(false);
+    setError(null);
     processing.setShowResults(false);
     processing.setIsProcessingNew(false);
     
@@ -77,10 +88,12 @@ export const useAnalyzerState = () => {
   // Handle starting analysis
   const handleStartAnalysis = useCallback(async () => {
     if (!file) {
+      setError({ message: "No file selected", type: "INVALID_INPUT" });
       return;
     }
 
     try {
+      setError(null);
       // Check if file is already analyzed
       const fileHash = await generateFileHash(file);
       const existingAnalyses = storage.get();
@@ -129,6 +142,7 @@ export const useAnalyzerState = () => {
   // Handle selecting stored analysis
   const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
     processing.setIsProcessingNew(false);
+    setError(null);
     updateState({
       analysis: stored.analysis,
       isAnalyzing: false,
@@ -149,7 +163,7 @@ export const useAnalyzerState = () => {
   return {
     // State
     file,
-    error: fileError || analysisError,
+    error,
     isProcessing,
     isAnalyzing,
     status: status.message,
@@ -169,6 +183,7 @@ export const useAnalyzerState = () => {
     handleSelectStoredAnalysis,
     setShowResults: processing.setShowResults,
     updateLastEntry: log.updateLastEntry,
-    addLogEntry: log.addEntry
+    addLogEntry: log.addEntry,
+    setError
   };
 };
