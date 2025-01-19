@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, Clock, Ban, AlertTriangle, ServerCrash, FileText } from 'lucide-react';
+import { AlertCircle, Clock, Ban, AlertTriangle, ServerCrash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ErrorDisplayProps {
@@ -33,7 +33,7 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
 
     case 'AI_SERVICE_ERROR':
       title = 'AI Service Error';
-      description = error.clientMessage || 'Our AI service is currently unavailable. Please try again later.';
+      description = error.clientMessage || 'Unable to complete the analysis. Please try again later.';
       icon = ServerCrash;
       variant = 'destructive';
       break;
@@ -53,15 +53,15 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
       break;
 
     case 'TEXT_PROCESSING_ERROR':
-      title = 'Summary Generation Error';
-      description = error.message || 'Unable to generate a concise summary. Retrying with alternative approach...';
-      icon = FileText;
+      title = 'Processing Error';
+      description = error.message || 'Unable to process the document. Please try again.';
+      icon = AlertTriangle;
       variant = 'default';
       break;
 
     case 'API_ERROR':
-      title = 'Analysis Error';
-      description = error.message || 'Unable to complete the analysis. Please try again.';
+      title = 'API Error';
+      description = error.message || 'Unable to complete the request. Please try again.';
       icon = ServerCrash;
       variant = 'destructive';
       break;
