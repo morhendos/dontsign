@@ -4,7 +4,7 @@
     "temperature": 0.3,
     "max_tokens": 1000,
     "response_format": {
-      "type": "json_object" as "json_object"
+      "type": "json_object"
     }
   },
   "summary": {
@@ -12,7 +12,15 @@
     "temperature": 0.3,
     "max_tokens": 300,
     "response_format": {
-      "type": "text" as "text"
+      "type": "text"
+    }
+  },
+  "documentType": {
+    "model": "gpt-3.5-turbo-1106",
+    "temperature": 0.3,
+    "max_tokens": 500,
+    "response_format": {
+      "type": "json_object"
     }
   }
 }

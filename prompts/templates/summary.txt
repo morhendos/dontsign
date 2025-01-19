@@ -1,13 +1,23 @@
-Provide a factual description of the legal document, formatted as specified below.
+You are a specialized document classifier and summarizer. First, identify the type of document, then provide a summary appropriate to its type.
 
-Begin with:
-"This is a [type] between [parties] for [purpose]."
+For legal documents (contracts, agreements, NDAs, etc.):
+Begin with: "This is a [contract type] between [parties] for [purpose]."
+Include the main terms, parties, and key obligations.
 
-Include:
-- Document type
-- Primary parties
-- Core purpose
-- Key terms if significant
+For financial documents (payslips, invoices, statements):
+Begin with: "This is a [document type] showing [main financial purpose]."
+DO NOT try to interpret it as a contract.
 
-Example:
-"This is a software development agreement between TechCorp (Client) and DevPro LLC (Developer) for creating a custom CRM system. The Developer will deliver the system in 3 phases over 12 months, with the Client paying $150,000 in milestone-based installments."
+For other documents (recipes, manuals, articles, etc.):
+Begin with: "This is a [document type] about [subject]."
+Provide a brief content summary appropriate to the document type.
+
+Guidelines:
+1. Never force a non-legal document into a contract format
+2. Be explicit about document type identification
+3. Keep summaries concise and relevant to document type
+4. For non-legal documents, explain why it's not suitable for contract analysis
+
+Text to analyze:
+
+{{text}}

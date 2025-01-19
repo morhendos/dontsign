@@ -1,7 +1,6 @@
-import path from 'path';
-import { promises as fs } from 'fs';
 import * as Sentry from '@sentry/nextjs';
 import { modelConfigs } from './config';
+import { templates } from './templates';
 import type { PromptType, ModelConfig, AnalysisType } from './types';
 
 export class PromptManager {
@@ -17,29 +16,23 @@ export class PromptManager {
     return PromptManager.instance;
   }
 
-  private async readFile(filePath: string): Promise<string> {
-    try {
-      return await fs.readFile(filePath, 'utf-8');
-    } catch (error) {
-      console.error(`Error reading file: ${filePath}`, error);
-      Sentry.captureException(error, {
-        tags: {
-          file: filePath,
-          component: 'PromptManager'
-        }
-      });
-      throw error;
-    }
-  }
-
   async getPrompt(type: PromptType, variables?: Record<string, string>): Promise<string> {
     const cacheKey = `${type}${JSON.stringify(variables) || ''}`;
     if (this.promptCache.has(cacheKey)) {
       return this.promptCache.get(cacheKey)!;
     }
 
-    const templatePath = path.join(process.cwd(), 'prompts', 'templates', `${type}.txt`);
-    let prompt = await this.readFile(templatePath);
+    let prompt = templates[type];
+    if (!prompt) {
+      const error = new Error(`No template found for type: ${type}`);
+      Sentry.captureException(error, {
+        tags: {
+          promptType: type,
+          component: 'PromptManager'
+        }
+      });
+      throw error;
+    }
 
     if (variables) {
       prompt = Object.entries(variables).reduce((text, [key, value]) => {

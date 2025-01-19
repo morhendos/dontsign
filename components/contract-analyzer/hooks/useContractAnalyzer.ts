@@ -27,6 +27,7 @@ export const useContractAnalyzer = () => {
     handleFileSelect: baseHandleFileSelect,
     handleStartAnalysis,
     handleSelectStoredAnalysis: baseHandleSelectStoredAnalysis,
+    setError
   } = useAnalyzerState();
 
   // Analysis history
@@ -40,11 +41,18 @@ export const useContractAnalyzer = () => {
     }
   });
 
+  // Error handling
+  const handleClearError = useCallback(() => {
+    setError(null);
+    results.hide();
+  }, [setError, results]);
+
   // File selection handler
   const handleFileSelect = useCallback(async (newFile: File | null) => {
     results.hide();
+    handleClearError();
     await baseHandleFileSelect(newFile);
-  }, [baseHandleFileSelect, results]);
+  }, [baseHandleFileSelect, results, handleClearError]);
 
   // Analysis completion handler
   const handleAnalysisComplete = useCallback(async () => {
@@ -73,16 +81,18 @@ export const useContractAnalyzer = () => {
   const wrappedHandleStartAnalysis = useCallback(async () => {
     analysisHandledRef.current = false;
     resultClosedByUserRef.current = false;
+    handleClearError();
     await handleStartAnalysis();
-  }, [handleStartAnalysis]);
+  }, [handleStartAnalysis, handleClearError]);
 
   // Select stored analysis
   const handleSelectStoredAnalysis = useCallback(async (stored: StoredAnalysis) => {
     resultClosedByUserRef.current = false;
     lastSelectedAnalysisIdRef.current = stored.id;
+    handleClearError();
     baseHandleSelectStoredAnalysis(stored);
     results.show();
-  }, [baseHandleSelectStoredAnalysis, results]);
+  }, [baseHandleSelectStoredAnalysis, results, handleClearError]);
 
   // Effect for analysis completion
   useEffect(() => {
@@ -94,6 +104,13 @@ export const useContractAnalyzer = () => {
       handleAnalysisComplete();
     }
   }, [analysis, isAnalyzing, stage, file, handleAnalysisComplete]);
+
+  // Effect for error handling
+  useEffect(() => {
+    if (error) {
+      results.show();
+    }
+  }, [error, results]);
 
   return {
     // State
@@ -140,7 +157,8 @@ export const useContractAnalyzer = () => {
       handleFileSelect,
       handleStartAnalysis: wrappedHandleStartAnalysis,
       handleSelectStoredAnalysis,
-      handleAnalysisComplete
+      handleAnalysisComplete,
+      handleClearError
     }
   };
 };
