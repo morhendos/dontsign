@@ -3,14 +3,11 @@ export interface AnalysisResult {
   potentialRisks: string[];
   importantClauses: string[];
   recommendations?: string[];
-  metadata?: {
+  metadata: {
     analyzedAt: string;
     documentName: string;
     modelVersion: string;
-    totalChunks?: number;
-    currentChunk?: number;
-    stage?: string;
-    progress?: number;
+    totalChunks: number;
   };
 }
 
@@ -22,10 +19,8 @@ export interface ProgressUpdate {
   totalChunks?: number;
   result?: AnalysisResult;
   error?: string;
-  description?: string;  // Added for detailed progress messages
+  description?: string;
 }
-
-export type StreamController = ReadableStreamDefaultController<any>;
 
 export interface ProgressHandler {
   sendProgress: (stage: string, progress: number, currentChunk?: number, totalChunks?: number, description?: string) => void;
