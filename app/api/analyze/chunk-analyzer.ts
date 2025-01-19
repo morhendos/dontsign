@@ -73,7 +73,13 @@ All fields must be arrays of strings. Even if you find nothing relevant, return 
   return {
     potentialRisks: parsedContent.potentialRisks || [],
     importantClauses: parsedContent.importantClauses || [],
-    recommendations: parsedContent.recommendations || []
+    recommendations: parsedContent.recommendations || [],
+    metadata: {
+      analyzedAt: new Date().toISOString(),
+      documentName: `Section ${chunkIndex + 1}`,
+      modelVersion: "gpt-3.5-turbo-1106",
+      totalChunks: totalChunks
+    }
   };
 }
 
