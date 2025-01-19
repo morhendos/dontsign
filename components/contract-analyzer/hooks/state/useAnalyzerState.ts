@@ -9,7 +9,7 @@ import { generateFileHash } from '../../utils/hash';
 import type { StoredAnalysis } from '../../types/storage';
 
 export const useAnalyzerState = () => {
-  // State
+  // Core state
   const [isAnalyzed, setIsAnalyzed] = useState(false);
   const [error, setError] = useState<{ message: string; type: string } | null>(null);
 
@@ -17,6 +17,17 @@ export const useAnalyzerState = () => {
   const processing = useProcessingState();
   const status = useStatusManager();
   const log = useAnalysisLog();
+
+  // Create update handlers
+  const handleLog = useCallback((message: string) => {
+    log.updateLastEntry('complete');
+    log.addEntry(message);
+  }, [log]);
+
+  const handleStatus = useCallback((message: string) => {
+    status.setMessage(message);
+    handleLog(message);
+  }, [status, handleLog]);
 
   // File handling
   const {
@@ -26,7 +37,7 @@ export const useAnalyzerState = () => {
     handleFileSelect: baseHandleFileSelect,
     resetFile
   } = useFileUpload({
-    onStatusUpdate: updateStatus,
+    onStatusUpdate: handleStatus,
     onEntryComplete: () => log.updateLastEntry('complete')
   });
 
@@ -44,7 +55,7 @@ export const useAnalyzerState = () => {
     analysisFile,
     setAnalysisFile
   } = useContractAnalysis({
-    onStatusUpdate: updateStatus,
+    onStatusUpdate: handleStatus,
     onEntryComplete: () => {
       log.updateLastEntry('complete');
     },
@@ -55,13 +66,6 @@ export const useAnalyzerState = () => {
       setIsAnalyzed(true);
     }
   });
-
-  // Status update helper that also manages log entries
-  const updateStatus = useCallback((message: string) => {
-    status.setMessage(message);
-    log.updateLastEntry('complete');
-    log.addEntry(message);
-  }, [status, log]);
 
   // Effect to handle errors from file and analysis
   useEffect(() => {
