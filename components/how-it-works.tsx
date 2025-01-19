@@ -1,20 +1,20 @@
-import { FileText, Brain, FileDown } from 'lucide-react'
+import { FileText, Brain, ClipboardCheck } from 'lucide-react'
 
 const steps = [
   {
     icon: FileText,
     title: "Upload Document",
-    description: "Simply drag and drop your contract, NDA, or legal document. We support PDF, DOCX, and more, making uploads easy."
+    description: "Simply drag and drop your PDF document. Our secure upload makes getting started quick and easy."
   },
   {
     icon: Brain,
     title: "AI Analysis",
-    description: "Our AI scans every line to highlight key terms, clauses, and potential risks, giving you instant, reliable insights."
+    description: "Our AI scans every line using advanced language models to analyze your document and identify critical areas that need your attention."
   },
   {
-    icon: FileDown,
-    title: "Download Your Report",
-    description: "Get a summary and flagged items in an easy-to-read report. Know what matters before you sign."
+    icon: ClipboardCheck,
+    title: "Review Analysis",
+    description: "Get an immediate breakdown with a clear summary, potential risks, and actionable recommendations for your contract."
   }
 ]
 
