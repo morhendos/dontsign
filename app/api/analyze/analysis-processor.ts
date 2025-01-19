@@ -49,13 +49,12 @@ export async function processDocument(
       progressMessages.MODEL_READY);
     await wait();
 
-    // Start with document summary
-    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.SUMMARY_START, 0, chunks.length,
+    // Generate document summary first
+    progress.sendProgress('analyzing', ANALYSIS_PROGRESS.SUMMARY_START, chunks.length, chunks.length,
       "Generating document summary...");
     await wait();
 
     const documentSummary = await generateDocumentSummary(text);
-    console.log('[Server] Generated document summary:', documentSummary);
 
     // Start analysis phase
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.ANALYSIS_START, 0, chunks.length,
@@ -92,7 +91,7 @@ export async function processDocument(
           (ANALYSIS_PROGRESS.CHUNK_ANALYSIS - ANALYSIS_PROGRESS.ANALYSIS_START)),
         chunkNumber,
         chunks.length,
-        `Analyzing section ${chunkNumber} of ${chunks.length}: Identifying risks and important clauses...`
+        `Analyzing section ${chunkNumber} of ${chunks.length}: Identifying risks and clauses...`
       );
       
       const chunkAnalysis = await analyzeChunk(chunks[i], i, chunks.length);
@@ -105,7 +104,7 @@ export async function processDocument(
       await wait(CHUNK_STEP_TIME); // Shorter wait between chunks
     }
 
-    // Process results
+    // Results processing
     progress.sendProgress('analyzing', ANALYSIS_PROGRESS.RISKS, chunks.length, chunks.length,
       progressMessages.RISKS);
     await wait();
