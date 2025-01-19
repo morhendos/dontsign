@@ -1,228 +1,148 @@
-# DontSign AI Prompts Documentation
+# DontSign Prompt Management
 
-## Current Prompt Structure
+## Overview
+The prompt management system provides a centralized way to manage all AI prompts used in the application. This makes it easy to modify prompts, maintain versioning, and ensure consistency across the application.
 
-### 1. System Prompt
-Used to set the AI's role and general guidelines.
-
-```typescript
-SYSTEM_PROMPT = `You are an experienced legal expert...`
-```
-
-**Purpose**: Establishes the AI as a legal expert for contract analysis
-**Used in**: Main analysis for each chunk of text
-**Config**:
-- Model: gpt-3.5-turbo-1106
-- Temperature: 0.3
-- Max tokens: 1000
-- Format: JSON
-
-### 2. Document Summary Prompt
-Used to generate an initial document overview.
-
-```typescript
-DOCUMENT_SUMMARY_PROMPT = `Provide a factual description...`
-```
-
-**Purpose**: Creates a concise summary of the document
-**Used in**: Initial document processing
-**Config**:
-- Model: gpt-3.5-turbo-1106
-- Temperature: 0.3
-- Max tokens: 300
-- Format: Text
-
-### 3. User Prompt Template
-Template for analyzing individual document chunks.
-
-```typescript
-USER_PROMPT_TEMPLATE = (chunk, index, total) => `Section ${index + 1}/${total}...`
-```
-
-**Purpose**: Analyzes document sections for risks and recommendations
-**Used in**: Detailed chunk analysis
-**Output Structure**:
-- potentialRisks[]
-- importantClauses[]
-- recommendations[]
-
-## Prompt Usage Flow
-
-1. Initial Processing:
-   - Document is received
-   - Summary prompt is used on the first ~6000 characters
-   - Generates document overview
-
-2. Detailed Analysis:
-   - Document is split into chunks
-   - Each chunk processed with system prompt + user prompt template
-   - Results aggregated
-
-## Suggested Improvements
-
-### 1. Centralized Prompt Management
-
-Create a `prompts` directory with the following structure:
-
+## Directory Structure
 ```
 prompts/
 ├── config/
-│   ├── models.json        # Model configurations
-│   └── parameters.json    # Temperature, tokens, etc.
+│   └── models.json        # Model configurations for different analysis types
 ├── templates/
-│   ├── system.txt        # System prompts
-│   ├── analysis.txt      # Analysis templates
-│   └── summary.txt       # Summary templates
-└── index.ts              # Prompt management code
+    ├── system.txt         # System role and guidelines
+    ├── analysis.txt       # Analysis prompt template
+    └── summary.txt        # Document summary prompt
 ```
 
-Example management code:
+## Prompts
 
-```typescript
-// prompts/index.ts
-import { promises as fs } from 'fs';
-import path from 'path';
+### 1. System Role (system.txt)
+Defines the AI's role and general guidelines for contract analysis.
 
-class PromptManager {
-  private cache = new Map<string, string>();
-  private configCache = new Map<string, any>();
+**Purpose**: Sets the foundational behavior and expertise of the AI
+**Used in**: Main contract analysis
+**Location**: `prompts/templates/system.txt`
 
-  async getPrompt(name: string, variables?: Record<string, string>): Promise<string> {
-    let prompt = this.cache.get(name);
-    
-    if (!prompt) {
-      prompt = await fs.readFile(
-        path.join(process.cwd(), 'prompts', 'templates', `${name}.txt`),
-        'utf-8'
-      );
-      this.cache.set(name, prompt);
-    }
+### 2. Analysis Prompt (analysis.txt)
+Template for analyzing individual document sections.
 
-    if (variables) {
-      return this.replaceVariables(prompt, variables);
-    }
+**Purpose**: Guides the chunk-by-chunk analysis
+**Used in**: Detailed contract analysis
+**Variables**: 
+- `{{chunkIndex}}` - Current section number
+- `{{totalChunks}}` - Total sections
+- `{{chunk}}` - Text content
 
-    return prompt;
-  }
+### 3. Summary Prompt (summary.txt)
+Template for generating document overviews.
 
-  async getConfig(name: string): Promise<any> {
-    let config = this.configCache.get(name);
-    
-    if (!config) {
-      config = JSON.parse(
-        await fs.readFile(
-          path.join(process.cwd(), 'prompts', 'config', `${name}.json`),
-          'utf-8'
-        )
-      );
-      this.configCache.set(name, config);
-    }
+**Purpose**: Creates initial document summary
+**Used in**: Initial document assessment
 
-    return config;
-  }
+## Model Configurations
 
-  private replaceVariables(text: string, variables: Record<string, string>): string {
-    return text.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] || '');
-  }
-}
-
-export const promptManager = new PromptManager();
-```
-
-### 2. Version Control for Prompts
-
-Prompts should be versioned and tracked:
-
-```typescript
-// prompts/config/versions.json
+### Analysis Config
+```json
 {
-  "system": {
-    "current": "1.2.0",
-    "history": [
-      {
-        "version": "1.2.0",
-        "date": "2024-01-19",
-        "changes": "Improved risk assessment guidelines"
-      }
-    ]
-  }
+  "model": "gpt-3.5-turbo-1106",
+  "temperature": 0.3,
+  "max_tokens": 1000,
+  "response_format": { "type": "json_object" }
 }
 ```
 
-### 3. A/B Testing Support
-
-Add capability to test different prompt versions:
-
-```typescript
-interface PromptTest {
-  id: string;
-  promptA: string;
-  promptB: string;
-  metrics: {
-    accuracy: number;
-    completeness: number;
-    userSatisfaction: number;
-  };
-}
-```
-
-### 4. Environment-Specific Prompts
-
-Support different prompts for development/production:
-
-```typescript
-// prompts/config/environments.json
+### Summary Config
+```json
 {
-  "development": {
-    "model": "gpt-3.5-turbo-1106",
-    "maxTokens": 500
-  },
-  "production": {
-    "model": "gpt-3.5-turbo-1106",
-    "maxTokens": 1000
-  }
+  "model": "gpt-3.5-turbo-1106",
+  "temperature": 0.3,
+  "max_tokens": 300,
+  "response_format": { "type": "text" }
 }
 ```
 
-## Migration Plan
+## Usage
 
-1. Create new prompt management structure
-2. Move existing prompts to text files
-3. Update service to use PromptManager
-4. Add version tracking
-5. Implement A/B testing
+### In Server Actions
+```typescript
+// Import the prompt manager
+import { promptManager } from '@/lib/services/prompts';
+
+// Get a prompt
+const systemPrompt = await promptManager.getPrompt('system');
+
+// Get a prompt with variables
+const analysisPrompt = await promptManager.getPrompt('analysis', {
+  chunk: textChunk,
+  chunkIndex: String(index),
+  totalChunks: String(total)
+});
+
+// Get model configuration
+const config = await promptManager.getModelConfig('analysis');
+```
+
+## Modifying Prompts
+
+1. Navigate to the appropriate template file in `prompts/templates/`
+2. Edit the prompt text
+3. Save the file
+4. Changes take effect immediately (no rebuild required)
+
+When editing prompts:
+- Maintain any existing variables (marked with {{variable}})
+- Keep the output format consistent
+- Test changes thoroughly
+- Document significant changes
+
+## Output Formats
+
+### Analysis Output
+```json
+{
+  "potentialRisks": ["risk 1", "risk 2", ...],
+  "importantClauses": ["clause 1", "clause 2", ...],
+  "recommendations": ["recommendation 1", "recommendation 2", ...]
+}
+```
+
+### Summary Output
+Free text format following the structure:
+"This is a [type] between [parties] for [purpose]."
 
 ## Best Practices
 
-1. Keep prompts in separate files for easy editing
-2. Version control all prompt changes
-3. Use templates with variables for dynamic content
-4. Maintain separate development/production configs
-5. Document prompt changes and their impacts
-6. Test prompt changes thoroughly before deployment
+1. **Prompt Modifications**
+   - Test changes in development first
+   - Keep prompts focused and clear
+   - Maintain consistent formatting
+   - Document any special requirements
 
-## Testing Guidelines
+2. **Version Control**
+   - Commit prompt changes with clear messages
+   - Document major changes in CHANGELOG.md
+   - Keep backups of working prompts
 
-1. Create test suite for prompt variations
-2. Compare results between prompt versions
-3. Track metrics for prompt performance
-4. Use real-world examples for testing
-5. Maintain test documents for consistency
+3. **Testing Changes**
+   - Test with various document types
+   - Verify output format consistency
+   - Check edge cases
+   - Monitor performance impact
 
-## Monitoring and Analytics
+## Troubleshooting
 
-Add prompt performance tracking:
+### Common Issues
+1. Invalid JSON responses
+   - Check response format specifications
+   - Verify prompt formatting
+   - Review model temperature settings
 
-```typescript
-interface PromptMetrics {
-  promptVersion: string;
-  responseTime: number;
-  tokenCount: number;
-  completionRate: number;
-  userFeedback?: {
-    helpful: boolean;
-    accurate: boolean;
-    comments?: string;
-  };
-}
-```
+2. Missing or incorrect variables
+   - Verify variable names match exactly
+   - Check for typos in variable syntax
+   - Ensure all required variables are provided
+
+3. Inconsistent outputs
+   - Review temperature settings
+   - Check prompt clarity
+   - Verify model configuration
