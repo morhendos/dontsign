@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 import { CircuitBreaker } from './circuit-breaker';
 import { AIServiceError, RateLimitError } from '@/lib/errors/api-errors';
+import type { ModelConfig } from '../prompts/types';
 
 export class OpenAIService {
   private client: OpenAI;
@@ -15,11 +16,15 @@ export class OpenAIService {
   /**
    * Creates a chat completion with circuit breaker and retry protection
    */
-  public async createChatCompletion(params: ChatCompletionCreateParamsNonStreaming) {
+  public async createChatCompletion(
+    params: Omit<ChatCompletionCreateParamsNonStreaming, 'response_format'> & {
+      response_format?: ModelConfig['response_format'];
+    }
+  ) {
     return this.circuitBreaker.execute(async () => {
       try {
         return await this.withRetry(() => 
-          this.client.chat.completions.create(params)
+          this.client.chat.completions.create(params as ChatCompletionCreateParamsNonStreaming)
         );
       } catch (error) {
         if (error instanceof OpenAI.APIError) {
