@@ -6,7 +6,6 @@ import { detectDocumentType } from "@/lib/document-type";
 import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
 import { promptManager } from "@/lib/services/prompts";
-import type { DocumentTypeResponse } from "@/lib/services/prompts/types";
 import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 
 interface ProgressUpdate {
@@ -16,21 +15,6 @@ interface ProgressUpdate {
   totalChunks?: number;
   stage: string;
   activity: string;
-}
-
-interface AnalysisResult {
-  summary: string;
-  potentialRisks: string[];
-  importantClauses: string[];
-  recommendations: string[];
-  metadata: {
-    analyzedAt: string;
-    documentName: string;
-    modelVersion: string;
-    totalChunks: number;
-    sectionsAnalyzed: number;
-    documentType?: DocumentTypeResponse;
-  };
 }
 
 type ProgressCallback = (data: ProgressUpdate) => void;
@@ -45,6 +29,33 @@ async function updateProgress(onProgress: ProgressCallback, data: ProgressUpdate
   onProgress(data);
   console.log('[Server Progress]', data);
   await sleep(MIN_STEP_TIME);
+}
+
+async function generateDocumentSummary(text: string) {
+  const summaryText = text.slice(0, 6000);
+  
+  const [summaryPrompt, config] = await Promise.all([
+    promptManager.getPrompt('summary'),
+    promptManager.getModelConfig('summary')
+  ]);
+
+  const params: ChatCompletionCreateParamsNonStreaming = {
+    model: config.model,
+    temperature: config.temperature,
+    max_tokens: config.max_tokens,
+    response_format: config.response_format,
+    messages: [
+      { role: "user", content: `${summaryPrompt}\n\n${summaryText}` }
+    ],
+    stream: false
+  };
+
+  const response = await openAIService.createChatCompletion(params);
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
+  
+  return content.trim();
 }
 
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
@@ -78,34 +89,7 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
   return JSON.parse(content);
 }
 
-async function generateDocumentSummary(text: string) {
-  const summaryText = text.slice(0, 6000);
-  
-  const [summaryPrompt, config] = await Promise.all([
-    promptManager.getPrompt('summary'),
-    promptManager.getModelConfig('summary')
-  ]);
-
-  const params: ChatCompletionCreateParamsNonStreaming = {
-    model: config.model,
-    temperature: config.temperature,
-    max_tokens: config.max_tokens,
-    response_format: config.response_format,
-    messages: [
-      { role: "user", content: `${summaryPrompt}\n\n${summaryText}` }
-    ],
-    stream: false
-  };
-
-  const response = await openAIService.createChatCompletion(params);
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
-  
-  return content.trim();
-}
-
-export async function analyzeContract(formData: FormData, onProgress: ProgressCallback): Promise<AnalysisResult> {
+export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
   try {
     // Input validation
     await updateProgress(onProgress, {
