@@ -33,7 +33,6 @@ export async function analyzeChunk(chunk: string, chunkIndex: number, totalChunk
   ]);
 
   const config = await promptManager.getModelConfig('analysis');
-  
   const response = await openai.chat.completions.create({
     ...config,
     messages: [
@@ -58,8 +57,6 @@ export async function analyzeChunk(chunk: string, chunkIndex: number, totalChunk
     throw new ContractAnalysisError('Invalid analysis result structure from AI model', 'API_ERROR');
   }
 
-  const modelConfig = await promptManager.getModelConfig('analysis');
-
   return {
     potentialRisks: parsedContent.potentialRisks || [],
     importantClauses: parsedContent.importantClauses || [],
@@ -67,7 +64,7 @@ export async function analyzeChunk(chunk: string, chunkIndex: number, totalChunk
     metadata: {
       analyzedAt: new Date().toISOString(),
       documentName: `Section ${chunkIndex + 1}`,
-      modelVersion: modelConfig.model,
+      modelVersion: config.model,
       totalChunks: totalChunks
     }
   };
@@ -82,7 +79,7 @@ export async function generateDocumentSummary(text: string): Promise<string> {
     promptManager.getPrompt('summary'),
     promptManager.getModelConfig('summary')
   ]);
-
+  
   const response = await openai.chat.completions.create({
     ...config,
     messages: [
