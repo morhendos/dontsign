@@ -5,9 +5,6 @@ import { useLogVisibility, useResultsDisplay } from './ui';
 import { generateFileHash } from '../utils/hash';
 import type { StoredAnalysis } from '@/types/storage';
 
-// Version for the new summary format
-const CURRENT_SUMMARY_VERSION = 'v2';
-
 export const useContractAnalyzer = () => {
   const analysisHandledRef = useRef(false);
   const resultClosedByUserRef = useRef(false);
@@ -61,8 +58,7 @@ export const useContractAnalyzer = () => {
         fileHash,
         fileSize: file.size,
         analysis,
-        analyzedAt: new Date().toISOString(),
-        version: CURRENT_SUMMARY_VERSION  // Add version to new analyses
+        analyzedAt: new Date().toISOString()
       };
       
       history.addAnalysis(newAnalysis);
@@ -80,23 +76,13 @@ export const useContractAnalyzer = () => {
     await handleStartAnalysis();
   }, [handleStartAnalysis]);
 
-  // Select stored analysis with version check
+  // Select stored analysis
   const handleSelectStoredAnalysis = useCallback(async (stored: StoredAnalysis) => {
-    // If it's an old version analysis, force a new analysis
-    if (stored.version !== CURRENT_SUMMARY_VERSION) {
-      if (stored.fileName && stored.fileHash) {
-        // Trigger a new analysis with the same file
-        resultClosedByUserRef.current = false;
-        await wrappedHandleStartAnalysis();
-        return;
-      }
-    }
-
     resultClosedByUserRef.current = false;
     lastSelectedAnalysisIdRef.current = stored.id;
     baseHandleSelectStoredAnalysis(stored);
     results.show();
-  }, [baseHandleSelectStoredAnalysis, results, wrappedHandleStartAnalysis]);
+  }, [baseHandleSelectStoredAnalysis, results]);
 
   // Effect for analysis completion
   useEffect(() => {
