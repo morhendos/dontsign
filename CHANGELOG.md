@@ -14,12 +14,14 @@
 - Improved state management across components
 - Enhanced error handling with better user feedback
 - Updated OpenAI integration for better reliability
+- Simplified type system for OpenAI messages to improve maintainability
 
 ### Fixed
 - State cleanup issues during file selection
 - Progress tracking accuracy
 - Analysis history management
 - Error boundary handling
+- OpenAI message type definitions and streaming response handling
 
 ## [v1.1.0] - 2024-12-20
 
