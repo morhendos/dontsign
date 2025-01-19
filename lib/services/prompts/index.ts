@@ -1,11 +1,10 @@
 export { promptManager } from './prompt-manager';
-export type { OpenAIMessage } from '../openai/types';
 
 export async function createAnalysisPrompt(
   chunk: string,
   chunkIndex: number,
   totalChunks: number
-): Promise<OpenAIMessage[]> {
+): Promise<Array<{ role: string; content: string }>> {
   const { promptManager } = await import('./prompt-manager');
 
   const [systemPrompt, userPrompt] = await Promise.all([
@@ -25,7 +24,7 @@ export async function createAnalysisPrompt(
 
 export async function createSummaryPrompt(
   text: string
-): Promise<OpenAIMessage[]> {
+): Promise<Array<{ role: string; content: string }>> {
   const { promptManager } = await import('./prompt-manager');
 
   const summaryPrompt = await promptManager.getPrompt('summary');

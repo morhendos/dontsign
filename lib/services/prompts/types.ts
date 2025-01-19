@@ -18,11 +18,6 @@ export interface PromptVariables {
   [key: string]: string | undefined;
 }
 
-export interface OpenAIMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
 export type AnalysisType = 'analysis' | 'summary';
 
 export interface PromptManager {
