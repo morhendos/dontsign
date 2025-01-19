@@ -1,0 +1,33 @@
+Analyze the following text to determine if it is a legal document or contract. If it is, identify its specific type. If it's not, explain what kind of document it appears to be.
+
+Provide your response in JSON format:
+{
+  "isLegalDocument": boolean,
+  "documentType": string,
+  "confidence": number (0-1),
+  "explanation": string,
+  "recommendedAction": string
+}
+
+Example responses:
+
+Legal document:
+{
+  "isLegalDocument": true,
+  "documentType": "Employment Contract",
+  "confidence": 0.95,
+  "explanation": "This is an employment agreement containing standard clauses for compensation, duties, and termination.",
+  "recommendedAction": "proceed_with_analysis"
+}
+
+Non-legal document:
+{
+  "isLegalDocument": false,
+  "documentType": "Technical Documentation",
+  "confidence": 0.88,
+  "explanation": "This appears to be a software user manual containing installation and usage instructions.",
+  "recommendedAction": "stop_analysis"
+}
+
+Analyze this text:
+{{text}}
