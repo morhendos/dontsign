@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import type { ChatCompletionCreateParamsNonStreaming, ChatCompletion } from 'openai/resources/chat/completions';
 import { CircuitBreaker } from './circuit-breaker';
 import { AIServiceError, RateLimitError } from '@/lib/errors/api-errors';
 
@@ -11,10 +12,9 @@ export class OpenAIService {
     this.circuitBreaker = new CircuitBreaker();
   }
 
-  /**
-   * Creates a chat completion with circuit breaker and retry protection
-   */
-  async createChatCompletion(params: OpenAI.ChatCompletionCreateParamsNonStreaming) {
+  public async createChatCompletion(
+    params: ChatCompletionCreateParamsNonStreaming
+  ): Promise<ChatCompletion> {
     return this.circuitBreaker.execute(async () => {
       try {
         return await this.withRetry(() => 
@@ -22,14 +22,12 @@ export class OpenAIService {
         );
       } catch (error) {
         if (error instanceof OpenAI.APIError) {
-          // Handle specific API errors
           if (error.status === 429) {
             throw new RateLimitError(error.message);
           }
           if (error.status >= 500) {
             throw new AIServiceError(error.message);
           }
-          // For 4xx errors, throw as is (usually client's fault)
           throw error;
         }
         throw error;
@@ -37,16 +35,10 @@ export class OpenAIService {
     });
   }
 
-  /**
-   * Gets current circuit breaker metrics
-   */
-  getMetrics() {
+  public getMetrics() {
     return this.circuitBreaker.getMetrics();
   }
 
-  /**
-   * Retries the operation with exponential backoff
-   */
   private async withRetry<T>(
     fn: () => Promise<T>,
     maxAttempts = 3
@@ -59,23 +51,15 @@ export class OpenAIService {
       } catch (error) {
         lastError = error;
 
-        // Don't retry on these errors
         if (error instanceof OpenAI.APIError) {
-          // Don't retry on invalid requests
           if (error.status === 400) throw error;
-          // Don't retry on auth errors
           if (error.status === 401) throw error;
-          // Don't retry on not found
           if (error.status === 404) throw error;
         }
 
-        // Last attempt - throw the error
         if (attempt === maxAttempts) break;
 
-        // Calculate backoff time (1s, 2s, 4s, ...)
         const backoffTime = Math.pow(2, attempt - 1) * 1000;
-        
-        // Add some jitter to prevent all retries happening at exactly the same time
         const jitter = Math.random() * 1000;
         
         await new Promise(resolve => 
@@ -88,7 +72,6 @@ export class OpenAIService {
   }
 }
 
-// Export singleton instance
 export const openAIService = new OpenAIService(
   process.env.OPENAI_API_KEY ?? ''
 );
