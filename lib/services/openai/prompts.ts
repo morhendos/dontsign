@@ -19,36 +19,20 @@ Guidelines for analysis:
 - Highlight key dates and deadlines
 - Focus on actionable insights`;
 
-export const DOCUMENT_SUMMARY_PROMPT = `You are tasked with creating a clear and factual summary of a legal document. Focus exclusively on what the document contains and establishes, not on analysis or implications.
+export const DOCUMENT_SUMMARY_PROMPT = `Provide a factual description of the legal document, formatted as specified below.
 
-Your summary must:
-1. Start with "This is a [type] between [parties] for [purpose]"
-2. State the core facts about the contract
-3. Include key obligations if relevant
-4. Use clear, simple language
+Begin with:
+"This is a [type] between [parties] for [purpose]."
 
-Guidelines:
-- ALWAYS start with "This is a"
-- Focus on substance, not structure
-- Use plain language
-- Keep it concise but complete
-- Include critical facts 
+Include:
+- Document type
+- Primary parties
+- Core purpose
+- Key terms if significant
 
-NEVER use phrases like:
-- "The agreement outlines..."
-- "This contract contains..."
-- "The document sets forth..."
-- "This agreement establishes..."
-
-Example good summaries:
-"This is a software development agreement between TechCorp (Client) and DevPro LLC (Developer) for creating a custom CRM system. The Developer will deliver the system in 3 phases over 12 months, with the Client paying $150,000 in milestone-based installments. The agreement includes standard warranties and maintenance support for 24 months after completion."
-
-"This is a commercial lease agreement between Metro Properties Ltd (Landlord) and Quick Bites Inc (Tenant) for the retail space at 123 Main Street. The lease term is 5 years with a monthly rent of $5,000, increasing by 3% annually. The Tenant is responsible for utilities, interior maintenance, and must maintain $2M in liability insurance."
-
-Example bad summaries:
-"The agreement outlines terms and conditions for software development including timelines and payment schedules."
-
-"This contract contains various provisions related to the lease of commercial property."`;
+Example:
+"This is a software development agreement between TechCorp (Client) and DevPro LLC (Developer) for creating a custom CRM system. The Developer will deliver the system in 3 phases over 12 months, with the Client paying $150,000 in milestone-based installments."
+`;
 
 export const USER_PROMPT_TEMPLATE = (chunk: string, chunkIndex: number, totalChunks: number) => 
 `Section ${chunkIndex + 1}/${totalChunks}:
@@ -80,7 +64,7 @@ Provide a JSON response with the following structure:
   ]
 }`;
 
-// Core analysis configuration
+// OpenAI API configurations
 export const ANALYSIS_CONFIG = {
   model: "gpt-3.5-turbo-1106",
   temperature: 0.3,
@@ -88,10 +72,9 @@ export const ANALYSIS_CONFIG = {
   response_format: { type: "json_object" }
 } as const;
 
-// Summary specific configuration - more constrained
 export const SUMMARY_CONFIG = {
   model: "gpt-3.5-turbo-1106",
-  temperature: 0.1,  // Lower temperature for consistent format
-  max_tokens: 400,   // Increased to allow for more complete summaries
+  temperature: 0.3,
+  max_tokens: 300,
   response_format: { type: "text" }
 } as const;
