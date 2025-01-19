@@ -2,14 +2,13 @@ import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/ch
 
 export type PromptType = 'system' | 'summary' | 'analysis';
 
-// Get the exact response format types from OpenAI's type
-type OpenAIResponseFormat = NonNullable<ChatCompletionCreateParamsNonStreaming['response_format']>;
+// We only use these two response formats
+type ResponseFormat = 
+  | { type: "text" }
+  | { type: "json_object" };
 
-export interface ModelConfig {
-  model: string;
-  temperature: number;
-  max_tokens: number;
-  response_format: OpenAIResponseFormat;
+export interface ModelConfig extends Omit<ChatCompletionCreateParamsNonStreaming, 'messages' | 'response_format'> {
+  response_format: ResponseFormat;
 }
 
 export interface PromptVariables {

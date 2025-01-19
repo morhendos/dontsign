@@ -41,15 +41,17 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
   ]);
 
   const config = await promptManager.getModelConfig('analysis');
-  const params: ChatCompletionCreateParamsNonStreaming = {
-    ...config,
+  
+  const response = await openAIService.createChatCompletion({
+    model: config.model,
+    temperature: config.temperature,
+    max_tokens: config.max_tokens,
+    response_format: config.response_format,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: analysisPrompt },
     ]
-  };
-  
-  const response = await openAIService.createChatCompletion(params);
+  });
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No analysis generated', 'API_ERROR');
@@ -65,14 +67,15 @@ async function generateDocumentSummary(text: string) {
     promptManager.getModelConfig('summary')
   ]);
 
-  const params: ChatCompletionCreateParamsNonStreaming = {
-    ...config,
+  const response = await openAIService.createChatCompletion({
+    model: config.model,
+    temperature: config.temperature,
+    max_tokens: config.max_tokens,
+    response_format: config.response_format,
     messages: [
       { role: "user", content: `${summaryPrompt}\n\n${summaryText}` }
     ]
-  };
-
-  const response = await openAIService.createChatCompletion(params);
+  });
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
@@ -178,6 +181,9 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
         totalChunks: chunks.length
       });
     }
+
+    // Get config for metadata
+    const config = await promptManager.getModelConfig('analysis');
 
     // Prepare final analysis
     const finalAnalysis = {
