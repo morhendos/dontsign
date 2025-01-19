@@ -17,5 +17,13 @@ export const modelConfigs: Record<string, ModelConfig> = {
     response_format: {
       type: "text"
     }
+  },
+  documentType: {
+    model: "gpt-3.5-turbo-1106",
+    temperature: 0.3,
+    max_tokens: 500,
+    response_format: {
+      type: "json_object"
+    }
   }
 } as const;  // Make it readonly with literal types

@@ -41,6 +41,6 @@ export type AnalysisType = 'analysis' | 'summary' | 'documentType';
 
 export interface PromptManager {
   getPrompt(type: PromptType, variables?: PromptVariables): Promise<string>;
-  getModelConfig(type: AnalysisType): Promise<ModelConfig>;
+  getModelConfig(type: AnalysisType): ModelConfig;
   clearCache(): void;
 }
