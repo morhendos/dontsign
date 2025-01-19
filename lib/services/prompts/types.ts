@@ -2,9 +2,8 @@ import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/ch
 
 export type PromptType = 'system' | 'summary' | 'analysis';
 
-// Simple config that matches what we actually use
 export interface ModelConfig {
-  model: string;
+  model: ChatCompletionCreateParamsNonStreaming['model'];
   temperature: number;
   max_tokens: number;
   response_format: {

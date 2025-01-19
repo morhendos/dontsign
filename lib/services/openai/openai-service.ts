@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
+import type { ChatCompletionCreateParamsNonStreaming, ChatCompletion } from 'openai/resources/chat/completions';
 import { CircuitBreaker } from './circuit-breaker';
 import { AIServiceError, RateLimitError } from '@/lib/errors/api-errors';
 
@@ -12,15 +12,9 @@ export class OpenAIService {
     this.circuitBreaker = new CircuitBreaker();
   }
 
-  public async createChatCompletion(params: {
-    model: string;
-    temperature: number;
-    max_tokens: number;
-    response_format: {
-      type: 'json_object' | 'text';
-    };
-    messages: { role: string; content: string; }[];
-  }) {
+  public async createChatCompletion(
+    params: ChatCompletionCreateParamsNonStreaming
+  ): Promise<ChatCompletion> {
     return this.circuitBreaker.execute(async () => {
       try {
         return await this.withRetry(() => 

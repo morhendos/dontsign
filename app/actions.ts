@@ -42,7 +42,7 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
 
   const config = await promptManager.getModelConfig('analysis');
   
-  const response = await openAIService.createChatCompletion({
+  const params: ChatCompletionCreateParamsNonStreaming = {
     model: config.model,
     temperature: config.temperature,
     max_tokens: config.max_tokens,
@@ -50,8 +50,11 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: analysisPrompt },
-    ]
-  });
+    ],
+    stream: false
+  };
+  
+  const response = await openAIService.createChatCompletion(params);
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No analysis generated', 'API_ERROR');
@@ -59,7 +62,6 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
 }
 
 async function generateDocumentSummary(text: string) {
-  // Take a decent amount of text from the start of the document
   const summaryText = text.slice(0, 6000);
   
   const [summaryPrompt, config] = await Promise.all([
@@ -67,15 +69,18 @@ async function generateDocumentSummary(text: string) {
     promptManager.getModelConfig('summary')
   ]);
 
-  const response = await openAIService.createChatCompletion({
+  const params: ChatCompletionCreateParamsNonStreaming = {
     model: config.model,
     temperature: config.temperature,
     max_tokens: config.max_tokens,
     response_format: config.response_format,
     messages: [
       { role: "user", content: `${summaryPrompt}\n\n${summaryText}` }
-    ]
-  });
+    ],
+    stream: false
+  };
+
+  const response = await openAIService.createChatCompletion(params);
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
