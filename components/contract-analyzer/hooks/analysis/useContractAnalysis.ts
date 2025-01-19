@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { trackAnalysis, startAnalyticsTransaction, captureError } from '../../utils/analytics';
 import { processFile } from '../../utils/text-processing';
+import { detectDocumentType } from '@/lib/document-type';
 import type { AnalysisState, AnalysisStreamResponse } from '../../types';
 
 export interface UseContractAnalysisOptions {
@@ -118,26 +119,15 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
     try {
       // Process file
       const { text, name } = await processFile(file);
-
-      // Initialize analysis state
-      setState(prev => ({
-        ...prev,
-        analysis: {
-          summary: "Starting analysis...",
-          potentialRisks: [],
-          importantClauses: [],
-          recommendations: [],
-          metadata: {
-            analyzedAt: new Date().toISOString(),
-            documentName: name,
-            modelVersion: "gpt-3.5-turbo-1106",
-            stage: 'preprocessing',
-            progress: 5,
-            sectionsAnalyzed: 0,
-            totalChunks: 0,
-          }
-        }
-      }));
+      
+      // Detect document type
+      const documentType = await detectDocumentType(text);
+      
+      if (!documentType.isLegalDocument || documentType.recommendedAction === 'stop_analysis') {
+        throw new Error(
+          `This appears to be a ${documentType.documentType.toLowerCase()}: ${documentType.explanation}`
+        );
+      }
 
       // Start analysis stream
       updateActivity('Connecting to analysis service...');
@@ -205,19 +195,22 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
         ...prev,
         error: { 
           message: error instanceof Error ? error.message : 'An unexpected error occurred', 
-          type: 'error' 
+          type: error instanceof Error && error.message.includes('appears to be a') ? 'INVALID_DOCUMENT_TYPE' : 'error'
         },
         progress: 0,
         stage: 'preprocessing',
         sectionsAnalyzed: 0,
         totalChunks: 0,
-        isAnalyzing: false
+        isAnalyzing: false,
+        analysis: null
       }));
 
       trackAnalysis.error(
         'ANALYSIS_ERROR',
         error instanceof Error ? error.message : 'Unknown error'
       );
+      
+      return null;
     } finally {
       transaction.finish();
     }
