@@ -67,7 +67,7 @@ export const ContractAnalyzer = () => {
         />
 
         {/* Analysis Progress */}
-        {isAnalyzing && (
+        {isAnalyzing && !error && (
           <div className="w-full max-w-md mx-auto">
             <AnalysisProgress
               sectionsAnalyzed={sectionsAnalyzed}
@@ -80,17 +80,24 @@ export const ContractAnalyzer = () => {
           </div>
         )}
 
-        {/* Error Display */}
-        {error && <ErrorDisplay error={error} />}
-
-        {/* Analysis Results */}
-        {results.isVisible && analysis && (
-          <AnalysisResults analysis={analysis} onClose={() => results.hide()} />
-        )}
+        {/* Analysis Results or Error Display */}
+        {error ? (
+          <AnalysisResults 
+            analysis={null} 
+            error={error} 
+            onClose={() => actions.handleClearError()} 
+          />
+        ) : results.isVisible && analysis ? (
+          <AnalysisResults 
+            analysis={analysis} 
+            error={null}
+            onClose={() => results.hide()} 
+          />
+        ) : null}
       </div>
 
       {/* Analysis Log */}
-      {log.entries.length > 0 && (
+      {!error && log.entries.length > 0 && (
         <AnalysisLog
           entries={log.entries}
           isVisible={log.isVisible}
