@@ -75,7 +75,7 @@ async function generateDocumentSummary(text: string, attempt: number = 1) {
   console.log(`[Server] Generated summary (attempt ${attempt}):`, summary);
   
   try {
-    // Validate summary format
+    // Only validate the essential format requirements
     if (!summary.startsWith('This is a')) {
       throw new ContractAnalysisError(
         'Summary must start with "This is a"', 
