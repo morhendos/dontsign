@@ -1,11 +1,13 @@
+import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
+
 export type PromptType = 'system' | 'summary' | 'analysis';
 
-export interface ModelConfig {
-  model: string;
-  temperature: number;
-  max_tokens: number;
-  response_format: { type: string };
-}
+// Use OpenAI's param types for model config
+type ModelConfigParams = Pick<ChatCompletionCreateParamsNonStreaming, 
+  'model' | 'temperature' | 'max_tokens' | 'response_format'
+>;
+
+export interface ModelConfig extends ModelConfigParams {}
 
 export interface PromptVariables {
   chunk?: string;
