@@ -1,0 +1,28 @@
+Section {{chunkIndex}}/{{totalChunks}}:
+
+{{chunk}}
+
+Provide a JSON response with the following structure:
+
+{
+  "potentialRisks": [
+    "Specific issues that could negatively impact the user",
+    "Ambiguous or unfavorable terms",
+    "Missing protections or guarantees",
+    "Unusual or excessive obligations",
+    "Compliance or operational challenges"
+  ],
+  "importantClauses": [
+    "Critical deadlines and important dates",
+    "Key financial obligations or requirements",
+    "Significant limitations or exclusions",
+    "Performance requirements and metrics"
+  ],
+  "recommendations": [
+    "Specific negotiation points with suggested changes",
+    "Risk mitigation strategies",
+    "Required clarifications or additions",
+    "Suggested additional protections",
+    "Practical next steps"
+  ]
+}

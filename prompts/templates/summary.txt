@@ -1,0 +1,13 @@
+Provide a factual description of the legal document, formatted as specified below.
+
+Begin with:
+"This is a [type] between [parties] for [purpose]."
+
+Include:
+- Document type
+- Primary parties
+- Core purpose
+- Key terms if significant
+
+Example:
+"This is a software development agreement between TechCorp (Client) and DevPro LLC (Developer) for creating a custom CRM system. The Developer will deliver the system in 3 phases over 12 months, with the Client paying $150,000 in milestone-based installments."
