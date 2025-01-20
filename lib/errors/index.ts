@@ -1,9 +1,10 @@
 export type ErrorType =
   | 'API_ERROR'
   | 'INVALID_INPUT'
-  | 'INVALID_DOCUMENT_TYPE'
-  | 'RATE_LIMIT'
-  | 'UNKNOWN';
+  | 'TEXT_PROCESSING_ERROR'
+  | 'UNKNOWN_ERROR'
+  | 'CONFIGURATION_ERROR'
+  | 'INVALID_DOCUMENT_TYPE';  // Added this new type
 
 export class ContractAnalysisError extends Error {
   type: ErrorType;
@@ -26,12 +27,12 @@ export function getErrorMessage(error: unknown): { message: string; type: ErrorT
   if (error instanceof Error) {
     return {
       message: error.message,
-      type: 'UNKNOWN'
+      type: 'UNKNOWN_ERROR'
     };
   }
 
   return {
     message: 'An unexpected error occurred',
-    type: 'UNKNOWN'
+    type: 'UNKNOWN_ERROR'
   };
 }
