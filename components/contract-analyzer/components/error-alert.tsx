@@ -1,11 +1,11 @@
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import type { ErrorType } from '@/lib/errors';
+import type { ErrorCode } from '@/lib/errors';
 
 interface ErrorAlertProps {
   error: {
     message: string;
-    type: ErrorType;
+    type: ErrorCode;
   };
 }
 
@@ -23,9 +23,14 @@ export function ErrorAlert({ error }: ErrorAlertProps) {
     case 'API_ERROR':
       title = 'Analysis Failed';
       break;
-    case 'RATE_LIMIT':
-      title = 'Too Many Requests';
-      description = 'Please wait a moment before trying again.';
+    case 'TEXT_PROCESSING_ERROR':
+      title = 'Processing Error';
+      break;
+    case 'CONFIGURATION_ERROR':
+      title = 'Configuration Error';
+      break;
+    case 'UNKNOWN_ERROR':
+      title = 'Unexpected Error';
       break;
   }
 
