@@ -1,8 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { ErrorDisplay } from '@/components/error/ErrorDisplay';
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
 import type { AnalysisResult } from '../../types';
@@ -16,49 +15,6 @@ interface AnalysisResultsProps {
   onClose: () => void;
 }
 
-function EmptyDocumentError() {
-  return (
-    <div className="p-6 max-w-2xl mx-auto text-center">
-      <Alert variant="destructive" className="mb-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Empty Document</AlertTitle>
-        <AlertDescription>
-          We couldn't detect any text in this document. Please make sure the document contains readable text and try again.
-        </AlertDescription>
-      </Alert>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-        Common reasons for this:
-        <ul className="list-disc text-left mt-2 pl-4">
-          <li>The document is image-based (scanned) rather than text-based</li>
-          <li>The PDF is password protected</li>
-          <li>The file is corrupted or empty</li>
-        </ul>
-      </p>
-    </div>
-  );
-}
-
-function NonLegalDocumentError({ message }: { message: string }) {
-  return (
-    <div className="p-6 max-w-2xl mx-auto text-center">
-      <Alert variant="destructive" className="mb-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Unsupported Document Type</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
-      </Alert>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-        This tool is designed specifically for legal documents such as:
-        <ul className="list-disc text-left mt-2 pl-4">
-          <li>Contracts and Agreements</li>
-          <li>NDAs and Confidentiality Agreements</li>
-          <li>Terms of Service</li>
-          <li>Legal Policies and Procedures</li>
-        </ul>
-      </p>
-    </div>
-  );
-}
-
 export const AnalysisResults = ({
   analysis,
   error,
@@ -66,14 +22,12 @@ export const AnalysisResults = ({
 }: AnalysisResultsProps) => {
   // Lock body scroll when modal is open
   useEffect(() => {
-    // Save current scroll position
     const scrollPos = window.scrollY;
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollPos}px`;
     document.body.style.width = '100%';
 
     return () => {
-      // Restore scroll position on unmount
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
@@ -105,17 +59,7 @@ export const AnalysisResults = ({
 
         <ScrollArea className="h-[80vh] p-6 touch-auto">
           {error ? (
-            error.type === 'INVALID_INPUT' ? (
-              <EmptyDocumentError />
-            ) : error.type === 'INVALID_DOCUMENT_TYPE' ? (
-              <NonLegalDocumentError message={error.message} />
-            ) : (
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error.message}</AlertDescription>
-              </Alert>
-            )
+            <ErrorDisplay error={error} />
           ) : analysis ? (
             <div className="space-y-8">
               {/* What is this contract? */}

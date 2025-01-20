@@ -17,7 +17,7 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
   let showSupportedTypes = false;
 
   // Customize based on error type
-  switch (error?.code) {
+  switch (error?.type || error?.code) {
     case 'INVALID_DOCUMENT_TYPE':
       title = 'Cannot Analyze Document';
       description = error.message || 'This document type is not supported for analysis.';
@@ -102,10 +102,28 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
       </Alert>
 
       {showSupportedTypes && (
-        <div className="bg-muted/50 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-center mb-4">
-            This tool analyzes legal documents such as contracts, NDAs, terms of service, and other legal agreements.
+        <div className="bg-muted/50 rounded-lg p-6 dark:bg-gray-800/50">
+          <h3 className="text-lg font-medium text-center mb-4 dark:text-gray-100">
+            This tool analyzes legal documents such as:
           </h3>
+          <ul className="list-none space-y-2">
+            <li className="flex items-center justify-center gap-2">
+              <span className="text-muted-foreground dark:text-gray-500">•</span>
+              <span className="dark:text-gray-300">Contracts and Agreements</span>
+            </li>
+            <li className="flex items-center justify-center gap-2">
+              <span className="text-muted-foreground dark:text-gray-500">•</span>
+              <span className="dark:text-gray-300">NDAs and Confidentiality Agreements</span>
+            </li>
+            <li className="flex items-center justify-center gap-2">
+              <span className="text-muted-foreground dark:text-gray-500">•</span>
+              <span className="dark:text-gray-300">Terms of Service</span>
+            </li>
+            <li className="flex items-center justify-center gap-2">
+              <span className="text-muted-foreground dark:text-gray-500">•</span>
+              <span className="dark:text-gray-300">Legal Policies and Procedures</span>
+            </li>
+          </ul>
         </div>
       )}
     </div>
