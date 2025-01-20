@@ -10,8 +10,11 @@ export type ErrorCode =
   | 'TEXT_PROCESSING_ERROR'
   | 'UNKNOWN_ERROR'
   | 'CONFIGURATION_ERROR'
-  | 'INVALID_DOCUMENT_TYPE'  // Only adding this one new type
-  | 'RATE_LIMIT';  // Keeping existing types
+  | 'INVALID_DOCUMENT_TYPE'
+  | 'RATE_LIMIT';
+
+// Export ErrorCode as ErrorType for backward compatibility
+export type ErrorType = ErrorCode;
 
 export class BaseError extends Error {
   constructor(message: string, public code: ErrorCode, public cause?: unknown) {
@@ -40,8 +43,8 @@ export class ContractAnalysisError extends BaseError {
       | 'TEXT_PROCESSING_ERROR' 
       | 'UNKNOWN_ERROR' 
       | 'CONFIGURATION_ERROR'
-      | 'INVALID_DOCUMENT_TYPE'  // Only adding this new type
-      | 'RATE_LIMIT'>,  // Keeping existing types
+      | 'INVALID_DOCUMENT_TYPE'
+      | 'RATE_LIMIT'>,
     cause?: unknown
   ) {
     super(message, code, cause);
