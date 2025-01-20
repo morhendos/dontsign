@@ -38,7 +38,6 @@ export const AnalysisResults = ({
   // If it's an error, we want a smaller modal that fits the content
   // If it's analysis results, we want the full-size modal
   const modalSize = error ? 'fit-content' : 'w-full max-w-4xl max-h-[90vh]';
-  const padding = error ? 'p-0' : 'p-6'; // Remove padding for error display as it has its own padding
 
   return (
     <div 
@@ -50,7 +49,7 @@ export const AnalysisResults = ({
         onClick={e => e.stopPropagation()}
       >
         {/* Close button */}
-        <div className="absolute right-2 top-2 z-10">
+        <div className="absolute right-3 top-3 z-10">
           <Button
             variant="ghost"
             size="icon"
@@ -64,12 +63,12 @@ export const AnalysisResults = ({
 
         {error ? (
           // Error display - no ScrollArea needed
-          <div className="pt-2">
+          <div className="p-6 pt-12">
             <ErrorDisplay error={error} />
           </div>
         ) : analysis ? (
           // Analysis results - with ScrollArea
-          <ScrollArea className={`h-[80vh] touch-auto ${padding}`}>
+          <ScrollArea className="h-[80vh] p-6 touch-auto">
             <div className="space-y-8">
               {/* What is this contract? */}
               <section className="mb-8">
