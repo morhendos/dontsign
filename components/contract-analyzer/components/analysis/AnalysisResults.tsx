@@ -35,32 +35,41 @@ export const AnalysisResults = ({
     };
   }, []);
 
+  // If it's an error, we want a smaller modal that fits the content
+  // If it's analysis results, we want the full-size modal
+  const modalSize = error ? 'fit-content' : 'w-full max-w-4xl max-h-[90vh]';
+  const padding = error ? 'p-0' : 'p-6'; // Remove padding for error display as it has its own padding
+
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 overflow-hidden touch-none"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <Card 
-        className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-gray-800 shadow-xl relative overflow-hidden"
+        className={`${modalSize} bg-white dark:bg-gray-800 shadow-xl relative overflow-hidden`}
         onClick={e => e.stopPropagation()}
       >
         {/* Close button */}
-        <div className="absolute right-4 top-4 z-10">
+        <div className="absolute right-2 top-2 z-10">
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="rounded-full h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <X className="h-6 w-6 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
+            <X className="h-4 w-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
             <span className="sr-only">Close</span>
           </Button>
         </div>
 
-        <ScrollArea className="h-[80vh] p-6 touch-auto">
-          {error ? (
+        {error ? (
+          // Error display - no ScrollArea needed
+          <div className="pt-2">
             <ErrorDisplay error={error} />
-          ) : analysis ? (
+          </div>
+        ) : analysis ? (
+          // Analysis results - with ScrollArea
+          <ScrollArea className={`h-[80vh] touch-auto ${padding}`}>
             <div className="space-y-8">
               {/* What is this contract? */}
               <section className="mb-8">
@@ -112,8 +121,8 @@ export const AnalysisResults = ({
                 </section>
               )}
             </div>
-          ) : null}
-        </ScrollArea>
+          </ScrollArea>
+        ) : null}
       </Card>
     </div>
   );
