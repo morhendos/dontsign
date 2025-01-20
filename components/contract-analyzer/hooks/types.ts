@@ -1,5 +1,7 @@
 import type { ErrorCode } from '@/lib/errors';
 
+export type AnalysisStage = 'preprocessing' | 'analyzing' | 'complete';
+
 export interface AnalysisState {
   analysis: any | null;
   isAnalyzing: boolean;
@@ -8,7 +10,7 @@ export interface AnalysisState {
     type: ErrorCode;
   } | null;
   progress: number;
-  stage: 'preprocessing' | 'analyzing' | 'complete';
+  stage: AnalysisStage;
   sectionsAnalyzed: number;
   totalChunks: number;
 }
@@ -18,7 +20,7 @@ export interface AnalysisStreamResponse {
   error?: string;
   result?: any;
   progress?: number;
-  stage?: string;
+  stage?: AnalysisStage;
   activity?: string;
   description?: string;
   currentChunk?: number;
