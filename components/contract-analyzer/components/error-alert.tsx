@@ -1,11 +1,11 @@
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import type { ErrorType } from '@/lib/errors';
+import type { ErrorCode } from '@/lib/errors';
 
 interface ErrorAlertProps {
   error: {
     message: string;
-    type: ErrorType;
+    type: ErrorCode;
   };
 }
 
