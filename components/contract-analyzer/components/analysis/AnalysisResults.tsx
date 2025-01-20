@@ -48,12 +48,12 @@ export const AnalysisResults = ({
         className={`${modalSize} bg-white dark:bg-gray-800 shadow-xl relative overflow-hidden`}
         onClick={e => e.stopPropagation()}
       >
-        {/* Close button */}
+        {/* Close button - Always on top with z-index */}
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="absolute right-3 top-3 rounded-full h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="absolute right-3 top-3 rounded-full h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 z-50"
         >
           <X className="h-3 w-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
           <span className="sr-only">Close</span>
@@ -66,7 +66,7 @@ export const AnalysisResults = ({
           </div>
         ) : analysis ? (
           // Analysis results - with ScrollArea
-          <ScrollArea className="h-[80vh] p-6 touch-auto">
+          <ScrollArea className="h-[80vh] p-6 touch-auto relative z-0">
             <div className="space-y-8">
               {/* What is this contract? */}
               <section className="mb-8">
