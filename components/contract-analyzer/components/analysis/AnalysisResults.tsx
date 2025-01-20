@@ -49,7 +49,7 @@ export const AnalysisResults = ({
         onClick={e => e.stopPropagation()}
       >
         {/* Close button */}
-        <div className="absolute right-3 top-3 z-10">
+        <div className="absolute right-12 top-12 z-10">
           <Button
             variant="ghost"
             size="icon"
@@ -63,7 +63,7 @@ export const AnalysisResults = ({
 
         {error ? (
           // Error display - no ScrollArea needed
-          <div className="p-6 pt-12">
+          <div className="p-12">
             <ErrorDisplay error={error} />
           </div>
         ) : analysis ? (
