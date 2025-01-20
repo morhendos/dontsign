@@ -2,7 +2,9 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { trackAnalysis, startAnalyticsTransaction, captureError } from '../../utils/analytics';
 import { processFile } from '../../utils/text-processing';
-import type { AnalysisState, AnalysisStreamResponse } from '../../types';
+import { detectDocumentType } from '@/app/actions/detectDocumentType';
+import type { AnalysisState, AnalysisStreamResponse } from '../types';
+import type { ErrorCode } from '@/lib/errors';
 
 export interface UseContractAnalysisOptions {
   onStatusUpdate?: (status: string) => void;
@@ -94,7 +96,7 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
     if (!file) {
       setState(prev => ({
         ...prev,
-        error: { message: 'Please upload a file before analyzing.', type: 'warning' }
+        error: { message: 'Please upload a file before analyzing.', type: 'INVALID_INPUT' as ErrorCode }
       }));
       return;
     }
@@ -118,26 +120,15 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
     try {
       // Process file
       const { text, name } = await processFile(file);
-
-      // Initialize analysis state
-      setState(prev => ({
-        ...prev,
-        analysis: {
-          summary: "Starting analysis...",
-          potentialRisks: [],
-          importantClauses: [],
-          recommendations: [],
-          metadata: {
-            analyzedAt: new Date().toISOString(),
-            documentName: name,
-            modelVersion: "gpt-3.5-turbo-1106",
-            stage: 'preprocessing',
-            progress: 5,
-            sectionsAnalyzed: 0,
-            totalChunks: 0,
-          }
-        }
-      }));
+      
+      // Detect document type
+      const documentType = await detectDocumentType(text);
+      
+      if (!documentType.isLegalDocument || documentType.recommendedAction === 'stop_analysis') {
+        throw new Error(
+          `This appears to be a ${documentType.documentType.toLowerCase()}: ${documentType.explanation}`
+        );
+      }
 
       // Start analysis stream
       updateActivity('Connecting to analysis service...');
@@ -205,19 +196,24 @@ export const useContractAnalysis = (options: UseContractAnalysisOptions = {}) =>
         ...prev,
         error: { 
           message: error instanceof Error ? error.message : 'An unexpected error occurred', 
-          type: 'error' 
+          type: error instanceof Error && error.message.includes('appears to be a') ? 
+            'INVALID_DOCUMENT_TYPE' as ErrorCode : 
+            'UNKNOWN_ERROR' as ErrorCode
         },
         progress: 0,
         stage: 'preprocessing',
         sectionsAnalyzed: 0,
         totalChunks: 0,
-        isAnalyzing: false
+        isAnalyzing: false,
+        analysis: null
       }));
 
       trackAnalysis.error(
         'ANALYSIS_ERROR',
         error instanceof Error ? error.message : 'Unknown error'
       );
+      
+      return null;
     } finally {
       transaction.finish();
     }

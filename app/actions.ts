@@ -2,6 +2,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { ContractAnalysisError } from "@/lib/errors";
+import { detectDocumentType } from "@/lib/document-type";
 import { splitIntoChunks } from "@/lib/text-utils";
 import { openAIService } from "@/lib/services/openai/openai-service";
 import { promptManager } from "@/lib/services/prompts";
@@ -28,6 +29,33 @@ async function updateProgress(onProgress: ProgressCallback, data: ProgressUpdate
   onProgress(data);
   console.log('[Server Progress]', data);
   await sleep(MIN_STEP_TIME);
+}
+
+async function generateDocumentSummary(text: string) {
+  const summaryText = text.slice(0, 6000);
+  
+  const [summaryPrompt, config] = await Promise.all([
+    promptManager.getPrompt('summary'),
+    promptManager.getModelConfig('summary')
+  ]);
+
+  const params: ChatCompletionCreateParamsNonStreaming = {
+    model: config.model,
+    temperature: config.temperature,
+    max_tokens: config.max_tokens,
+    response_format: config.response_format,
+    messages: [
+      { role: "user", content: `${summaryPrompt}\n\n${summaryText}` }
+    ],
+    stream: false
+  };
+
+  const response = await openAIService.createChatCompletion(params);
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
+  
+  return content.trim();
 }
 
 async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: number) {
@@ -61,33 +89,6 @@ async function analyzeChunk(chunk: string, chunkIndex: number, totalChunks: numb
   return JSON.parse(content);
 }
 
-async function generateDocumentSummary(text: string) {
-  const summaryText = text.slice(0, 6000);
-  
-  const [summaryPrompt, config] = await Promise.all([
-    promptManager.getPrompt('summary'),
-    promptManager.getModelConfig('summary')
-  ]);
-
-  const params: ChatCompletionCreateParamsNonStreaming = {
-    model: config.model,
-    temperature: config.temperature,
-    max_tokens: config.max_tokens,
-    response_format: config.response_format,
-    messages: [
-      { role: "user", content: `${summaryPrompt}\n\n${summaryText}` }
-    ],
-    stream: false
-  };
-
-  const response = await openAIService.createChatCompletion(params);
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new ContractAnalysisError('No summary generated', 'API_ERROR');
-  
-  return content.trim();
-}
-
 export async function analyzeContract(formData: FormData, onProgress: ProgressCallback) {
   try {
     // Input validation
@@ -113,6 +114,23 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
 
     if (!text.trim()) {
       throw new ContractAnalysisError("Document appears to be empty", "INVALID_INPUT");
+    }
+
+    // Document type detection
+    await updateProgress(onProgress, {
+      type: 'update',
+      progress: 20,
+      stage: 'preprocessing',
+      activity: "Detecting document type..."
+    });
+
+    const documentType = await detectDocumentType(text);
+    
+    if (!documentType.isLegalDocument || documentType.recommendedAction === 'stop_analysis') {
+      throw new ContractAnalysisError(
+        `This appears to be a ${documentType.documentType.toLowerCase()}. ${documentType.explanation}`,
+        "INVALID_DOCUMENT_TYPE"
+      );
     }
 
     // Document preprocessing phase
@@ -201,7 +219,8 @@ export async function analyzeContract(formData: FormData, onProgress: ProgressCa
         documentName: filename,
         modelVersion: config.model,
         totalChunks: chunks.length,
-        sectionsAnalyzed: chunks.length
+        sectionsAnalyzed: chunks.length,
+        documentType
       }
     };
 

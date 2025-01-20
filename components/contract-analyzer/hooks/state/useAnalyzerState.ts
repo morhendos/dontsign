@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useContractAnalysis } from '../analysis';
 import { useFileUpload } from '../file';
 import { useAnalysisLog } from '../ui';
@@ -9,20 +9,37 @@ import { generateFileHash } from '../../utils/hash';
 import type { StoredAnalysis } from '../../types/storage';
 
 export const useAnalyzerState = () => {
-  // Track if current file is already analyzed
+  // Core state
   const [isAnalyzed, setIsAnalyzed] = useState(false);
+  const [error, setError] = useState<{ message: string; type: string } | null>(null);
 
   // Core state handlers
   const processing = useProcessingState();
   const status = useStatusManager();
   const log = useAnalysisLog();
 
-  // Status update helper that also manages log entries
-  const updateStatus = useCallback((message: string) => {
-    status.setMessage(message);
+  // Create update handlers
+  const handleLog = useCallback((message: string) => {
     log.updateLastEntry('complete');
     log.addEntry(message);
-  }, [status, log]);
+  }, [log]);
+
+  const handleStatus = useCallback((message: string) => {
+    status.setMessage(message);
+    handleLog(message);
+  }, [status, handleLog]);
+
+  // File handling
+  const {
+    file,
+    error: fileError,
+    isProcessing,
+    handleFileSelect: baseHandleFileSelect,
+    resetFile
+  } = useFileUpload({
+    onStatusUpdate: handleStatus,
+    onEntryComplete: () => log.updateLastEntry('complete')
+  });
 
   // Contract analysis
   const {
@@ -38,7 +55,7 @@ export const useAnalyzerState = () => {
     analysisFile,
     setAnalysisFile
   } = useContractAnalysis({
-    onStatusUpdate: updateStatus,
+    onStatusUpdate: handleStatus,
     onEntryComplete: () => {
       log.updateLastEntry('complete');
     },
@@ -50,22 +67,20 @@ export const useAnalyzerState = () => {
     }
   });
 
-  // File handling
-  const {
-    file,
-    error: fileError,
-    isProcessing,
-    handleFileSelect: baseHandleFileSelect,
-    resetFile
-  } = useFileUpload({
-    onStatusUpdate: updateStatus,
-    onEntryComplete: () => log.updateLastEntry('complete')
-  });
+  // Effect to handle errors from file and analysis
+  useEffect(() => {
+    if (fileError) {
+      setError(fileError);
+    } else if (analysisError) {
+      setError(analysisError);
+    }
+  }, [fileError, analysisError]);
 
   // Handle file selection - ONLY handles file selection, nothing else
   const handleFileSelect = useCallback(async (newFile: File | null) => {
     // Reset state
     setIsAnalyzed(false);
+    setError(null);
     processing.setShowResults(false);
     processing.setIsProcessingNew(false);
     
@@ -77,10 +92,12 @@ export const useAnalyzerState = () => {
   // Handle starting analysis
   const handleStartAnalysis = useCallback(async () => {
     if (!file) {
+      setError({ message: "No file selected", type: "INVALID_INPUT" });
       return;
     }
 
     try {
+      setError(null);
       // Check if file is already analyzed
       const fileHash = await generateFileHash(file);
       const existingAnalyses = storage.get();
@@ -129,6 +146,7 @@ export const useAnalyzerState = () => {
   // Handle selecting stored analysis
   const handleSelectStoredAnalysis = useCallback((stored: StoredAnalysis) => {
     processing.setIsProcessingNew(false);
+    setError(null);
     updateState({
       analysis: stored.analysis,
       isAnalyzing: false,
@@ -149,7 +167,7 @@ export const useAnalyzerState = () => {
   return {
     // State
     file,
-    error: fileError || analysisError,
+    error,
     isProcessing,
     isAnalyzing,
     status: status.message,
@@ -169,6 +187,7 @@ export const useAnalyzerState = () => {
     handleSelectStoredAnalysis,
     setShowResults: processing.setShowResults,
     updateLastEntry: log.updateLastEntry,
-    addLogEntry: log.addEntry
+    addLogEntry: log.addEntry,
+    setError
   };
 };
