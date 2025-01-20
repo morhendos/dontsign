@@ -53,7 +53,7 @@ export const AnalysisResults = ({
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="absolute right-3 top-3 rounded-full h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="absolute right-[2.3rem] top-[2.3rem] rounded-full h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <X className="h-3 w-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
           <span className="sr-only">Close</span>
@@ -61,7 +61,7 @@ export const AnalysisResults = ({
 
         {error ? (
           // Error display - no ScrollArea needed
-          <div className="p-8">
+          <div className="p-[2.3rem]">
             <ErrorDisplay error={error} />
           </div>
         ) : analysis ? (
