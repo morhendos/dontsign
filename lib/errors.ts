@@ -13,9 +13,6 @@ export type ErrorCode =
   | 'INVALID_DOCUMENT_TYPE'
   | 'RATE_LIMIT';
 
-// Export ErrorCode as ErrorType for backward compatibility
-export type ErrorType = ErrorCode;
-
 export class BaseError extends Error {
   constructor(message: string, public code: ErrorCode, public cause?: unknown) {
     super(message);
