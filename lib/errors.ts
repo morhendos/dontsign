@@ -9,7 +9,8 @@ export type ErrorCode =
   | 'INVALID_INPUT'
   | 'TEXT_PROCESSING_ERROR'
   | 'UNKNOWN_ERROR'
-  | 'CONFIGURATION_ERROR';
+  | 'CONFIGURATION_ERROR'
+  | 'INVALID_DOCUMENT_TYPE';
 
 export class BaseError extends Error {
   constructor(message: string, public code: ErrorCode, public cause?: unknown) {
@@ -32,7 +33,13 @@ export class PDFProcessingError extends BaseError {
 export class ContractAnalysisError extends BaseError {
   constructor(
     message: string,
-    code: Extract<ErrorCode, 'API_ERROR' | 'INVALID_INPUT' | 'TEXT_PROCESSING_ERROR' | 'UNKNOWN_ERROR' | 'CONFIGURATION_ERROR'>,
+    code: Extract<ErrorCode, 
+      | 'API_ERROR' 
+      | 'INVALID_INPUT' 
+      | 'TEXT_PROCESSING_ERROR' 
+      | 'UNKNOWN_ERROR' 
+      | 'CONFIGURATION_ERROR'
+      | 'INVALID_DOCUMENT_TYPE'>,
     cause?: unknown
   ) {
     super(message, code, cause);
