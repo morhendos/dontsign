@@ -1,4 +1,4 @@
-import { AlertTriangle, Highlighter, FileText } from 'lucide-react'
+import { AlertTriangle, Search, FileText } from 'lucide-react'
 
 const features = [
   {
@@ -7,14 +7,14 @@ const features = [
     description: "Automatically flags high-risk clauses and unfavorable terms so you can make informed decisions."
   },
   {
-    icon: Highlighter,
-    title: "Key Term Highlights",
-    description: "Identifies crucial details like renewal dates, penalties, and liabilities, so you don't miss a thing."
+    icon: Search,
+    title: "Smart Analysis",
+    description: "Identifies and extracts the most important clauses in your contract, helping you focus on what matters."
   },
   {
     icon: FileText,
-    title: "Clear Summaries",
-    description: "Summarizes complex documents into clear insights, giving you a snapshot of what's important."
+    title: "Clear Summary & Recommendations",
+    description: "Gets straight to the point with a concise document summary and practical recommendations for next steps."
   }
 ]
 
