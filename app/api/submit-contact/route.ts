@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { sendContactEmail } from '@/lib/services/email';
 
 export const runtime = 'nodejs';
 
 // Simple in-memory store for rate limiting
-// Key: IP address, Value: Array of timestamps
 const rateLimit = new Map<string, number[]>();
 
 // Rate limit config
@@ -66,7 +66,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Contact form processed:', { name, email, subject });
+    // Send email
+    const emailResult = await sendContactEmail({ name, email, subject, message });
+    
+    if (!emailResult.success) {
+      throw new Error(emailResult.error);
+    }
 
     return NextResponse.json(
       { message: 'Message sent successfully' },
@@ -83,7 +88,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Contact form error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }
