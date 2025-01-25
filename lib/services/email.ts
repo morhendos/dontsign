@@ -1,10 +1,16 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-if (!process.env.RESEND_API_KEY) {
-  throw new Error('RESEND_API_KEY environment variable is not set');
+if (!process.env.GMAIL_APP_PASSWORD || !process.env.GMAIL_USER) {
+  throw new Error('Gmail credentials are not set in environment variables');
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
 
 export type EmailData = {
   name: string;
@@ -17,10 +23,10 @@ export async function sendContactEmail(data: EmailData) {
   const { name, email, subject, message } = data;
 
   try {
-    const result = await resend.emails.send({
-      from: 'Contact Form <contact@dontsign.ai>',
-      to: ['support@dontsign.ai'],
-      reply_to: email,
+    const result = await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: 'support@dontsign.ai',
+      replyTo: email,
       subject: `Contact Form: ${subject}`,
       html: `
         <h2>New Contact Form Submission</h2>
