@@ -1,0 +1,236 @@
+subscription-tracker/
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── MIGRATION.md
+├── README.md
+├── app
+│   ├── (legal)
+│   │   └── layout.tsx
+│   ├── actions
+│   │   └── detectDocumentType.ts
+│   ├── actions.ts
+│   ├── api
+│   │   ├── analyze
+│   │   │   ├── analysis-processor.ts
+│   │   │   ├── chunk-analyzer.ts
+│   │   │   ├── input-validator.ts
+│   │   │   ├── progress-handler.ts
+│   │   │   ├── route.ts
+│   │   │   ├── stream-handler.ts
+│   │   │   └── types.ts
+│   │   ├── contact
+│   │   └── submit-contact
+│   │       └── route.ts
+│   ├── contact
+│   │   └── page.tsx
+│   ├── error.tsx
+│   ├── favicon.ico
+│   ├── fonts
+│   │   ├── GeistMonoVF.woff
+│   │   └── GeistVF.woff
+│   ├── global-error.tsx
+│   ├── globals.css
+│   ├── layout.tsx
+│   ├── lib
+│   ├── metadata.ts
+│   ├── not-found.tsx
+│   ├── page.tsx
+│   ├── privacy
+│   │   └── page.tsx
+│   └── terms
+│       └── page.tsx
+├── components
+│   ├── Analytics.tsx
+│   ├── CookieConsent.tsx
+│   ├── analysis-history
+│   │   └── AnalysisHistory.tsx
+│   ├── analysis-log
+│   │   ├── AnalysisLog.tsx
+│   │   └── index.ts
+│   ├── contact
+│   │   └── contact-form.tsx
+│   ├── contract-analyzer
+│   │   ├── ContractAnalyzer.tsx
+│   │   ├── components
+│   │   │   ├── analysis
+│   │   │   │   ├── AnalysisControls.tsx
+│   │   │   │   ├── AnalysisProgress.tsx
+│   │   │   │   ├── AnalysisResults.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── error-alert.tsx
+│   │   │   ├── index.ts
+│   │   │   ├── layout
+│   │   │   │   ├── AnalyzerHeader.tsx
+│   │   │   │   ├── AnalyzerLayout.tsx
+│   │   │   │   └── index.ts
+│   │   │   └── upload
+│   │   │       ├── AnalysisButton.tsx
+│   │   │       ├── FileUploadSection.tsx
+│   │   │       └── index.ts
+│   │   ├── hooks
+│   │   │   ├── analysis
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── useAnalysisProgress.ts
+│   │   │   │   ├── useAnalysisResults.ts
+│   │   │   │   └── useContractAnalysis.ts
+│   │   │   ├── file
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── useFileProcessor.ts
+│   │   │   │   └── useFileUpload.ts
+│   │   │   ├── index.ts
+│   │   │   ├── state
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── useAnalyzerState.ts
+│   │   │   │   ├── useProcessingState.ts
+│   │   │   │   └── useStatusManager.ts
+│   │   │   ├── storage
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── useAnalysisHistory.ts
+│   │   │   │   └── useLocalStorage.ts
+│   │   │   ├── types.ts
+│   │   │   ├── ui
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── useAnalysisLog.ts
+│   │   │   │   ├── useLogVisibility.ts
+│   │   │   │   └── useResultsDisplay.ts
+│   │   │   └── useContractAnalyzer.ts
+│   │   ├── index.ts
+│   │   ├── types
+│   │   │   ├── analysis.ts
+│   │   │   ├── file.ts
+│   │   │   ├── index.ts
+│   │   │   ├── state.ts
+│   │   │   └── storage.ts
+│   │   └── utils
+│   │       ├── analytics.ts
+│   │       ├── hash.ts
+│   │       ├── index.ts
+│   │       ├── storage.ts
+│   │       └── text-processing.ts
+│   ├── contract-upload
+│   │   └── FileUploadArea.tsx
+│   ├── error
+│   │   └── ErrorDisplay.tsx
+│   ├── footer.tsx
+│   ├── header.tsx
+│   ├── how-it-works.tsx
+│   ├── key-features.tsx
+│   ├── logo
+│   │   ├── Logo.tsx
+│   │   └── LogoIcon.tsx
+│   ├── shared
+│   │   └── UnsupportedDocumentMessage.tsx
+│   ├── theme
+│   │   ├── theme-provider.tsx
+│   │   └── theme-toggle.tsx
+│   └── ui
+│       ├── alert.tsx
+│       ├── badge.tsx
+│       ├── button.tsx
+│       ├── card.tsx
+│       ├── dropdown-menu.tsx
+│       ├── input.tsx
+│       ├── label.tsx
+│       ├── loading-spinner.tsx
+│       ├── progress.tsx
+│       ├── scroll-area.tsx
+│       ├── textarea.tsx
+│       └── tooltip.tsx
+├── components.json
+├── coverage
+│   ├── clover.xml
+│   ├── coverage-final.json
+│   ├── lcov-report
+│   │   ├── base.css
+│   │   ├── block-navigation.js
+│   │   ├── favicon.png
+│   │   ├── index.html
+│   │   ├── prettify.css
+│   │   ├── prettify.js
+│   │   ├── sort-arrow-sprite.png
+│   │   └── sorter.js
+│   └── lcov.info
+├── docs
+│   ├── ARCHITECTURE.md
+│   ├── CHANGELOG.md
+│   ├── ERROR_HANDLING.md
+│   ├── PROJECT_STRUCTURE.md
+│   ├── PROMPTS.md
+│   ├── SUMMARY_GENERATION.md
+│   ├── TROUBLESHOOTING.md
+│   ├── analytics.md
+│   ├── architecture
+│   │   ├── circuit-breaker.md
+│   │   └── refactoring.md
+│   ├── components
+│   │   └── hero-ui.md
+│   ├── dark-mode.md
+│   ├── features
+│   │   └── analysis-history.md
+│   ├── github-api-guidelines.md
+│   └── state-management.md
+├── hooks
+│   ├── useContractAnalysis.ts
+│   └── useFileHandler.ts
+├── lib
+│   ├── analytics-consent.ts
+│   ├── analytics-events.ts
+│   ├── analytics.ts
+│   ├── constants.ts
+│   ├── document-type.ts
+│   ├── email
+│   │   └── templates.ts
+│   ├── errors
+│   │   ├── api-errors.ts
+│   │   └── index.ts
+│   ├── errors.ts
+│   ├── hooks
+│   │   └── useContactForm.ts
+│   ├── middleware
+│   │   └── rate-limit.ts
+│   ├── pdf-utils.ts
+│   ├── rate-limit.ts
+│   ├── services
+│   │   ├── email.ts
+│   │   ├── openai
+│   │   │   ├── circuit-breaker.ts
+│   │   │   ├── openai-service.ts
+│   │   │   └── types.ts
+│   │   └── prompts
+│   │       ├── config.ts
+│   │       ├── index.ts
+│   │       ├── prompt-manager.ts
+│   │       ├── templates.ts
+│   │       └── types.ts
+│   ├── storage.ts
+│   ├── text-utils.ts
+│   └── utils.ts
+├── next-env.d.ts
+├── next.config.js
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── prompts
+│   ├── config
+│   │   └── models.json
+│   └── templates
+│       ├── analysis.txt
+│       ├── document-type.txt
+│       ├── summary.txt
+│       └── system.txt
+├── public
+│   └── images
+│       └── logo.svg
+├── scripts
+│   └── tree.js
+├── sentry.client.config.js
+├── sentry.edge.config.js
+├── sentry.server.config.js
+├── tailwind.config.js
+├── tailwind.config.ts
+├── tsconfig.json
+├── types
+│   ├── analysis.ts
+│   ├── log.ts
+│   └── storage.ts
+└── vercel.json
