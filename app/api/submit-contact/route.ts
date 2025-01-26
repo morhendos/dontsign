@@ -3,26 +3,21 @@ import { sendContactEmail } from '@/lib/services/email';
 
 export const runtime = 'nodejs';
 
-// Simple in-memory store for rate limiting
 const rateLimit = new Map<string, number[]>();
-
-// Rate limit config
-const LIMIT = 5; // requests
-const WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
+const LIMIT = 5;
+const WINDOW = 60 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
+  console.log('Contact form submission received');
+  
   try {
-    // Get IP address
     const ip = request.headers.get('x-forwarded-for') ?? 'anonymous';
-    
-    // Check rate limit
     const now = Date.now();
     const windowStart = now - WINDOW;
-    
-    // Get and clean old requests
     const requests = (rateLimit.get(ip) || []).filter(time => time > windowStart);
     
     if (requests.length >= LIMIT) {
+      console.log('Rate limit exceeded for IP:', ip);
       const oldestRequest = Math.min(...requests);
       const resetTime = oldestRequest + WINDOW;
       const retryAfter = Math.ceil((resetTime - now) / 1000);
@@ -41,33 +36,33 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Add current request
     requests.push(now);
     rateLimit.set(ip, requests);
 
-    // Process the request
     const data = await request.json();
+    console.log('Processing contact form data:', data);
+
     const { name, email, subject, message } = data;
 
-    // Validate required fields
     if (!name || !email || !subject || !message) {
+      console.log('Missing required fields');
       return NextResponse.json(
         { error: 'All fields are required' },
         { status: 400 }
       );
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.log('Invalid email format:', email);
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
       );
     }
 
-    // Send email
     const emailResult = await sendContactEmail({ name, email, subject, message });
+    console.log('Email sending result:', emailResult);
     
     if (!emailResult.success) {
       throw new Error(emailResult.error);
