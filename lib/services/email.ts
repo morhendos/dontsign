@@ -10,8 +10,6 @@ const transporter = nodemailer.createTransport({
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
   },
-  debug: true, // Enable debug logs
-  logger: true // Enable logger
 });
 
 export type EmailData = {
@@ -23,11 +21,6 @@ export type EmailData = {
 
 export async function sendContactEmail(data: EmailData) {
   const { name, email, subject, message } = data;
-  console.log('Attempting to send email with data:', { name, email, subject });
-  console.log('Using Gmail credentials:', { 
-    user: process.env.GMAIL_USER,
-    passLength: process.env.GMAIL_APP_PASSWORD?.length
-  });
 
   try {
     const result = await transporter.sendMail({
@@ -44,10 +37,8 @@ export async function sendContactEmail(data: EmailData) {
       `,
     });
 
-    console.log('Email sent successfully:', result);
     return { success: true, data: result };
   } catch (error) {
-    console.error('Email sending failed:', error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to send email' 
