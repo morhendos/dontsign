@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { contactFormTemplate } from '@/lib/email/templates';
 
 if (!process.env.GMAIL_APP_PASSWORD || !process.env.GMAIL_USER) {
   throw new Error('Gmail credentials are not set in environment variables');
@@ -20,21 +21,13 @@ export type EmailData = {
 };
 
 export async function sendContactEmail(data: EmailData) {
-  const { name, email, subject, message } = data;
-
   try {
     const result = await transporter.sendMail({
       from: process.env.GMAIL_USER,
       to: 'morhendos@gmail.com',
-      replyTo: email,
-      subject: `Contact Form: ${subject}`,
-      html: `
-        <h2>New Contact Form Submission</h2>
-        <p><strong>From:</strong> ${name} (${email})</p>
-        <p><strong>Subject:</strong> ${subject}</p>
-        <p><strong>Message:</strong></p>
-        <p>${message.replace(/\n/g, '<br>')}</p>
-      `,
+      replyTo: data.email,
+      subject: `Contact Form: ${data.subject}`,
+      html: contactFormTemplate(data),
     });
 
     return { success: true, data: result };
