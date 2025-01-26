@@ -25,7 +25,7 @@ export async function sendContactEmail(data: EmailData) {
   try {
     const result = await transporter.sendMail({
       from: process.env.GMAIL_USER,
-      to: 'support@dontsign.ai',
+      to: 'morhendos@gmail.com',
       replyTo: email,
       subject: `Contact Form: ${subject}`,
       html: `
