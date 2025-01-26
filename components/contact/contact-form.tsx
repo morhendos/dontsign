@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 type FormStatus = {
   type: "success" | "error" | null;
@@ -53,13 +54,13 @@ export default function ContactForm() {
 
       setStatus({
         type: "success",
-        message: "Message sent successfully! We will get back to you soon.",
+        message: "Thank you for your message! We'll get back to you as soon as possible.",
       });
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (error) {
       setStatus({
         type: "error",
-        message: error instanceof Error ? error.message : "An error occurred",
+        message: error instanceof Error ? error.message : "An error occurred while sending your message. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
@@ -82,6 +83,12 @@ export default function ContactForm() {
               variant={status.type === "error" ? "destructive" : "default"}
               className="animate-fadeIn"
             >
+              {status.type === "success" ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <AlertCircle className="h-4 w-4" />
+              )}
+              <AlertTitle>{status.type === "success" ? "Success!" : "Error"}</AlertTitle>
               <AlertDescription>{status.message}</AlertDescription>
             </Alert>
           )}
