@@ -18,7 +18,7 @@ const currentContent = existingFile.content
 
 const updatedContent = modifyContent(currentContent);
 
-// 3. Push changes with reference to old file
+// 3. Push changes
 await pushFiles({
   owner,
   repo,
