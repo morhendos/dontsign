@@ -31,6 +31,12 @@ File upload functionality:
 - Error handling
 - Progress tracking
 
+### `components/analysis-history/`
+Analysis history management:
+- Recent analyses tracking
+- Local storage integration
+- Session management
+
 ### `components/contact/`
 Contact form functionality:
 - Form validation
