@@ -8,8 +8,6 @@ const LIMIT = 5;
 const WINDOW = 60 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
-  console.log('Contact form submission received');
-  
   try {
     const ip = request.headers.get('x-forwarded-for') ?? 'anonymous';
     const now = Date.now();
@@ -17,7 +15,6 @@ export async function POST(request: NextRequest) {
     const requests = (rateLimit.get(ip) || []).filter(time => time > windowStart);
     
     if (requests.length >= LIMIT) {
-      console.log('Rate limit exceeded for IP:', ip);
       const oldestRequest = Math.min(...requests);
       const resetTime = oldestRequest + WINDOW;
       const retryAfter = Math.ceil((resetTime - now) / 1000);
@@ -40,12 +37,9 @@ export async function POST(request: NextRequest) {
     rateLimit.set(ip, requests);
 
     const data = await request.json();
-    console.log('Processing contact form data:', data);
-
     const { name, email, subject, message } = data;
 
     if (!name || !email || !subject || !message) {
-      console.log('Missing required fields');
       return NextResponse.json(
         { error: 'All fields are required' },
         { status: 400 }
@@ -54,7 +48,6 @@ export async function POST(request: NextRequest) {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.log('Invalid email format:', email);
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
@@ -62,7 +55,6 @@ export async function POST(request: NextRequest) {
     }
 
     const emailResult = await sendContactEmail({ name, email, subject, message });
-    console.log('Email sending result:', emailResult);
     
     if (!emailResult.success) {
       throw new Error(emailResult.error);
