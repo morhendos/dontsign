@@ -24,7 +24,7 @@ export async function sendContactEmail(data: EmailData) {
   try {
     const result = await transporter.sendMail({
       from: process.env.GMAIL_USER,
-      to: 'morhendos@gmail.com',
+      to: 'support@dontsign.ai',
       replyTo: data.email,
       subject: `Contact Form: ${data.subject}`,
       html: contactFormTemplate(data),
@@ -32,9 +32,9 @@ export async function sendContactEmail(data: EmailData) {
 
     return { success: true, data: result };
   } catch (error) {
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to send email' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send email',
     };
   }
 }
