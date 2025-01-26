@@ -1,77 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
-
-type FormStatus = {
-  type: "success" | "error" | null;
-  message: string | null;
-};
-
-type FormData = {
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-};
+import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { useContactForm } from '@/lib/hooks/useContactForm';
 
 export default function ContactForm() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [status, setStatus] = useState<FormStatus>({
-    type: null,
-    message: null,
-  });
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    email: "",
-    subject: "",
-    message: "",
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setStatus({ type: null, message: null });
-
-    try {
-      const response = await fetch("/api/submit-contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send message");
-      }
-
-      setStatus({
-        type: "success",
-        message: "Message sent successfully! We will get back to you soon.",
-      });
-      setFormData({ name: "", email: "", subject: "", message: "" });
-    } catch (error) {
-      setStatus({
-        type: "error",
-        message: error instanceof Error ? error.message : "An error occurred",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const { formData, isSubmitting, status, handleSubmit, handleChange } = useContactForm();
 
   return (
     <Card className="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800/50 backdrop-blur-sm">
@@ -80,9 +19,19 @@ export default function ContactForm() {
           {status.type && (
             <Alert 
               variant={status.type === "error" ? "destructive" : "default"}
-              className="animate-fadeIn"
+              className={`animate-fadeIn border-2 ${status.type === "success" ? "border-green-500 bg-green-50 dark:bg-green-900/20" : ""}`}
             >
-              <AlertDescription>{status.message}</AlertDescription>
+              {status.type === "success" ? (
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+              ) : (
+                <AlertCircle className="h-5 w-5" />
+              )}
+              <AlertTitle className={`text-lg ${status.type === "success" ? "text-green-800 dark:text-green-200" : ""}`}>
+                {status.type === "success" ? "Success!" : "Error"}
+              </AlertTitle>
+              <AlertDescription className={status.type === "success" ? "text-green-700 dark:text-green-300" : ""}>
+                {status.message}
+              </AlertDescription>
             </Alert>
           )}
 
@@ -160,7 +109,14 @@ export default function ContactForm() {
               disabled={isSubmitting}
               className="w-full sm:w-auto transition-all duration-200 hover:shadow-lg"
             >
-              {isSubmitting ? "Sending..." : "Send Message"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Message"
+              )}
             </Button>
           </div>
         </form>

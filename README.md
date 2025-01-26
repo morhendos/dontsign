@@ -10,6 +10,7 @@ DontSign is a web application that helps users analyze contracts using AI. It pr
 - shadcn/ui components
 - OpenAI API (GPT-3.5-turbo-1106)
 - PDF.js for PDF parsing
+- Nodemailer for email handling
 - Sentry for error tracking and monitoring
 - Custom analytics system with consent management
 
@@ -36,6 +37,13 @@ Analysis history management:
 - Local storage integration
 - Session management
 
+### `components/contact/`
+Contact form functionality:
+- Form validation
+- Email sending
+- Rate limiting
+- Success/error handling
+
 ### `app/actions.ts`
 Server Actions implementation:
 - Contract analysis with OpenAI
@@ -50,6 +58,7 @@ Core services:
 - Analytics system
 - Error tracking
 - Rate limiting
+- Email service
 - Storage management
 
 ## Key Features
@@ -60,6 +69,13 @@ Core services:
 - Chunk-based processing for large documents
 - Real-time progress tracking
 - Comprehensive error handling
+
+### Contact Form
+- Email notifications
+- Rate limiting protection
+- Form validation
+- Success/error feedback
+- Dark mode support
 
 ### Error Tracking & Monitoring
 - Sentry integration for client and server
@@ -98,6 +114,7 @@ Focus areas:
 - Error scenarios
 - Progress tracking
 - Analytics events
+- Contact form submission
 
 ### Deployment
 Automatic deployment flow:
@@ -112,6 +129,8 @@ Required environment variables:
 OPENAI_API_KEY=your_key
 SENTRY_DSN=your_sentry_dsn
 NEXT_PUBLIC_ANALYTICS_KEY=your_analytics_key
+GMAIL_USER=your_gmail@gmail.com
+GMAIL_APP_PASSWORD=your_app_password  # Generated from Google Account settings
 ```
 
 Development server:
