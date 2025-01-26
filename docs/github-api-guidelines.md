@@ -1,5 +1,33 @@
 # Guidelines for GitHub API File Modifications
 
+## Available Functions
+
+### `push_files`
+Pushes one or more files to a repository in a single commit.
+```typescript
+await push_files({
+  owner: string,          // Repository owner
+  repo: string,           // Repository name
+  branch: string,         // Branch name
+  files: Array<{          // Array of files to push
+    path: string,         // File path in repository
+    content: string       // File content
+  }>,
+  message: string         // Commit message
+});
+```
+
+### `get_file_contents`
+Retrieves content of a file from repository.
+```typescript
+const file = await get_file_contents({
+  owner: string,          // Repository owner
+  repo: string,           // Repository name
+  path: string,           // File path
+  branch?: string         // Optional branch name
+});
+```
+
 ## Correct Approach
 
 ```typescript
@@ -51,7 +79,7 @@ await pushFiles({
 ```typescript
 async function updateReadme(newSection: string) {
   // Get current README
-  const readme = await getFileContents({
+  const readme = await get_file_contents({
     owner,
     repo,
     path: 'README.md'
@@ -64,7 +92,7 @@ async function updateReadme(newSection: string) {
   const updatedContent = `${currentContent}\n\n${newSection}`;
 
   // Push update
-  await pushFiles({
+  await push_files({
     owner,
     repo,
     branch: 'feature-branch',
