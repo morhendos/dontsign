@@ -77,15 +77,6 @@ export default function ContactForm() {
   return (
     <Card className="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800/50 backdrop-blur-sm">
       <CardContent className="p-6 md:p-8">
-        {process.env.NODE_ENV === 'development' && (
-          <Alert className="mb-6 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
-            <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-            <AlertDescription className="text-yellow-700 dark:text-yellow-300">
-              Development mode: Emails might be marked as spam.
-            </AlertDescription>
-          </Alert>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-6">
           {status.type && (
             <Alert 
