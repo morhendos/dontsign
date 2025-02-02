@@ -80,6 +80,9 @@ export const AnalysisResults = ({
           // Analysis results - with ScrollArea
           <ScrollArea className="h-[80vh] p-6 touch-auto relative z-0">
             <div className="space-y-8">
+              {/* Legal Disclaimer Watermark - Top */}
+              <LegalWatermark />
+
               {/* What is this contract? */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">What is this contract?</h2>
@@ -120,18 +123,18 @@ export const AnalysisResults = ({
                 </section>
               )}
 
+              {/* Legal Disclaimer Watermark - Bottom */}
+              <LegalWatermark />
+
               {/* Analysis Info */}
               {analysis.metadata && (
-                <section className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <section className="mt-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Analysis completed at {new Date(analysis.metadata.analyzedAt).toLocaleString()}
                     {analysis.metadata.sectionsAnalyzed && ` • ${analysis.metadata.sectionsAnalyzed} sections analyzed`}
                   </p>
                 </section>
               )}
-
-              {/* Legal Disclaimer Watermark - Bottom only */}
-              <LegalWatermark />
             </div>
           </ScrollArea>
         ) : null}
