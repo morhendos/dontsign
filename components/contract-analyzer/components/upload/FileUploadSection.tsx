@@ -8,12 +8,13 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 interface FileUploadSectionProps {
   file: File | null;
   error: any;
-  onFileSelect: (file: File | null) => void;
+  onFileSelect: (file: File) => void;
   isUploading: boolean;
   processingStatus: string;
-  onAnalyze: () => void;
+  onAnalyze?: () => void;
   isAnalyzing: boolean;
   isAnalyzed?: boolean;
+  hasAcceptedDisclaimer: boolean;
 }
 
 export const FileUploadSection = ({
@@ -24,7 +25,8 @@ export const FileUploadSection = ({
   processingStatus,
   onAnalyze,
   isAnalyzing,
-  isAnalyzed = false
+  isAnalyzed = false,
+  hasAcceptedDisclaimer
 }: FileUploadSectionProps) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: files => onFileSelect(files[0]),
@@ -36,6 +38,9 @@ export const FileUploadSection = ({
     multiple: false,
     disabled: isUploading || isAnalyzing
   });
+
+  const noFileUploaded = !file && !isUploading;
+  const showAnalyzeButton = (file || isAnalyzed) && !isUploading;
 
   return (
     <div className="space-y-4">
@@ -54,9 +59,8 @@ export const FileUploadSection = ({
           (isUploading || isAnalyzing) && 'opacity-75 cursor-wait'
         )}
       >
+        <input {...getInputProps()} />
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
-          <input {...getInputProps()} />
-
           {isUploading ? (
             <div className="flex flex-col items-center space-y-3">
               <div className="w-8 h-8 text-blue-500">
@@ -68,17 +72,7 @@ export const FileUploadSection = ({
                 </p>
               )}
             </div>
-          ) : file ? (
-            <>
-              <div className="flex items-center space-x-2 text-green-800 dark:text-green-100 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
-                <FileText className="w-8 h-8" />
-                <span className="text-lg font-medium">{file.name}</span>
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
-                Click or drop another file to replace
-              </p>
-            </>
-          ) : (
+          ) : noFileUploaded ? (
             <>
               <Upload
                 className={cn(
@@ -104,19 +98,31 @@ export const FileUploadSection = ({
                 Supports PDF and DOCX files
               </p>
             </>
+          ) : (
+            <>
+              <div className="flex items-center space-x-2 text-green-800 dark:text-green-100 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
+                <FileText className="w-8 h-8" />
+                <span className="text-lg font-medium">{file.name}</span>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
+                Click or drop another file to replace
+              </p>
+            </>
           )}
         </div>
       </div>
 
       {/* Analysis Button */}
-      <div className="flex justify-center">
-        <AnalysisButton 
-          isDisabled={(!file && !isAnalyzed) || isAnalyzing || isUploading}
-          isAnalyzing={isAnalyzing}
-          isAnalyzed={isAnalyzed}
-          onClick={onAnalyze}
-        />
-      </div>
+      {showAnalyzeButton && (
+        <div className="flex justify-center">
+          <AnalysisButton 
+            onClick={onAnalyze}
+            isAnalyzing={isAnalyzing}
+            isAnalyzed={isAnalyzed}
+            hasAcceptedDisclaimer={hasAcceptedDisclaimer}
+          />
+        </div>
+      )}
 
       {/* Error Display */}
       {error && (
