@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 export const LegalDisclaimer = () => {
   return (
     <div className="space-y-4">
-      <Alert variant="destructive" className="border-2 border-red-500">
-        <AlertTitle className="text-lg font-bold">Important Legal Notice</AlertTitle>
-        <AlertDescription className="mt-2">
+      <Alert variant="destructive" className="border-2 border-red-500 dark:border-red-900 bg-red-50 dark:bg-red-950/30">
+        <AlertTitle className="text-lg font-bold text-red-700 dark:text-red-400">Important Legal Notice</AlertTitle>
+        <AlertDescription className="mt-2 text-red-600 dark:text-red-300">
           This AI-powered analysis is for informational purposes only and does not constitute legal advice. Always consult with a qualified legal professional before making any legal decisions.
         </AlertDescription>
       </Alert>
       
-      <Card className="bg-slate-50 dark:bg-gray-800">
+      <Card className="bg-slate-50 dark:bg-gray-800/50">
         <CardHeader>
           <CardTitle>Understanding Your Results</CardTitle>
         </CardHeader>
