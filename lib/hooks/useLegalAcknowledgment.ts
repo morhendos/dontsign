@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface UseLegalAcknowledgmentProps {
   documentId?: string | null; // Unique identifier for the current document
