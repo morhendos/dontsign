@@ -2,7 +2,7 @@
 
 ## Overview
 
-DontSign implements comprehensive error tracking and monitoring using Sentry. This document outlines our error handling strategy and monitoring setup.
+DontSign implements comprehensive error tracking and monitoring using Sentry and custom error handling patterns. This document outlines our error handling strategy and monitoring setup.
 
 ## Error Handling Architecture
 
@@ -16,7 +16,27 @@ Handles React rendering errors with:
 - Development mode details
 - Error recovery options
 
-### 2. Runtime Coverage
+### 2. Custom Error Types
+
+Location: `lib/errors/api-errors.ts`
+
+Implements specific error types for different scenarios:
+- CircuitBreakerError: For API reliability issues
+- ValidationError: For input validation failures
+- ProcessingError: For document processing issues
+- NetworkError: For connectivity problems
+
+### 3. Circuit Breaker Pattern
+
+Location: `lib/services/openai/circuit-breaker.ts`
+
+Implements reliability pattern for API calls:
+- Automatic failure detection
+- Graceful degradation
+- Self-healing capability
+- Exponential backoff
+
+### 4. Runtime Coverage
 
 The application implements error handling across all runtime environments:
 
@@ -78,7 +98,26 @@ Source maps are:
    }
    ```
 
-2. **Performance Tracking**
+2. **Circuit Breaker Usage**
+   ```typescript
+   const breaker = new CircuitBreaker({
+     failureThreshold: 5,
+     resetTimeout: 30000
+   });
+
+   try {
+     const result = await breaker.execute(async () => {
+       // API call or risky operation
+     });
+   } catch (error) {
+     if (error instanceof CircuitBreakerError) {
+       // Handle service unavailability
+     }
+     // Handle other errors
+   }
+   ```
+
+3. **Performance Tracking**
    ```typescript
    const transaction = Sentry.startTransaction({
      name: 'Process Contract',
@@ -91,7 +130,7 @@ Source maps are:
    }
    ```
 
-3. **User Context**
+4. **User Context**
    ```typescript
    Sentry.setUser({
      id: user.id,
@@ -106,6 +145,8 @@ Source maps are:
 3. Add performance spans for critical sections
 4. Include relevant user and system state
 5. Follow the environment-specific configuration
+6. Implement proper error recovery strategies
+7. Use circuit breaker for external services
 
 ## Monitoring Dashboard
 
@@ -115,3 +156,4 @@ Access the Sentry dashboard to:
 - Track user impact
 - Monitor release stability
 - Set up alerts and notifications
+- Monitor circuit breaker metrics

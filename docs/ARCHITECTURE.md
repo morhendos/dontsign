@@ -52,6 +52,18 @@ Core state management for:
 - Results management
 - Status updates
 
+#### useProcessingState
+Manages file processing workflow:
+- Tracks current processing stage
+- Handles processing errors
+- Manages processing progress
+
+#### useStatusManager
+Coordinates status updates across components:
+- Centralizes status management
+- Provides consistent status updates
+- Handles status transitions
+
 #### useAnalysisHistory
 Manages historical analysis data:
 - Stores analysis results
@@ -72,7 +84,17 @@ The application uses a hierarchical state management approach:
    - Tracks analysis progress
    - Handles error states
 
-3. UI State
+3. Processing State (`useProcessingState`)
+   - File processing workflow
+   - Progress tracking
+   - Error management
+
+4. Status Management (`useStatusManager`)
+   - Global status coordination
+   - Status transitions
+   - User feedback
+
+5. UI State
    - Results visibility
    - Progress indicators
    - User feedback
@@ -94,6 +116,28 @@ The application uses a hierarchical state management approach:
    Analysis Complete -> State Update -> Results Display -> History Storage
    ```
 
+## Reliability Patterns
+
+### Circuit Breaker
+Implemented for OpenAI API calls to prevent cascading failures:
+- Automatic failure detection
+- Graceful degradation
+- Self-healing capability
+- Exponential backoff
+
+Configuration:
+```typescript
+const breaker = new CircuitBreaker({
+  failureThreshold: 5,    // Number of failures before opening
+  resetTimeout: 30000     // Maximum timeout (30 seconds)
+});
+```
+
+States:
+- CLOSED: Normal operation
+- OPEN: Preventing calls after failures
+- HALF-OPEN: Testing recovery
+
 ## Key Features
 
 ### Analysis Deduplication
@@ -110,6 +154,7 @@ The application uses a hierarchical state management approach:
 - Comprehensive error types
 - User-friendly error messages
 - Proper state recovery
+- Circuit breaker pattern for API calls
 
 ## Best Practices
 
@@ -154,3 +199,8 @@ When adding new features:
 - Update timestamps properly
 - Handle storage limits
 - Clear old entries when needed
+
+### API Reliability
+- Monitor circuit breaker metrics
+- Handle API rate limits
+- Implement proper backoff strategies
