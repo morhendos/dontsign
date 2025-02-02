@@ -19,8 +19,7 @@ export const AnalysisButton = ({
     <Button
       onClick={onClick}
       disabled={disabled || isAnalyzing || !hasAcceptedDisclaimer}
-      className="w-full sm:w-auto flex items-center justify-center gap-2"
-      variant="default"
+      className={`w-full sm:w-auto flex items-center justify-center gap-2 ${!hasAcceptedDisclaimer ? 'opacity-70' : ''}`}
     >
       <PlayIcon className="h-4 w-4" />
       {isAnalyzing ? 'Analyzing...' : 'Analyze Contract'}
