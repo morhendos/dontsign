@@ -41,10 +41,12 @@ export const AnalysisResults = ({
   const modalSize = error ? 'fit-content' : 'w-full max-w-4xl max-h-[90vh]';
 
   const LegalWatermark = () => (
-    <Alert variant="destructive" className="border-2 border-red-500">
-      <AlertDescription className="text-center font-bold">
-        FOR INFORMATIONAL PURPOSES ONLY - NOT LEGAL ADVICE
-        <p className="text-sm font-normal mt-1">
+    <Alert variant="destructive" className="border-2 border-red-500 dark:border-red-900 bg-red-50 dark:bg-red-950/30">
+      <AlertDescription>
+        <p className="text-center font-bold text-red-700 dark:text-red-400">
+          FOR INFORMATIONAL PURPOSES ONLY - NOT LEGAL ADVICE
+        </p>
+        <p className="text-sm text-center mt-1 text-red-600 dark:text-red-300">
           This AI-generated analysis may contain errors. Always consult with a legal professional.
         </p>
       </AlertDescription>
