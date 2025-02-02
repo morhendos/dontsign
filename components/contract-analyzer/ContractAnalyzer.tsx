@@ -10,6 +10,7 @@ import {
 import { FileUploadSection } from './components/upload';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisLog } from '../analysis-log/AnalysisLog';
+import { LegalDisclaimer } from '../legal/LegalDisclaimer';
 
 /**
  * Main contract analysis component that orchestrates the analysis workflow
@@ -54,6 +55,11 @@ export const ContractAnalyzer = () => {
       </div>
 
       <div className="space-y-8">
+        {/* Legal Disclaimer - Always visible */}
+        <div className="w-full max-w-4xl mx-auto">
+          <LegalDisclaimer />
+        </div>
+
         {/* File Upload Section */}
         <FileUploadSection
           file={file}
