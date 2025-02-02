@@ -22,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Google Ads Tag */}
+        {/* Google Ads (Conversion Tracking) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-16837506632"
           strategy="afterInteractive"
@@ -33,6 +33,7 @@ export default function RootLayout({
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', 'AW-16837506632');
+            gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
           `}
         </Script>
       </head>
