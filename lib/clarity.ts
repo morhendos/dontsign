@@ -1,0 +1,1 @@
+// File removed as we're using official Clarity script implementation
