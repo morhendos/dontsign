@@ -21,7 +21,6 @@ export const AnalysisResults = ({
   error,
   onClose
 }: AnalysisResultsProps) => {
-  // Lock body scroll when modal is open
   useEffect(() => {
     const scrollPos = window.scrollY;
     document.body.style.position = 'fixed';
@@ -36,8 +35,6 @@ export const AnalysisResults = ({
     };
   }, []);
 
-  // If it's an error, we want a smaller modal that fits the content
-  // If it's analysis results, we want the full-size modal
   const modalSize = error ? 'fit-content' : 'w-full max-w-4xl max-h-[90vh]';
 
   const LegalWatermark = () => (
@@ -60,7 +57,6 @@ export const AnalysisResults = ({
         className={`${modalSize} bg-white dark:bg-gray-800 shadow-xl relative overflow-hidden`}
         onClick={e => e.stopPropagation()}
       >
-        {/* Close button - Always on top with z-index */}
         <Button
           variant="ghost"
           size="icon"
@@ -72,15 +68,12 @@ export const AnalysisResults = ({
         </Button>
 
         {error ? (
-          // Error display - no ScrollArea needed
           <div className="p-[2.3rem]">
             <ErrorDisplay error={error} />
           </div>
         ) : analysis ? (
-          // Analysis results - with ScrollArea
           <ScrollArea className="h-[80vh] p-6 touch-auto relative z-0">
             <div className="space-y-8">
-              {/* What is this contract? */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">What is this contract?</h2>
                 <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line text-lg">
@@ -88,9 +81,8 @@ export const AnalysisResults = ({
                 </p>
               </section>
 
-              {/* Potential Risks */}
-              <section className="bg-red-50 dark:bg-red-950/30 p-6 rounded-lg">
-                <h2 className="text-2xl font-bold mb-4 text-red-700 dark:text-red-400">Potential Risks</h2>
+              <section className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Potential Risks</h2>
                 <ul className="list-disc pl-5 space-y-2">
                   {analysis.potentialRisks.map((risk, index) => (
                     <li key={index} className="text-gray-700 dark:text-gray-300">{risk}</li>
@@ -98,9 +90,8 @@ export const AnalysisResults = ({
                 </ul>
               </section>
 
-              {/* Important Clauses */}
-              <section className="bg-blue-50 dark:bg-blue-950/30 p-6 rounded-lg">
-                <h2 className="text-2xl font-bold mb-4 text-blue-700 dark:text-blue-400">Key Dates & Requirements</h2>
+              <section className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Key Dates & Requirements</h2>
                 <ul className="list-disc pl-5 space-y-2">
                   {analysis.importantClauses.map((clause, index) => (
                     <li key={index} className="text-gray-700 dark:text-gray-300">{clause}</li>
@@ -108,10 +99,9 @@ export const AnalysisResults = ({
                 </ul>
               </section>
 
-              {/* Recommendations */}
               {analysis.recommendations && analysis.recommendations.length > 0 && (
-                <section className="bg-green-50 dark:bg-green-950/30 p-6 rounded-lg">
-                  <h2 className="text-2xl font-bold mb-4 text-green-700 dark:text-green-400">Next Steps</h2>
+                <section className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                  <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Next Steps</h2>
                   <ul className="list-disc pl-5 space-y-2">
                     {analysis.recommendations.map((rec, index) => (
                       <li key={index} className="text-gray-700 dark:text-gray-300">{rec}</li>
@@ -123,7 +113,6 @@ export const AnalysisResults = ({
               {/* Legal Disclaimer Watermark - Bottom */}
               <LegalWatermark />
 
-              {/* Analysis Info */}
               {analysis.metadata && (
                 <section className="mt-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
