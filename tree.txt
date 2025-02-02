@@ -115,6 +115,9 @@ subscription-tracker/
 │   ├── header.tsx
 │   ├── how-it-works.tsx
 │   ├── key-features.tsx
+│   ├── legal
+│   │   ├── DisclaimerCheckbox.tsx
+│   │   └── LegalDisclaimer.tsx
 │   ├── logo
 │   │   ├── Logo.tsx
 │   │   └── LogoIcon.tsx
@@ -128,6 +131,7 @@ subscription-tracker/
 │       ├── badge.tsx
 │       ├── button.tsx
 │       ├── card.tsx
+│       ├── checkbox.tsx
 │       ├── dropdown-menu.tsx
 │       ├── input.tsx
 │       ├── label.tsx
@@ -185,7 +189,8 @@ subscription-tracker/
 │   │   └── index.ts
 │   ├── errors.ts
 │   ├── hooks
-│   │   └── useContactForm.ts
+│   │   ├── useContactForm.ts
+│   │   └── useLegalAcknowledgment.ts
 │   ├── middleware
 │   │   └── rate-limit.ts
 │   ├── pdf-utils.ts
@@ -210,7 +215,6 @@ subscription-tracker/
 ├── package-lock.json
 ├── package.json
 ├── postcss.config.js
-├── project-structure.txt
 ├── prompts
 │   ├── config
 │   │   └── models.json
@@ -229,6 +233,7 @@ subscription-tracker/
 ├── sentry.server.config.js
 ├── tailwind.config.js
 ├── tailwind.config.ts
+├── tree.txt
 ├── tsconfig.json
 ├── types
 │   ├── analysis.ts

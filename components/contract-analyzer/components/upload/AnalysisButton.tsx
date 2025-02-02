@@ -1,26 +1,32 @@
 import { Button } from '@/components/ui/button';
 import { Loader2, Search } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AnalysisButtonProps {
-  isDisabled: boolean;
+  onClick?: () => void;
   isAnalyzing: boolean;
   isAnalyzed: boolean;
-  onClick: () => void;
+  hasAcceptedDisclaimer: boolean;
 }
 
 export const AnalysisButton = ({ 
-  isDisabled,
+  onClick,
   isAnalyzing,
   isAnalyzed,
-  onClick,
+  hasAcceptedDisclaimer,
 }: AnalysisButtonProps) => {
-  return (
+  const button = (
     <Button
       onClick={onClick}
-      disabled={isDisabled}
+      disabled={!hasAcceptedDisclaimer}
       size="lg"
       variant="default"
-      className="relative min-w-[200px] font-semibold bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
+      className={`
+        relative min-w-[200px] font-semibold 
+        bg-blue-600 hover:bg-blue-700 text-white 
+        dark:bg-blue-700 dark:hover:bg-blue-800
+        disabled:opacity-60 disabled:cursor-not-allowed
+      `}
     >
       {isAnalyzing ? (
         <div className="flex items-center gap-2">
@@ -37,4 +43,21 @@ export const AnalysisButton = ({
       )}
     </Button>
   );
-}
+
+  if (!hasAcceptedDisclaimer) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {button}
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Please accept the legal disclaimer to continue</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return button;
+};

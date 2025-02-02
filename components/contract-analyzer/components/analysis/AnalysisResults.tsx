@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ErrorDisplay } from '@/components/error/ErrorDisplay';
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
@@ -20,24 +21,27 @@ export const AnalysisResults = ({
   error,
   onClose
 }: AnalysisResultsProps) => {
-  // Lock body scroll when modal is open
   useEffect(() => {
-    const scrollPos = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollPos}px`;
-    document.body.style.width = '100%';
-
+    // Add overflow hidden to html element instead of using position: fixed
+    document.documentElement.style.overflow = 'hidden';
+    
     return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, scrollPos);
+      document.documentElement.style.overflow = '';
     };
   }, []);
 
-  // If it's an error, we want a smaller modal that fits the content
-  // If it's analysis results, we want the full-size modal
   const modalSize = error ? 'fit-content' : 'w-full max-w-4xl max-h-[90vh]';
+
+  const LegalWatermark = () => (
+    <Alert variant="destructive" className="border-2 border-red-500 dark:border-red-900 bg-red-50 dark:bg-red-950/30">
+      <AlertDescription className="text-center font-bold text-red-700 dark:text-red-400">
+        FOR INFORMATIONAL PURPOSES ONLY - NOT LEGAL ADVICE
+        <p className="text-sm font-normal mt-1 text-red-600 dark:text-red-300">
+          This AI-generated analysis may contain errors. Always consult with a legal professional.
+        </p>
+      </AlertDescription>
+    </Alert>
+  );
 
   return (
     <div 
@@ -48,7 +52,6 @@ export const AnalysisResults = ({
         className={`${modalSize} bg-white dark:bg-gray-800 shadow-xl relative overflow-hidden`}
         onClick={e => e.stopPropagation()}
       >
-        {/* Close button - Always on top with z-index */}
         <Button
           variant="ghost"
           size="icon"
@@ -60,15 +63,12 @@ export const AnalysisResults = ({
         </Button>
 
         {error ? (
-          // Error display - no ScrollArea needed
           <div className="p-[2.3rem]">
             <ErrorDisplay error={error} />
           </div>
         ) : analysis ? (
-          // Analysis results - with ScrollArea
           <ScrollArea className="h-[80vh] p-6 touch-auto relative z-0">
             <div className="space-y-8">
-              {/* What is this contract? */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">What is this contract?</h2>
                 <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line text-lg">
@@ -76,9 +76,8 @@ export const AnalysisResults = ({
                 </p>
               </section>
 
-              {/* Potential Risks */}
-              <section className="bg-red-50 dark:bg-red-950/30 p-6 rounded-lg">
-                <h2 className="text-2xl font-bold mb-4 text-red-700 dark:text-red-400">Potential Risks</h2>
+              <section className="p-6 rounded-lg border-2 border-red-200 dark:border-red-900/30 bg-gray-50 dark:bg-gray-800/50">
+                <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Potential Risks</h2>
                 <ul className="list-disc pl-5 space-y-2">
                   {analysis.potentialRisks.map((risk, index) => (
                     <li key={index} className="text-gray-700 dark:text-gray-300">{risk}</li>
@@ -86,9 +85,8 @@ export const AnalysisResults = ({
                 </ul>
               </section>
 
-              {/* Important Clauses */}
-              <section className="bg-blue-50 dark:bg-blue-950/30 p-6 rounded-lg">
-                <h2 className="text-2xl font-bold mb-4 text-blue-700 dark:text-blue-400">Key Dates & Requirements</h2>
+              <section className="p-6 rounded-lg border-2 border-blue-200 dark:border-blue-900/30 bg-gray-50 dark:bg-gray-800/50">
+                <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Key Dates & Requirements</h2>
                 <ul className="list-disc pl-5 space-y-2">
                   {analysis.importantClauses.map((clause, index) => (
                     <li key={index} className="text-gray-700 dark:text-gray-300">{clause}</li>
@@ -96,10 +94,9 @@ export const AnalysisResults = ({
                 </ul>
               </section>
 
-              {/* Recommendations */}
               {analysis.recommendations && analysis.recommendations.length > 0 && (
-                <section className="bg-green-50 dark:bg-green-950/30 p-6 rounded-lg">
-                  <h2 className="text-2xl font-bold mb-4 text-green-700 dark:text-green-400">Next Steps</h2>
+                <section className="p-6 rounded-lg border-2 border-green-200 dark:border-green-900/30 bg-gray-50 dark:bg-gray-800/50">
+                  <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Next Steps</h2>
                   <ul className="list-disc pl-5 space-y-2">
                     {analysis.recommendations.map((rec, index) => (
                       <li key={index} className="text-gray-700 dark:text-gray-300">{rec}</li>
@@ -108,9 +105,11 @@ export const AnalysisResults = ({
                 </section>
               )}
 
-              {/* Analysis Info */}
+              {/* Legal Disclaimer Watermark - Bottom */}
+              <LegalWatermark />
+
               {analysis.metadata && (
-                <section className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <section className="mt-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Analysis completed at {new Date(analysis.metadata.analyzedAt).toLocaleString()}
                     {analysis.metadata.sectionsAnalyzed && ` • ${analysis.metadata.sectionsAnalyzed} sections analyzed`}
