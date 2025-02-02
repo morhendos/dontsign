@@ -39,7 +39,8 @@ export const FileUploadSection = ({
     disabled: isUploading || isAnalyzing
   });
 
-  const noFileUploaded = !file && !isUploading;
+  const showUploadPrompt = !file && !isUploading;
+  const showFileInfo = file && !isUploading;
   const showAnalyzeButton = (file || isAnalyzed) && !isUploading;
 
   return (
@@ -72,7 +73,7 @@ export const FileUploadSection = ({
                 </p>
               )}
             </div>
-          ) : noFileUploaded ? (
+          ) : showUploadPrompt ? (
             <>
               <Upload
                 className={cn(
@@ -98,17 +99,17 @@ export const FileUploadSection = ({
                 Supports PDF and DOCX files
               </p>
             </>
-          ) : (
+          ) : showFileInfo ? (
             <>
               <div className="flex items-center space-x-2 text-green-800 dark:text-green-100 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
                 <FileText className="w-8 h-8" />
-                <span className="text-lg font-medium">{file.name}</span>
+                {file && <span className="text-lg font-medium">{file.name}</span>}
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
                 Click or drop another file to replace
               </p>
             </>
-          )}
+          ) : null}
         </div>
       </div>
 
