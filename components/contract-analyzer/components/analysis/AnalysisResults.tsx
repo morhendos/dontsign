@@ -81,7 +81,7 @@ export const AnalysisResults = ({
                 </p>
               </section>
 
-              <section className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <section className="p-6 rounded-lg border-2 border-red-200 dark:border-red-900/30 bg-gray-50 dark:bg-gray-800/50">
                 <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Potential Risks</h2>
                 <ul className="list-disc pl-5 space-y-2">
                   {analysis.potentialRisks.map((risk, index) => (
@@ -90,7 +90,7 @@ export const AnalysisResults = ({
                 </ul>
               </section>
 
-              <section className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <section className="p-6 rounded-lg border-2 border-blue-200 dark:border-blue-900/30 bg-gray-50 dark:bg-gray-800/50">
                 <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Key Dates & Requirements</h2>
                 <ul className="list-disc pl-5 space-y-2">
                   {analysis.importantClauses.map((clause, index) => (
@@ -100,7 +100,7 @@ export const AnalysisResults = ({
               </section>
 
               {analysis.recommendations && analysis.recommendations.length > 0 && (
-                <section className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <section className="p-6 rounded-lg border-2 border-green-200 dark:border-green-900/30 bg-gray-50 dark:bg-gray-800/50">
                   <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Next Steps</h2>
                   <ul className="list-disc pl-5 space-y-2">
                     {analysis.recommendations.map((rec, index) => (
