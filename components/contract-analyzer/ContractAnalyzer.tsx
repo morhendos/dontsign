@@ -10,7 +10,6 @@ import {
 import { FileUploadSection } from './components/upload';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisLog } from '../analysis-log/AnalysisLog';
-import { LegalDisclaimer } from '../legal/LegalDisclaimer';
 import { DisclaimerCheckbox } from '../legal/DisclaimerCheckbox';
 import { useLegalAcknowledgment } from '@/lib/hooks/useLegalAcknowledgment';
 
@@ -59,11 +58,6 @@ export const ContractAnalyzer = () => {
       </div>
 
       <div className="space-y-8">
-        {/* Legal Disclaimer - Always visible */}
-        <div className="w-full max-w-4xl mx-auto">
-          <LegalDisclaimer />
-        </div>
-
         {/* File Upload Section */}
         <FileUploadSection
           file={file}
@@ -74,6 +68,7 @@ export const ContractAnalyzer = () => {
           onAnalyze={hasAccepted ? actions.handleStartAnalysis : undefined}
           isAnalyzing={isAnalyzing}
           isAnalyzed={isAnalyzed}
+          hasAcceptedDisclaimer={hasAccepted}
         />
 
         {/* Disclaimer Checkbox - Show when file is selected but analysis hasn't started */}
