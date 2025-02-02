@@ -22,16 +22,11 @@ export const AnalysisResults = ({
   onClose
 }: AnalysisResultsProps) => {
   useEffect(() => {
-    const scrollPos = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollPos}px`;
-    document.body.style.width = '100%';
-
+    // Add overflow hidden to html element instead of using position: fixed
+    document.documentElement.style.overflow = 'hidden';
+    
     return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, scrollPos);
+      document.documentElement.style.overflow = '';
     };
   }, []);
 
