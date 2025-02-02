@@ -80,9 +80,6 @@ export const AnalysisResults = ({
           // Analysis results - with ScrollArea
           <ScrollArea className="h-[80vh] p-6 touch-auto relative z-0">
             <div className="space-y-8">
-              {/* Legal Disclaimer Watermark - Top */}
-              <LegalWatermark />
-
               {/* What is this contract? */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">What is this contract?</h2>
