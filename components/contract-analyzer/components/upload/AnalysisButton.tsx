@@ -1,32 +1,50 @@
 import { Button } from '@/components/ui/button';
-import { PlayIcon } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AnalysisButtonProps {
   onClick?: () => void;
   isAnalyzing: boolean;
-  disabled?: boolean;
+  isAnalyzed: boolean;
   hasAcceptedDisclaimer: boolean;
 }
 
-export const AnalysisButton = ({
+export const AnalysisButton = ({ 
   onClick,
   isAnalyzing,
-  disabled,
-  hasAcceptedDisclaimer
+  isAnalyzed,
+  hasAcceptedDisclaimer,
 }: AnalysisButtonProps) => {
   const button = (
     <Button
       onClick={onClick}
-      disabled={disabled || isAnalyzing || !hasAcceptedDisclaimer}
-      className={`w-full sm:w-auto flex items-center justify-center gap-2 ${!hasAcceptedDisclaimer ? 'opacity-70' : ''}`}
+      disabled={!hasAcceptedDisclaimer}
+      size="lg"
+      variant="default"
+      className={`
+        relative min-w-[200px] font-semibold 
+        bg-blue-600 hover:bg-blue-700 text-white 
+        dark:bg-blue-700 dark:hover:bg-blue-800
+        disabled:opacity-60 disabled:cursor-not-allowed
+      `}
     >
-      <PlayIcon className="h-4 w-4" />
-      {isAnalyzing ? 'Analyzing...' : 'Analyze Contract'}
+      {isAnalyzing ? (
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Analyzing...</span>
+        </div>
+      ) : isAnalyzed ? (
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4" />
+          <span>View Analysis</span>
+        </div>
+      ) : (
+        'Analyze Contract'
+      )}
     </Button>
   );
 
-  if (!hasAcceptedDisclaimer && !disabled) {
+  if (!hasAcceptedDisclaimer) {
     return (
       <TooltipProvider>
         <Tooltip>
