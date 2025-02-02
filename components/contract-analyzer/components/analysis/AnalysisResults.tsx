@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ErrorDisplay } from '@/components/error/ErrorDisplay';
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
@@ -39,6 +40,17 @@ export const AnalysisResults = ({
   // If it's analysis results, we want the full-size modal
   const modalSize = error ? 'fit-content' : 'w-full max-w-4xl max-h-[90vh]';
 
+  const LegalWatermark = () => (
+    <Alert variant="destructive" className="border-2 border-red-500">
+      <AlertDescription className="text-center font-bold">
+        FOR INFORMATIONAL PURPOSES ONLY - NOT LEGAL ADVICE
+        <p className="text-sm font-normal mt-1">
+          This AI-generated analysis may contain errors. Always consult with a legal professional.
+        </p>
+      </AlertDescription>
+    </Alert>
+  );
+
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 overflow-hidden touch-none"
@@ -68,6 +80,9 @@ export const AnalysisResults = ({
           // Analysis results - with ScrollArea
           <ScrollArea className="h-[80vh] p-6 touch-auto relative z-0">
             <div className="space-y-8">
+              {/* Legal Disclaimer Watermark - Top */}
+              <LegalWatermark />
+
               {/* What is this contract? */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">What is this contract?</h2>
@@ -117,6 +132,9 @@ export const AnalysisResults = ({
                   </p>
                 </section>
               )}
+
+              {/* Legal Disclaimer Watermark - Bottom */}
+              <LegalWatermark />
             </div>
           </ScrollArea>
         ) : null}
