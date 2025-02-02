@@ -42,7 +42,10 @@ export const ContractAnalyzer = () => {
     actions,
   } = useContractAnalyzer();
 
-  const { hasAccepted, acceptDisclaimer } = useLegalAcknowledgment();
+  // Pass the current file name as documentId to ensure checkbox resets for each new file
+  const { hasAccepted, acceptDisclaimer } = useLegalAcknowledgment({
+    documentId: file?.name
+  });
 
   return (
     <AnalyzerLayout>
