@@ -19,15 +19,15 @@ export const AnalysisButton = ({
     <Button
       onClick={onClick}
       disabled={disabled || isAnalyzing || !hasAcceptedDisclaimer}
-      className={`w-full sm:w-auto flex items-center justify-center gap-2 ${!hasAcceptedDisclaimer ? 'opacity-50 cursor-not-allowed' : ''}`}
-      variant={hasAcceptedDisclaimer ? "default" : "secondary"}
+      className="w-full sm:w-auto flex items-center justify-center gap-2"
+      variant="default"
     >
       <PlayIcon className="h-4 w-4" />
       {isAnalyzing ? 'Analyzing...' : 'Analyze Contract'}
     </Button>
   );
 
-  if (!hasAcceptedDisclaimer) {
+  if (!hasAcceptedDisclaimer && !disabled) {
     return (
       <TooltipProvider>
         <Tooltip>
