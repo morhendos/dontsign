@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { initGA, pageview } from '@/lib/analytics';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { CookieConsent } from './CookieConsent';
 import { getAnalyticsConsent, setAnalyticsConsent } from '@/lib/analytics-consent';
 
-export function Analytics() {
+function AnalyticsInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [initialized, setInitialized] = useState(false);
@@ -58,5 +58,13 @@ export function Analytics() {
       onAccept={handleAcceptCookies}
       onDecline={handleDeclineCookies}
     />
+  );
+}
+
+export function Analytics() {
+  return (
+    <Suspense>
+      <AnalyticsInner />
+    </Suspense>
   );
 }
