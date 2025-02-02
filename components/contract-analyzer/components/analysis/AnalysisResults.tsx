@@ -42,11 +42,9 @@ export const AnalysisResults = ({
 
   const LegalWatermark = () => (
     <Alert variant="destructive" className="border-2 border-red-500 dark:border-red-900 bg-red-50 dark:bg-red-950/30">
-      <AlertDescription>
-        <p className="text-center font-bold text-red-700 dark:text-red-400">
-          FOR INFORMATIONAL PURPOSES ONLY - NOT LEGAL ADVICE
-        </p>
-        <p className="text-sm text-center mt-1 text-red-600 dark:text-red-300">
+      <AlertDescription className="text-center font-bold text-red-700 dark:text-red-400">
+        FOR INFORMATIONAL PURPOSES ONLY - NOT LEGAL ADVICE
+        <p className="text-sm font-normal mt-1 text-red-600 dark:text-red-300">
           This AI-generated analysis may contain errors. Always consult with a legal professional.
         </p>
       </AlertDescription>
@@ -82,9 +80,6 @@ export const AnalysisResults = ({
           // Analysis results - with ScrollArea
           <ScrollArea className="h-[80vh] p-6 touch-auto relative z-0">
             <div className="space-y-8">
-              {/* Legal Disclaimer Watermark - Top */}
-              <LegalWatermark />
-
               {/* What is this contract? */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">What is this contract?</h2>
@@ -135,7 +130,7 @@ export const AnalysisResults = ({
                 </section>
               )}
 
-              {/* Legal Disclaimer Watermark - Bottom */}
+              {/* Legal Disclaimer Watermark - Bottom only */}
               <LegalWatermark />
             </div>
           </ScrollArea>
