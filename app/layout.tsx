@@ -12,6 +12,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Microsoft Clarity Analytics */}
         <Script id="microsoft-clarity" strategy="afterInteractive">
           {`
             (function(c,l,a,r,i,t,y){
@@ -21,6 +22,24 @@ export default function RootLayout({
             })(window, document, "clarity", "script", "q3qb8dnygb");
           `}
         </Script>
+
+        {/* Meta tags */}
+        <meta name="description" content="AI-powered contract analysis tool" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#000000" />
+        
+        {/* Open Graph tags */}
+        <meta property="og:title" content="DontSign - Contract Analysis" />
+        <meta property="og:description" content="AI-powered contract analysis tool" />
+        <meta property="og:type" content="website" />
+        
+        {/* Twitter Card tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="DontSign - Contract Analysis" />
+        <meta name="twitter:description" content="AI-powered contract analysis tool" />
+        
+        {/* Favicon */}
+        <link rel="icon" href="/favicon.ico" />
       </head>
       <body className={inter.className}>{children}</body>
     </html>
