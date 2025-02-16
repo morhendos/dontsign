@@ -28,13 +28,20 @@ export default function RootLayout({
           strategy="afterInteractive"
           id="google-tag"
         />
-        <Script id="google-ads" strategy="afterInteractive">
+        <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}');
-            gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
+            gtag('config', '${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}', {
+              'cookie_domain': 'auto'
+            });
+            gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}', {
+              'cookie_domain': 'auto',
+              linker: {
+                domains: ['dontsign.ai', 'app.dontsign.ai']
+              }
+            });
           `}
         </Script>
         
