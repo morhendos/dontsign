@@ -1,6 +1,6 @@
 'use client';
 
-import { ThemeToggle } from '@/components/theme/theme-provider';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { useEffect, useState } from "react";
 
 export default function Header() {
