@@ -30,7 +30,7 @@ export const AnalysisResults = ({
     };
   }, []);
 
-  const modalSize = error ? 'fit-content' : 'w-full max-w-4xl max-h-[90vh]';
+  const modalSize = error ? 'fit-content' : 'w-full max-w-4xl';
 
   const LegalWatermark = () => (
     <Alert variant="destructive" className="border-2 border-red-500 dark:border-red-900 bg-red-50 dark:bg-red-950/30">
@@ -45,80 +45,82 @@ export const AnalysisResults = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-2 sm:p-4 z-50 overflow-hidden touch-none"
+      className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 overflow-hidden touch-none"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <Card 
-        className={`${modalSize} bg-white dark:bg-gray-800 shadow-xl relative overflow-hidden rounded-xl`}
-        onClick={e => e.stopPropagation()}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="absolute right-3 top-3 rounded-full h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 z-50"
+      <div className="m-2 sm:m-4 w-full max-w-4xl">
+        <Card 
+          className={`${modalSize} bg-white dark:bg-gray-800 shadow-xl relative overflow-hidden rounded-xl`}
+          onClick={e => e.stopPropagation()}
         >
-          <X className="h-3 w-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
-          <span className="sr-only">Close</span>
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="absolute right-3 top-3 rounded-full h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 z-50"
+          >
+            <X className="h-3 w-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
+            <span className="sr-only">Close</span>
+          </Button>
 
-        {error ? (
-          <div className="p-6">
-            <ErrorDisplay error={error} />
-          </div>
-        ) : analysis ? (
-          <ScrollArea className="h-[80vh] touch-auto relative z-0">
-            <div className="p-6 space-y-6">
-              <section>
-                <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">What is this contract?</h2>
-                <p className="text-lg text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                  {analysis.summary}
-                </p>
-              </section>
+          {error ? (
+            <div className="p-6">
+              <ErrorDisplay error={error} />
+            </div>
+          ) : analysis ? (
+            <ScrollArea className="max-h-[calc(100vh-16px-16px)] sm:max-h-[calc(100vh-32px-32px)] touch-auto relative z-0">
+              <div className="p-6 space-y-6">
+                <section>
+                  <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">What is this contract?</h2>
+                  <p className="text-lg text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                    {analysis.summary}
+                  </p>
+                </section>
 
-              <section className="p-5 rounded-lg border-2 border-red-200 dark:border-red-900/30 bg-gray-50 dark:bg-gray-800/50">
-                <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">Potential Risks</h2>
-                <ul className="list-disc pl-5 space-y-2">
-                  {analysis.potentialRisks.map((risk, index) => (
-                    <li key={index} className="text-gray-700 dark:text-gray-300">{risk}</li>
-                  ))}
-                </ul>
-              </section>
-
-              <section className="p-5 rounded-lg border-2 border-blue-200 dark:border-blue-900/30 bg-gray-50 dark:bg-gray-800/50">
-                <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">Key Dates & Requirements</h2>
-                <ul className="list-disc pl-5 space-y-2">
-                  {analysis.importantClauses.map((clause, index) => (
-                    <li key={index} className="text-gray-700 dark:text-gray-300">{clause}</li>
-                  ))}
-                </ul>
-              </section>
-
-              {analysis.recommendations && analysis.recommendations.length > 0 && (
-                <section className="p-5 rounded-lg border-2 border-green-200 dark:border-green-900/30 bg-gray-50 dark:bg-gray-800/50">
-                  <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">Next Steps</h2>
+                <section className="p-5 rounded-lg border-2 border-red-200 dark:border-red-900/30 bg-gray-50 dark:bg-gray-800/50">
+                  <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">Potential Risks</h2>
                   <ul className="list-disc pl-5 space-y-2">
-                    {analysis.recommendations.map((rec, index) => (
-                      <li key={index} className="text-gray-700 dark:text-gray-300">{rec}</li>
+                    {analysis.potentialRisks.map((risk, index) => (
+                      <li key={index} className="text-gray-700 dark:text-gray-300">{risk}</li>
                     ))}
                   </ul>
                 </section>
-              )}
 
-              <LegalWatermark />
-
-              {analysis.metadata && (
-                <section className="mt-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Analysis completed at {new Date(analysis.metadata.analyzedAt).toLocaleString()}
-                    {analysis.metadata.sectionsAnalyzed && ` • ${analysis.metadata.sectionsAnalyzed} sections analyzed`}
-                  </p>
+                <section className="p-5 rounded-lg border-2 border-blue-200 dark:border-blue-900/30 bg-gray-50 dark:bg-gray-800/50">
+                  <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">Key Dates & Requirements</h2>
+                  <ul className="list-disc pl-5 space-y-2">
+                    {analysis.importantClauses.map((clause, index) => (
+                      <li key={index} className="text-gray-700 dark:text-gray-300">{clause}</li>
+                    ))}
+                  </ul>
                 </section>
-              )}
-            </div>
-          </ScrollArea>
-        ) : null}
-      </Card>
+
+                {analysis.recommendations && analysis.recommendations.length > 0 && (
+                  <section className="p-5 rounded-lg border-2 border-green-200 dark:border-green-900/30 bg-gray-50 dark:bg-gray-800/50">
+                    <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">Next Steps</h2>
+                    <ul className="list-disc pl-5 space-y-2">
+                      {analysis.recommendations.map((rec, index) => (
+                        <li key={index} className="text-gray-700 dark:text-gray-300">{rec}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                <LegalWatermark />
+
+                {analysis.metadata && (
+                  <section className="mt-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Analysis completed at {new Date(analysis.metadata.analyzedAt).toLocaleString()}
+                      {analysis.metadata.sectionsAnalyzed && ` • ${analysis.metadata.sectionsAnalyzed} sections analyzed`}
+                    </p>
+                  </section>
+                )}
+              </div>
+            </ScrollArea>
+          ) : null}
+        </Card>
+      </div>
     </div>
   );
 };
