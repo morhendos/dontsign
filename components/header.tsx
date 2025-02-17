@@ -1,113 +1,61 @@
 'use client';
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Logo } from "@/components/logo/Logo";
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { ClipboardList } from 'lucide-react';
 import { useEffect, useState } from "react";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const pathname = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 20);
+      setIsScrolled(window.scrollY > 20);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, anchor: string) => {
-    e.preventDefault();
-    
-    if (pathname !== '/') {
-      router.push(`/${anchor}`);
-    } else {
-      const element = document.querySelector(anchor);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-  };
-
   return (
     <header 
       className={`
         fixed top-0 left-0 right-0 z-40
         transition-all duration-300 ease-in-out
-        backdrop-blur-md
+        backdrop-blur-lg
         ${isScrolled
-          ? 'py-3 bg-white/80 dark:bg-gray-900/80 shadow-md'
-          : 'py-8 bg-transparent'}
+          ? 'py-2 bg-white/70 dark:bg-gray-900/70 shadow-lg shadow-black/[0.03] dark:shadow-black/[0.1]'
+          : 'py-4 bg-transparent'}
       `}
     >
+      <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-white/20 dark:from-gray-900/50 dark:to-gray-900/20 pointer-events-none" />
+      
       <nav className="
-        max-w-7xl mx-auto flex justify-between items-center
+        relative z-10
+        max-w-7xl mx-auto 
+        flex items-center
         px-4 md:px-8
         transition-all duration-300 ease-in-out
       ">
-        <Link
-          href="/"
-          className={`
-            hover:opacity-80 transition-all duration-200
-            ${isScrolled ? 'py-1' : 'py-2'}
-          `}
-          aria-label="dontSign.ai Home"
-        >
-          <Logo className={`
-            transition-all duration-300 ease-in-out
-            ${isScrolled ? 'h-6 md:h-7' : 'h-7 md:h-8'}
-          `} />
-        </Link>
+        {/* Left spacer */}
+        <div className="flex-1">
+          <ThemeToggle />
+        </div>
 
-        <div className="flex items-center space-x-6 md:space-x-8">
-          <div className="hidden md:flex space-x-6">
-            <a
-              href="#how-it-works"
-              onClick={(e) => handleAnchorClick(e, '#how-it-works')}
-              className="
-                transition-colors duration-200
-                text-gray-600 hover:text-gray-800 
-                dark:text-gray-300 dark:hover:text-gray-100
-              "
-            >
-              How it Works
-            </a>
-            <a
-              href="#key-features"
-              onClick={(e) => handleAnchorClick(e, '#key-features')}
-              className="
-                transition-colors duration-200
-                text-gray-600 hover:text-gray-800 
-                dark:text-gray-300 dark:hover:text-gray-100
-              "
-            >
-              Key Features
-            </a>
-          </div>
-          
-          <div className="
-            flex items-center border-l border-gray-200 dark:border-gray-700 pl-6 space-x-6
-          ">
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('toggleLog'))}
-              className="
-                text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100
-                transition-colors duration-200
-              "
-              aria-label="Toggle analysis log"
-            >
-              <ClipboardList className="h-5 w-5" />
-            </button>
-            <div className="-mr-2">
-              <ThemeToggle />
-            </div>
-          </div>
+        {/* Centered title */}
+        <h1 
+          className={`
+            text-xl font-semibold
+            text-gray-800 dark:text-gray-200
+            transition-all duration-300
+            ${isScrolled ? 'scale-90' : 'scale-100'}
+          `}
+        >
+          DontSign
+        </h1>
+
+        {/* Right spacer for symmetry */}
+        <div className="flex-1 flex justify-end">
+          {/* Empty div for balance */}
+          <div className="w-9 h-9" />
         </div>
       </nav>
     </header>

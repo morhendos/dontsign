@@ -4,9 +4,9 @@ interface AnalyzerLayoutProps {
 
 export const AnalyzerLayout = ({ children }: AnalyzerLayoutProps) => {
   return (
-    <section className="w-full">
-      <div className="bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 w-full">
-        <div className="max-w-5xl mx-auto py-20">
+    <section className="w-full h-full flex flex-col">
+      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4 py-8 lg:py-12">
+        <div className="w-full">
           {children}
         </div>
       </div>
