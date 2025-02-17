@@ -1,8 +1,6 @@
 'use client';
 
-import Link from "next/link";
-import { Logo } from "@/components/logo/Logo";
-import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { ThemeToggle } from '@/components/theme/theme-provider';
 import { useEffect, useState } from "react";
 
 export default function Header() {
@@ -10,8 +8,7 @@ export default function Header() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 20);
+      setIsScrolled(window.scrollY > 20);
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -34,26 +31,31 @@ export default function Header() {
       <nav className="
         relative z-10
         max-w-7xl mx-auto 
-        flex justify-between items-center
+        flex items-center
         px-4 md:px-8
         transition-all duration-300 ease-in-out
       ">
-        <Link
-          href="/"
+        {/* Left spacer */}
+        <div className="flex-1">
+          <ThemeToggle />
+        </div>
+
+        {/* Centered title */}
+        <h1 
           className={`
-            hover:opacity-80 transition-all duration-200
+            text-xl font-semibold
+            text-gray-800 dark:text-gray-200
+            transition-all duration-300
             ${isScrolled ? 'scale-90' : 'scale-100'}
           `}
-          aria-label="DontSign.ai Home"
         >
-          <Logo className={`
-            transition-all duration-300 ease-in-out
-            ${isScrolled ? 'h-6 md:h-7' : 'h-7 md:h-8'}
-          `} />
-        </Link>
+          DontSign
+        </h1>
 
-        <div className="flex items-center">
-          <ThemeToggle />
+        {/* Right spacer for symmetry */}
+        <div className="flex-1 flex justify-end">
+          {/* Empty div for balance */}
+          <div className="w-9 h-9" />
         </div>
       </nav>
     </header>
