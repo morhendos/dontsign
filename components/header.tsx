@@ -1,39 +1,21 @@
 'use client';
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/logo/Logo";
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { ClipboardList } from 'lucide-react';
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const pathname = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 20);
+      setIsScrolled(window.scrollY > 20);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, anchor: string) => {
-    e.preventDefault();
-    
-    if (pathname !== '/') {
-      router.push(`/${anchor}`);
-    } else {
-      const element = document.querySelector(anchor);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-  };
 
   return (
     <header 
@@ -65,49 +47,8 @@ export default function Header() {
           `} />
         </Link>
 
-        <div className="flex items-center space-x-6 md:space-x-8">
-          <div className="hidden md:flex space-x-6">
-            <a
-              href="#how-it-works"
-              onClick={(e) => handleAnchorClick(e, '#how-it-works')}
-              className="
-                transition-colors duration-200
-                text-gray-600 hover:text-gray-800 
-                dark:text-gray-300 dark:hover:text-gray-100
-              "
-            >
-              How it Works
-            </a>
-            <a
-              href="#key-features"
-              onClick={(e) => handleAnchorClick(e, '#key-features')}
-              className="
-                transition-colors duration-200
-                text-gray-600 hover:text-gray-800 
-                dark:text-gray-300 dark:hover:text-gray-100
-              "
-            >
-              Key Features
-            </a>
-          </div>
-          
-          <div className="
-            flex items-center border-l border-gray-200 dark:border-gray-700 pl-6 space-x-6
-          ">
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('toggleLog'))}
-              className="
-                text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100
-                transition-colors duration-200
-              "
-              aria-label="Toggle analysis log"
-            >
-              <ClipboardList className="h-5 w-5" />
-            </button>
-            <div className="-mr-2">
-              <ThemeToggle />
-            </div>
-          </div>
+        <div className="flex items-center">
+          <ThemeToggle />
         </div>
       </nav>
     </header>
