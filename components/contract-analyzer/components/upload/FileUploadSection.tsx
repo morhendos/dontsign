@@ -2,7 +2,7 @@
 
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Camera, File } from 'lucide-react';
+import { Upload, FileText, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnalysisButton } from './AnalysisButton';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -33,22 +33,9 @@ export const FileUploadSection = ({
 }: FileUploadSectionProps) => {
   const [isDragActive, setIsDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile('ontouchstart' in window);
-    };
-    checkMobile();
-  }, []);
 
   const { getRootProps, getInputProps, isDragAccept } = useDropzone({
-    onDrop: files => {
-      if (isMobile && navigator.vibrate) {
-        navigator.vibrate(50);
-      }
-      onFileSelect(files[0]);
-    },
+    onDrop: files => onFileSelect(files[0]),
     onDragEnter: () => setIsDragActive(true),
     onDragLeave: () => setIsDragActive(false),
     accept: {
@@ -74,21 +61,8 @@ export const FileUploadSection = ({
   const showFileInfo = file && !isUploading;
   const showAnalyzeButton = (file || isAnalyzed) && !isUploading;
 
-  const handleCameraClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) onFileSelect(file);
-    };
-    input.click();
-  };
-
   return (
-    <div className="space-y-4 md:space-y-6 px-2 sm:px-0">
+    <div className="space-y-4 md:space-y-6">
       {/* Progress Steps */}
       <div className="flex justify-center items-center space-x-3 md:space-x-4 mb-4 md:mb-8">
         <div className={cn(
@@ -168,43 +142,12 @@ export const FileUploadSection = ({
                       : 'text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:scale-110'
                   )}
                 />
-                {isMobile ? (
-                  <>
-                    <p className="text-base md:text-lg font-medium mb-2">
-                      Upload your contract
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs">
-                      <Button
-                        variant="default"
-                        className="w-full"
-                        onClick={() => document.getElementById('file-upload')?.click()}
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        Choose File
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={handleCameraClick}
-                      >
-                        <Camera className="w-4 h-4 mr-2" />
-                        Take Photo
-                      </Button>
-                    </div>
-                    <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-2">
-                      Supports PDF and DOCX files
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-base md:text-lg font-medium mb-2">
-                      Drop your contract here or click to select
-                    </p>
-                    <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-2">
-                      Supports PDF and DOCX files
-                    </p>
-                  </>
-                )}
+                <p className="text-base md:text-lg font-medium mb-2">
+                  Drop your contract here or click to select
+                </p>
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                  Supports PDF and DOCX files
+                </p>
               </div>
             </>
           ) : showFileInfo ? (
