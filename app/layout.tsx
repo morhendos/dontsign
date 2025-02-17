@@ -1,5 +1,4 @@
 import Header from '@/components/header'
-import Footer from '@/components/footer'
 import { Analytics } from '@/components/Analytics'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import type { Metadata } from 'next'
@@ -69,7 +68,9 @@ export default function RootLayout({
             <div className="py-16 px-4">
               {children}
             </div>
-            <Footer />
+            <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+              © {new Date().getFullYear()} DontSign. All rights reserved.
+            </div>
           </main>
         </ThemeProvider>
       </body>
