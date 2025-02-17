@@ -1,1 +1,3 @@
-// This file can be deleted
+export default function TermsPage() {
+  return null;
+}
