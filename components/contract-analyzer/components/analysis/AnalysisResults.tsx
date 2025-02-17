@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,34 +24,19 @@ export const AnalysisResults = ({
   onClose
 }: AnalysisResultsProps) => {
   useEffect(() => {
-    // Add overflow hidden to html element instead of using position: fixed
     document.documentElement.style.overflow = 'hidden';
-    
     return () => {
       document.documentElement.style.overflow = '';
     };
   }, []);
 
-  const modalSize = error ? 'fit-content' : 'w-full max-w-4xl max-h-[90vh]';
-
-  const LegalWatermark = () => (
-    <Alert variant="destructive" className="border-2 border-red-500 dark:border-red-900 bg-red-50 dark:bg-red-950/30">
-      <AlertDescription className="text-center font-bold text-red-700 dark:text-red-400">
-        FOR INFORMATIONAL PURPOSES ONLY - NOT LEGAL ADVICE
-        <p className="text-sm font-normal mt-1 text-red-600 dark:text-red-300">
-          This AI-generated analysis may contain errors. Always consult with a legal professional.
-        </p>
-      </AlertDescription>
-    </Alert>
-  );
-
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 overflow-hidden touch-none"
+      className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-2 sm:p-4 z-50 overflow-hidden touch-none"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <Card 
-        className={`${modalSize} bg-white dark:bg-gray-800 shadow-xl relative overflow-hidden`}
+        className="w-full max-w-4xl bg-white dark:bg-gray-800 shadow-xl relative overflow-hidden rounded-xl"
         onClick={e => e.stopPropagation()}
       >
         <Button
@@ -63,21 +50,21 @@ export const AnalysisResults = ({
         </Button>
 
         {error ? (
-          <div className="p-[2.3rem]">
+          <div className="p-6">
             <ErrorDisplay error={error} />
           </div>
         ) : analysis ? (
-          <ScrollArea className="h-[80vh] p-6 touch-auto relative z-0">
-            <div className="space-y-8">
-              <section className="mb-8">
-                <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">What is this contract?</h2>
-                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line text-lg">
+          <ScrollArea className="h-[85vh] touch-auto relative z-0">
+            <div className="p-6 space-y-6">
+              <section>
+                <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">What is this contract?</h2>
+                <p className="text-lg text-gray-700 dark:text-gray-300 whitespace-pre-line">
                   {analysis.summary}
                 </p>
               </section>
 
-              <section className="p-6 rounded-lg border-2 border-red-200 dark:border-red-900/30 bg-gray-50 dark:bg-gray-800/50">
-                <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Potential Risks</h2>
+              <section className="p-5 rounded-lg border-2 border-red-200 dark:border-red-900/30 bg-gray-50 dark:bg-gray-800/50">
+                <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">Potential Risks</h2>
                 <ul className="list-disc pl-5 space-y-2">
                   {analysis.potentialRisks.map((risk, index) => (
                     <li key={index} className="text-gray-700 dark:text-gray-300">{risk}</li>
@@ -85,8 +72,8 @@ export const AnalysisResults = ({
                 </ul>
               </section>
 
-              <section className="p-6 rounded-lg border-2 border-blue-200 dark:border-blue-900/30 bg-gray-50 dark:bg-gray-800/50">
-                <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Key Dates & Requirements</h2>
+              <section className="p-5 rounded-lg border-2 border-blue-200 dark:border-blue-900/30 bg-gray-50 dark:bg-gray-800/50">
+                <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">Key Dates & Requirements</h2>
                 <ul className="list-disc pl-5 space-y-2">
                   {analysis.importantClauses.map((clause, index) => (
                     <li key={index} className="text-gray-700 dark:text-gray-300">{clause}</li>
@@ -95,8 +82,8 @@ export const AnalysisResults = ({
               </section>
 
               {analysis.recommendations && analysis.recommendations.length > 0 && (
-                <section className="p-6 rounded-lg border-2 border-green-200 dark:border-green-900/30 bg-gray-50 dark:bg-gray-800/50">
-                  <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Next Steps</h2>
+                <section className="p-5 rounded-lg border-2 border-green-200 dark:border-green-900/30 bg-gray-50 dark:bg-gray-800/50">
+                  <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">Next Steps</h2>
                   <ul className="list-disc pl-5 space-y-2">
                     {analysis.recommendations.map((rec, index) => (
                       <li key={index} className="text-gray-700 dark:text-gray-300">{rec}</li>
@@ -105,8 +92,14 @@ export const AnalysisResults = ({
                 </section>
               )}
 
-              {/* Legal Disclaimer Watermark - Bottom */}
-              <LegalWatermark />
+              <Alert variant="destructive" className="border-2 border-red-500 dark:border-red-900 bg-red-50 dark:bg-red-950/30">
+                <AlertDescription className="text-center font-bold text-red-700 dark:text-red-400">
+                  FOR INFORMATIONAL PURPOSES ONLY - NOT LEGAL ADVICE
+                  <p className="text-sm font-normal mt-1 text-red-600 dark:text-red-300">
+                    This AI-generated analysis may contain errors. Always consult with a legal professional.
+                  </p>
+                </AlertDescription>
+              </Alert>
 
               {analysis.metadata && (
                 <section className="mt-2 pt-4 border-t border-gray-200 dark:border-gray-700">

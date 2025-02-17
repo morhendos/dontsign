@@ -23,7 +23,7 @@ export default function Header() {
         backdrop-blur-lg
         ${isScrolled
           ? 'py-2 bg-white/70 dark:bg-gray-900/70 shadow-lg shadow-black/[0.03] dark:shadow-black/[0.1]'
-          : 'py-4 bg-transparent'}
+          : 'py-3 bg-transparent'}
       `}
     >
       <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-white/20 dark:from-gray-900/50 dark:to-gray-900/20 pointer-events-none" />
@@ -43,7 +43,7 @@ export default function Header() {
         {/* Centered title */}
         <h1 
           className={`
-            text-xl font-semibold
+            text-base sm:text-lg md:text-xl font-semibold
             text-gray-800 dark:text-gray-200
             transition-all duration-300
             ${isScrolled ? 'scale-90' : 'scale-100'}
