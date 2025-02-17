@@ -10,8 +10,6 @@ import {
 import { FileUploadSection } from './components/upload';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisLog } from '../analysis-log/AnalysisLog';
-import { DisclaimerCheckbox } from '../legal/DisclaimerCheckbox';
-import { useLegalAcknowledgment } from '@/lib/hooks/useLegalAcknowledgment';
 
 /**
  * Main contract analysis component that orchestrates the analysis workflow
@@ -42,11 +40,6 @@ export const ContractAnalyzer = () => {
     actions,
   } = useContractAnalyzer();
 
-  // Pass the current file name as documentId to ensure checkbox resets for each new file
-  const { hasAccepted, acceptDisclaimer } = useLegalAcknowledgment({
-    documentId: file?.name
-  });
-
   return (
     <AnalyzerLayout>
       {/* Header with Analysis Controls */}
@@ -68,21 +61,11 @@ export const ContractAnalyzer = () => {
           onFileSelect={actions.handleFileSelect}
           isUploading={isProcessing}
           processingStatus={status}
-          onAnalyze={hasAccepted ? actions.handleStartAnalysis : undefined}
+          onAnalyze={actions.handleStartAnalysis}
           isAnalyzing={isAnalyzing}
           isAnalyzed={isAnalyzed}
-          hasAcceptedDisclaimer={hasAccepted}
+          hasAcceptedDisclaimer={true}
         />
-
-        {/* Disclaimer Checkbox - Show when file is selected but analysis hasn't started */}
-        {file && !isAnalyzing && !isAnalyzed && (
-          <div className="w-full max-w-2xl mx-auto">
-            <DisclaimerCheckbox
-              accepted={hasAccepted}
-              onAccept={acceptDisclaimer}
-            />
-          </div>
-        )}
 
         {/* Analysis Progress */}
         {isAnalyzing && !error && (
