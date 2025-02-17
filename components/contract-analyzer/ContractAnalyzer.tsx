@@ -53,7 +53,7 @@ export const ContractAnalyzer = () => {
         )}
       </div>
 
-      <div className="space-y-8">
+      <div>
         {/* File Upload Section */}
         <FileUploadSection
           file={file}
@@ -83,16 +83,16 @@ export const ContractAnalyzer = () => {
 
         {/* Analysis Results or Error Display */}
         {error ? (
-          <AnalysisResults 
-            analysis={null} 
-            error={error} 
-            onClose={() => actions.handleClearError()} 
+          <AnalysisResults
+            analysis={null}
+            error={error}
+            onClose={() => actions.handleClearError()}
           />
         ) : results.isVisible && analysis ? (
-          <AnalysisResults 
-            analysis={analysis} 
+          <AnalysisResults
+            analysis={analysis}
             error={null}
-            onClose={() => results.hide()} 
+            onClose={() => results.hide()}
           />
         ) : null}
       </div>
