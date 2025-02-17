@@ -19,9 +19,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="h-full">
       <head>
-        {/* Google tag (gtag.js) */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}`}
           strategy="afterInteractive"
@@ -32,19 +31,11 @@ export default function RootLayout({
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}', {
-              'cookie_domain': 'auto'
-            });
-            gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}', {
-              'cookie_domain': 'auto',
-              linker: {
-                domains: ['dontsign.ai', 'app.dontsign.ai']
-              }
-            });
+            gtag('config', '${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}');
+            gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
           `}
         </Script>
         
-        {/* Microsoft Clarity */}
         <Script id="microsoft-clarity" strategy="afterInteractive">
           {`
             (function(c,l,a,r,i,t,y){
@@ -55,25 +46,27 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} h-full`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <Analytics />
-          <Header />
-          <main className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 pt-24">
-            <div className="py-16 px-4">
-              {children}
-            </div>
-            <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
-              © {new Date().getFullYear()} DontSign. All rights reserved.
-            </div>
-          </main>
+          <div className="min-h-full flex flex-col">
+            <Analytics />
+            <Header />
+            <main className="flex-1 flex flex-col bg-gradient-to-br from-blue-50 via-green-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+              <div className="flex-1 flex items-center justify-center py-4 px-4">
+                {children}
+              </div>
+              <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+                © {new Date().getFullYear()} DontSign. All rights reserved.
+              </div>
+            </main>
+          </div>
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
