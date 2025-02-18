@@ -3,10 +3,12 @@
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Logo } from '@/components/logo/Logo';
 import { AnalysisControls } from '@/components/contract-analyzer/components/analysis';
+import { useContractAnalyzer } from '@/components/contract-analyzer/hooks/useContractAnalyzer';
 import { useEffect, useState } from "react";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const { history, actions } = useContractAnalyzer();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,7 +22,7 @@ export default function Header() {
   return (
     <header 
       className={`
-        fixed top-0 left-0 right-0 z-[39]
+        fixed top-0 left-0 right-0 z-40
         transition-all duration-300 ease-in-out
         backdrop-blur-lg
         ${isScrolled
@@ -31,7 +33,7 @@ export default function Header() {
       <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-white/20 dark:from-gray-900/50 dark:to-gray-900/20 pointer-events-none" />
       
       <nav className="
-        relative z-[1]
+        relative z-10
         w-full
         flex items-center
         pr-4 md:pr-8
@@ -50,10 +52,8 @@ export default function Header() {
         {/* Right section with history button */}
         <div className="flex items-center gap-2">
           <AnalysisControls
-            hasStoredAnalyses={true}
-            onSelectStoredAnalysis={(analysis) => {
-              console.log('Selected analysis:', analysis);
-            }}
+            hasStoredAnalyses={history.hasAnalyses}
+            onSelectStoredAnalysis={actions.handleSelectStoredAnalysis}
           />
         </div>
       </nav>
