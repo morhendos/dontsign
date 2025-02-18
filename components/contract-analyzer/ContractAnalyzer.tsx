@@ -3,7 +3,6 @@
 import { useContractAnalyzer } from './hooks/useContractAnalyzer';
 import { AnalyzerLayout, AnalyzerHeader } from './components/layout';
 import {
-  AnalysisControls,
   AnalysisProgress,
   AnalysisResults,
 } from './components/analysis';
@@ -42,15 +41,9 @@ export const ContractAnalyzer = () => {
 
   return (
     <AnalyzerLayout>
-      {/* Header with Analysis Controls */}
+      {/* Header */}
       <div className="w-full">
         <AnalyzerHeader />
-        {history.hasAnalyses && (
-          <AnalysisControls
-            hasStoredAnalyses={history.hasAnalyses}
-            onSelectStoredAnalysis={actions.handleSelectStoredAnalysis}
-          />
-        )}
       </div>
 
       <div className="w-full">
