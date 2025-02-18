@@ -43,7 +43,7 @@ export const ContractAnalyzer = () => {
   return (
     <AnalyzerLayout>
       {/* Header with Analysis Controls */}
-      <div className="">
+      <div className="w-full">
         <AnalyzerHeader />
         {history.hasAnalyses && (
           <AnalysisControls
@@ -53,7 +53,7 @@ export const ContractAnalyzer = () => {
         )}
       </div>
 
-      <div>
+      <div className="w-full">
         {/* File Upload Section */}
         <FileUploadSection
           file={file}
@@ -69,7 +69,7 @@ export const ContractAnalyzer = () => {
 
         {/* Analysis Progress */}
         {isAnalyzing && !error && (
-          <div className="w-full max-w-md mx-auto">
+          <div className="w-full">
             <AnalysisProgress
               sectionsAnalyzed={sectionsAnalyzed}
               totalChunks={totalChunks}
