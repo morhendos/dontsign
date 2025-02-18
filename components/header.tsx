@@ -3,12 +3,14 @@
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Logo } from '@/components/logo/Logo';
 import { AnalysisControls } from '@/components/contract-analyzer/components/analysis';
-import { useContractAnalyzer } from '@/components/contract-analyzer/hooks/useContractAnalyzer';
+import { useAnalyzerStore } from '@/lib/store';
 import { useEffect, useState } from "react";
+import { getStoredAnalyses } from '@/lib/storage';
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const { history, actions } = useContractAnalyzer();
+  const { onSelectStoredAnalysis } = useAnalyzerStore();
+  const hasStoredAnalyses = getStoredAnalyses().length > 0;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -52,8 +54,8 @@ export default function Header() {
         {/* Right section with history button */}
         <div className="flex items-center gap-2">
           <AnalysisControls
-            hasStoredAnalyses={history.hasAnalyses}
-            onSelectStoredAnalysis={actions.handleSelectStoredAnalysis}
+            hasStoredAnalyses={hasStoredAnalyses}
+            onSelectStoredAnalysis={onSelectStoredAnalysis}
           />
         </div>
       </nav>
