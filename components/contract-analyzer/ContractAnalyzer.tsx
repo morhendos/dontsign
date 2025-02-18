@@ -1,15 +1,21 @@
 'use client';
 
-import { useContractAnalyzer } from './hooks/useContractAnalyzer';
+import { useEffect } from 'react';
 import { AnalyzerLayout, AnalyzerHeader } from './components/layout';
 import {
-  AnalysisControls,
   AnalysisProgress,
   AnalysisResults,
 } from './components/analysis';
 import { FileUploadSection } from './components/upload';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisLog } from '../analysis-log/AnalysisLog';
+import { useContractAnalyzer } from './hooks/useContractAnalyzer';
+
+declare global {
+  interface Window {
+    handleAnalysisSelect?: (analysis: any) => void;
+  }
+}
 
 /**
  * Main contract analysis component that orchestrates the analysis workflow
@@ -40,20 +46,22 @@ export const ContractAnalyzer = () => {
     actions,
   } = useContractAnalyzer();
 
+  // Register global handler for history selection
+  useEffect(() => {
+    window.handleAnalysisSelect = actions.handleSelectStoredAnalysis;
+    return () => {
+      delete window.handleAnalysisSelect;
+    };
+  }, [actions.handleSelectStoredAnalysis]);
+
   return (
     <AnalyzerLayout>
-      {/* Header with Analysis Controls */}
-      <div className="">
+      {/* Header */}
+      <div className="w-full">
         <AnalyzerHeader />
-        {history.hasAnalyses && (
-          <AnalysisControls
-            hasStoredAnalyses={history.hasAnalyses}
-            onSelectStoredAnalysis={actions.handleSelectStoredAnalysis}
-          />
-        )}
       </div>
 
-      <div>
+      <div className="w-full">
         {/* File Upload Section */}
         <FileUploadSection
           file={file}
@@ -69,7 +77,7 @@ export const ContractAnalyzer = () => {
 
         {/* Analysis Progress */}
         {isAnalyzing && !error && (
-          <div className="w-full max-w-md mx-auto">
+          <div className="w-full">
             <AnalysisProgress
               sectionsAnalyzed={sectionsAnalyzed}
               totalChunks={totalChunks}

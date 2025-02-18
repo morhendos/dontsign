@@ -1,10 +1,15 @@
 'use client';
 
 import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { Logo } from '@/components/logo/Logo';
+import { AnalysisControls } from '@/components/contract-analyzer/components/analysis';
 import { useEffect, useState } from "react";
+import { getStoredAnalyses } from '@/lib/storage';
+import type { StoredAnalysis } from '@/types/storage';
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [hasStoredAnalyses, setHasStoredAnalyses] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -14,6 +19,18 @@ export default function Header() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Check for stored analyses after mounting
+  useEffect(() => {
+    setHasStoredAnalyses(getStoredAnalyses().length > 0);
+  }, []);
+
+  const handleStoredAnalysisSelect = (analysis: StoredAnalysis) => {
+    // We'll revert back to using the original handler from ContractAnalyzer
+    if (window.handleAnalysisSelect) {
+      window.handleAnalysisSelect(analysis);
+    }
+  };
 
   return (
     <header 
@@ -40,21 +57,18 @@ export default function Header() {
           <ThemeToggle />
         </div>
 
-        {/* Centered title */}
-        <h1 
-          className={`
-            flex-1 text-center
-            text-base sm:text-lg md:text-xl font-semibold
-            text-gray-800 dark:text-gray-200
-            transition-all duration-300
-            ${isScrolled ? 'scale-90' : 'scale-100'}
-          `}
-        >
-          DontSign
-        </h1>
+        {/* Centered logo */}
+        <div className="flex-1 flex justify-center">
+          <Logo className={`transition-transform duration-300 ${isScrolled ? 'scale-90' : 'scale-100'}`} />
+        </div>
 
-        {/* Right spacer for symmetry */}
-        <div className="w-9 h-9" />
+        {/* Right section with history button */}
+        <div className="flex items-center gap-2">
+          <AnalysisControls
+            hasStoredAnalyses={hasStoredAnalyses}
+            onSelectStoredAnalysis={handleStoredAnalysisSelect}
+          />
+        </div>
       </nav>
     </header>
   );
