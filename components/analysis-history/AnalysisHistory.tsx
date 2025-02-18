@@ -19,16 +19,6 @@ export function AnalysisHistory({ onSelect, children }: AnalysisHistoryProps) {
   const [analyses, setAnalyses] = useState<StoredAnalysis[]>([]);
   const [isVisible, setIsVisible] = useState(false);
 
-  // Handle body scroll lock
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
   useEffect(() => {
     if (isOpen) {
       setAnalyses(getStoredAnalyses());
@@ -52,20 +42,19 @@ export function AnalysisHistory({ onSelect, children }: AnalysisHistoryProps) {
 
   const handleClose = () => {
     setIsVisible(false);
-    document.body.style.overflow = '';
     setTimeout(() => setIsOpen(false), 300); // Wait for exit animation
   };
 
   return (
-    <div onClick={() => setIsOpen(true)}>
+    <div className="flex items-center" onClick={() => setIsOpen(true)}>
       {children}
 
       {/* Modal */}
       {isOpen && (
         <div 
           className={cn(
-            'fixed inset-0 z-50 bg-black/40 backdrop-blur-sm touch-none',
-            'flex items-center justify-center',
+            'fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm',
+            'flex items-start justify-center overflow-y-auto py-16',
             'transition-opacity duration-300',
             isVisible ? 'opacity-100' : 'opacity-0'
           )}
@@ -73,16 +62,16 @@ export function AnalysisHistory({ onSelect, children }: AnalysisHistoryProps) {
         >
           <Card
             className={cn(
-              'absolute top-0 left-0 right-0 bottom-0 md:relative md:w-full md:max-w-2xl md:min-h-[60vh] md:max-h-[90vh] flex flex-col touch-auto',
+              'relative w-full max-w-2xl mx-4 flex flex-col min-h-[60vh]',
               'bg-white dark:bg-gray-800/95 backdrop-blur-sm',
-              'rounded-none md:rounded-xl shadow-2xl border-0',
+              'rounded-xl shadow-2xl border-0',
               'transition-all duration-300',
               isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
             )}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 z-50 flex items-center justify-between p-6 bg-white dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 md:rounded-t-xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between p-6 bg-white dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 rounded-t-xl">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                 <History className="w-6 h-6 text-gray-500 dark:text-gray-400" />
                 Analysis History
@@ -103,8 +92,8 @@ export function AnalysisHistory({ onSelect, children }: AnalysisHistoryProps) {
             </div>
 
             {/* Content */}
-            <ScrollArea className="flex-1">
-              <div className="p-6 space-y-4">
+            <ScrollArea className="flex-1 p-6">
+              <div className="space-y-4">
                 {analyses.length === 0 ? (
                   <div className="text-center py-12 text-gray-500 dark:text-gray-400 space-y-4">
                     <FileText className="w-12 h-12 mx-auto opacity-50" />
