@@ -18,11 +18,8 @@ subscription-tracker/
 │   │   │   ├── route.ts
 │   │   │   ├── stream-handler.ts
 │   │   │   └── types.ts
-│   │   ├── contact
 │   │   └── submit-contact
 │   │       └── route.ts
-│   ├── contact
-│   │   └── page.tsx
 │   ├── error.tsx
 │   ├── favicon.ico
 │   ├── fonts
@@ -31,14 +28,9 @@ subscription-tracker/
 │   ├── global-error.tsx
 │   ├── globals.css
 │   ├── layout.tsx
-│   ├── lib
 │   ├── metadata.ts
 │   ├── not-found.tsx
-│   ├── page.tsx
-│   ├── privacy
-│   │   └── page.tsx
-│   └── terms
-│       └── page.tsx
+│   └── page.tsx
 ├── components
 │   ├── Analytics.tsx
 │   ├── CookieConsent.tsx
@@ -47,8 +39,6 @@ subscription-tracker/
 │   ├── analysis-log
 │   │   ├── AnalysisLog.tsx
 │   │   └── index.ts
-│   ├── contact
-│   │   └── contact-form.tsx
 │   ├── contract-analyzer
 │   │   ├── ContractAnalyzer.tsx
 │   │   ├── components
@@ -115,9 +105,6 @@ subscription-tracker/
 │   ├── header.tsx
 │   ├── how-it-works.tsx
 │   ├── key-features.tsx
-│   ├── legal
-│   │   ├── DisclaimerCheckbox.tsx
-│   │   └── LegalDisclaimer.tsx
 │   ├── logo
 │   │   ├── Logo.tsx
 │   │   └── LogoIcon.tsx
