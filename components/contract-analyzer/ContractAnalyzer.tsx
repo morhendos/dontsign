@@ -9,15 +9,18 @@ import {
 import { FileUploadSection } from './components/upload';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisLog } from '../analysis-log/AnalysisLog';
-import { useAnalyzerStore } from '@/lib/store';
 import { useContractAnalyzer } from './hooks/useContractAnalyzer';
+
+declare global {
+  interface Window {
+    handleAnalysisSelect?: (analysis: any) => void;
+  }
+}
 
 /**
  * Main contract analysis component that orchestrates the analysis workflow
  */
 export const ContractAnalyzer = () => {
-  const { currentAnalysis } = useAnalyzerStore();
-  
   const {
     // State
     file,
@@ -43,12 +46,13 @@ export const ContractAnalyzer = () => {
     actions,
   } = useContractAnalyzer();
 
-  // Sync local analysis with global store
+  // Register global handler for history selection
   useEffect(() => {
-    if (currentAnalysis && !analysis) {
-      results.show();
-    }
-  }, [currentAnalysis, analysis, results]);
+    window.handleAnalysisSelect = actions.handleSelectStoredAnalysis;
+    return () => {
+      delete window.handleAnalysisSelect;
+    };
+  }, [actions.handleSelectStoredAnalysis]);
 
   return (
     <AnalyzerLayout>
@@ -92,9 +96,9 @@ export const ContractAnalyzer = () => {
             error={error}
             onClose={() => actions.handleClearError()}
           />
-        ) : (results.isVisible && (analysis || currentAnalysis)) ? (
+        ) : results.isVisible && analysis ? (
           <AnalysisResults
-            analysis={currentAnalysis || analysis}
+            analysis={analysis}
             error={null}
             onClose={() => results.hide()}
           />
