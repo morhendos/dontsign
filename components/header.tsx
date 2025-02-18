@@ -5,6 +5,13 @@ import { Logo } from '@/components/logo/Logo';
 import { AnalysisControls } from '@/components/contract-analyzer/components/analysis';
 import { useEffect, useState } from "react";
 import { getStoredAnalyses } from '@/lib/storage';
+import type { StoredAnalysis } from '@/types/storage';
+
+declare global {
+  interface Window {
+    handleAnalysisSelect?: (analysis: StoredAnalysis) => void;
+  }
+}
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -24,7 +31,7 @@ export default function Header() {
     setHasStoredAnalyses(getStoredAnalyses().length > 0);
   }, []);
 
-  const handleStoredAnalysisSelect = (analysis) => {
+  const handleStoredAnalysisSelect = (analysis: StoredAnalysis) => {
     // We'll revert back to using the original handler from ContractAnalyzer
     if (window.handleAnalysisSelect) {
       window.handleAnalysisSelect(analysis);
