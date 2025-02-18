@@ -3,14 +3,12 @@
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Logo } from '@/components/logo/Logo';
 import { AnalysisControls } from '@/components/contract-analyzer/components/analysis';
-import { useAnalyzerStore } from '@/lib/store';
 import { useEffect, useState } from "react";
 import { getStoredAnalyses } from '@/lib/storage';
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const { onSelectStoredAnalysis } = useAnalyzerStore();
-  const hasStoredAnalyses = getStoredAnalyses().length > 0;
+  const [hasStoredAnalyses, setHasStoredAnalyses] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,6 +18,18 @@ export default function Header() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Check for stored analyses after mounting
+  useEffect(() => {
+    setHasStoredAnalyses(getStoredAnalyses().length > 0);
+  }, []);
+
+  const handleStoredAnalysisSelect = (analysis) => {
+    // We'll revert back to using the original handler from ContractAnalyzer
+    if (window.handleAnalysisSelect) {
+      window.handleAnalysisSelect(analysis);
+    }
+  };
 
   return (
     <header 
@@ -55,7 +65,7 @@ export default function Header() {
         <div className="flex items-center gap-2">
           <AnalysisControls
             hasStoredAnalyses={hasStoredAnalyses}
-            onSelectStoredAnalysis={onSelectStoredAnalysis}
+            onSelectStoredAnalysis={handleStoredAnalysisSelect}
           />
         </div>
       </nav>
