@@ -2,10 +2,13 @@
 
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Logo } from '@/components/logo/Logo';
+import { AnalysisControls } from '@/components/contract-analyzer/components/analysis';
+import { useContractAnalyzer } from '@/components/contract-analyzer/hooks/useContractAnalyzer';
 import { useEffect, useState } from "react";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const { history, actions } = useContractAnalyzer();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,8 +49,15 @@ export default function Header() {
           <Logo className={`transition-transform duration-300 ${isScrolled ? 'scale-90' : 'scale-100'}`} />
         </div>
 
-        {/* Right spacer for symmetry */}
-        <div className="w-9 h-9" />
+        {/* Right section with history button */}
+        <div className="flex items-center gap-2">
+          {history.hasAnalyses && (
+            <AnalysisControls
+              hasStoredAnalyses={history.hasAnalyses}
+              onSelectStoredAnalysis={actions.handleSelectStoredAnalysis}
+            />
+          )}
+        </div>
       </nav>
     </header>
   );
