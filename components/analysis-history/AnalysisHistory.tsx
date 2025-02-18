@@ -73,16 +73,16 @@ export function AnalysisHistory({ onSelect, children }: AnalysisHistoryProps) {
         >
           <Card
             className={cn(
-              'absolute inset-4 md:inset-auto md:w-full md:max-w-2xl max-h-[90vh] flex flex-col touch-auto',
+              'absolute top-0 left-0 right-0 bottom-0 md:relative md:w-full md:max-w-2xl md:min-h-[60vh] md:max-h-[90vh] flex flex-col touch-auto',
               'bg-white dark:bg-gray-800/95 backdrop-blur-sm',
-              'rounded-xl shadow-2xl border-0',
+              'rounded-none md:rounded-xl shadow-2xl border-0',
               'transition-all duration-300',
               isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
             )}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 z-50 flex items-center justify-between p-6 bg-white dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 rounded-t-xl">
+            <div className="sticky top-0 z-50 flex items-center justify-between p-6 bg-white dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 md:rounded-t-xl">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                 <History className="w-6 h-6 text-gray-500 dark:text-gray-400" />
                 Analysis History
