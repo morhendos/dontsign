@@ -20,7 +20,7 @@ export default function Header() {
   return (
     <header 
       className={`
-        fixed top-0 left-0 right-0 z-40
+        fixed top-0 left-0 right-0 z-[39]
         transition-all duration-300 ease-in-out
         backdrop-blur-lg
         ${isScrolled
@@ -31,7 +31,7 @@ export default function Header() {
       <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-white/20 dark:from-gray-900/50 dark:to-gray-900/20 pointer-events-none" />
       
       <nav className="
-        relative z-10
+        relative z-[1]
         w-full
         flex items-center
         pr-4 md:pr-8
@@ -52,7 +52,6 @@ export default function Header() {
           <AnalysisControls
             hasStoredAnalyses={true}
             onSelectStoredAnalysis={(analysis) => {
-              // We'll handle this through global state management
               console.log('Selected analysis:', analysis);
             }}
           />
