@@ -30,19 +30,20 @@ export default function Header() {
       
       <nav className="
         relative z-10
-        max-w-7xl mx-auto 
+        w-full
         flex items-center
-        px-4 md:px-8
+        pr-4 md:pr-8
         transition-all duration-300 ease-in-out
       ">
-        {/* Left spacer */}
-        <div className="flex-1">
+        {/* Left section with theme toggle */}
+        <div className="pl-4 md:pl-8">
           <ThemeToggle />
         </div>
 
         {/* Centered title */}
         <h1 
           className={`
+            flex-1 text-center
             text-base sm:text-lg md:text-xl font-semibold
             text-gray-800 dark:text-gray-200
             transition-all duration-300
@@ -53,10 +54,7 @@ export default function Header() {
         </h1>
 
         {/* Right spacer for symmetry */}
-        <div className="flex-1 flex justify-end">
-          {/* Empty div for balance */}
-          <div className="w-9 h-9" />
-        </div>
+        <div className="w-9 h-9" />
       </nav>
     </header>
   );
