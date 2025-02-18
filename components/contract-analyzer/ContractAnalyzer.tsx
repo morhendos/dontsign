@@ -1,6 +1,6 @@
 'use client';
 
-import { useContractAnalyzer } from './hooks/useContractAnalyzer';
+import { useEffect } from 'react';
 import { AnalyzerLayout, AnalyzerHeader } from './components/layout';
 import {
   AnalysisProgress,
@@ -9,11 +9,15 @@ import {
 import { FileUploadSection } from './components/upload';
 import { ErrorDisplay } from '../error/ErrorDisplay';
 import { AnalysisLog } from '../analysis-log/AnalysisLog';
+import { useAnalyzerStore } from '@/lib/store';
+import { useContractAnalyzer } from './hooks/useContractAnalyzer';
 
 /**
  * Main contract analysis component that orchestrates the analysis workflow
  */
 export const ContractAnalyzer = () => {
+  const { currentAnalysis } = useAnalyzerStore();
+  
   const {
     // State
     file,
@@ -38,6 +42,13 @@ export const ContractAnalyzer = () => {
     // Actions
     actions,
   } = useContractAnalyzer();
+
+  // Sync local analysis with global store
+  useEffect(() => {
+    if (currentAnalysis && !analysis) {
+      results.show();
+    }
+  }, [currentAnalysis, analysis, results]);
 
   return (
     <AnalyzerLayout>
@@ -81,9 +92,9 @@ export const ContractAnalyzer = () => {
             error={error}
             onClose={() => actions.handleClearError()}
           />
-        ) : results.isVisible && analysis ? (
+        ) : (results.isVisible && (analysis || currentAnalysis)) ? (
           <AnalysisResults
-            analysis={analysis}
+            analysis={currentAnalysis || analysis}
             error={null}
             onClose={() => results.hide()}
           />
