@@ -7,12 +7,6 @@ import { useEffect, useState } from "react";
 import { getStoredAnalyses } from '@/lib/storage';
 import type { StoredAnalysis } from '@/types/storage';
 
-declare global {
-  interface Window {
-    handleAnalysisSelect?: (analysis: StoredAnalysis) => void;
-  }
-}
-
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [hasStoredAnalyses, setHasStoredAnalyses] = useState(false);
